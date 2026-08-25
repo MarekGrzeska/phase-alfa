@@ -281,6 +281,26 @@ Postgresa. Wycinki PNG dla zadań z rysunkiem — na etapie pilotu **fallbackiem
 **Zrobione, gdy:** pierwszy rocznik w bazie w 100% zatwierdzony; czas korekty
 na rocznik zmierzony i zapisany.
 
+> **Poprawki z implementacji (G2.2.1).**
+> **(1) Terminu dodatkowego `OMAP-100-2506` nie ma w mirrorze** — spis zna dla 2025 r.
+> jedną sesję (`2025-05`), i tak samo dla każdego rocznika 2019–2026. Pilot to jeden
+> klucz `OMAP-100-2505` z dwoma zeszytami (X/Y), nie dwa klucze.
+> **(2) Runner dostał `--year` i `--variant`.** Zawężenie przebiegu umiały wcześniej
+> tylko `--kod` i `--segment`, więc pilot z arkuszami brał cały korpus: kwadrans
+> zamiast minuty i 74 klucze przeładowane bez powodu. Wariant porównuje się po
+> **pierwszym członie** kolumny `warianty`, bo zeszyty trzymają tam także wersję
+> („100,X") — filtr na całość nie znalazłby ani jednego arkusza.
+> **(3) Ekran korekty dostał zakres pracy** (rocznik + kod + wariant). „Następne do
+> korekty" brało pierwsze czekające zadanie z **całego** korpusu, czyli z 2019 r.:
+> pilot kończył się na pierwszym zapisie. Zakres jedzie w adresie i w ukrytych polach
+> formularza, więc przeżywa przekierowanie po zapisie.
+> **(4) Pułapka: przebieg BEZ `--z-arkuszami` kasuje treści i zasoby** wczytane
+> wcześniej z arkuszami. Bramka z G2.1.1 chroni tylko zadania po korekcie, a te
+> `pending` ładowarka kasuje i wstawia od nowa — bez zeszytów, czyli bez `content`
+> i bez `asset`. W pilocie każdy kolejny przebieg tego klucza musi mieć tę flagę.
+> Liczby kontrolne z sondy zgadzają się co do jednego: 21 / 42 / 51 / 73 / 14 / 30 /
+> 17 / 14, pokrycie wymagań, odpowiedzi i kryteriów 100%.
+
 ---
 
 ### G2.2.2 — Decyzja po pilocie (zawór)

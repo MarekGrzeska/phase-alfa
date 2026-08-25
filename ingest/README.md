@@ -9,6 +9,7 @@ task mirror -- --filtr matematyka   # zwózka (idempotentna, dosypuje brakujące
 task mirror -- --dry-run            # nic nie pobiera: raport z tego, co leży na dysku
 task ingest -- --limit 8            # szybki przebieg parsera
 task ingest -- --wyczysc            # cały zakres od zera (~2,5 min)
+task ingest -- --year 2025 --variant 100 --z-arkuszami   # pilot G2.2: jeden klucz z treściami
 task correction                     # ekran korekty na localhoście (G2.1)
 task correction:report              # pomiar S8 do data/reports/
 task test:python                    # ruff + pytest
@@ -108,6 +109,19 @@ klucz nie kosztował 1,5 s parsowania.
 Dziennik `correction_event` przeżywa przeładowanie (`ON DELETE SET NULL`): pomiar S8 jest
 wynikiem alfy i nie ma znikać razem z zadaniami, bo wiersz bez zadania wciąż niesie czas
 i rodzaj decyzji.
+
+**Czego bramka NIE łapie: `--z-arkuszami` pominięte w powtórce.** Zadania `pending`
+przeładowują się bez pytania — i jeśli poprzedni przebieg czytał zeszyty, a ten nie,
+klucz zostaje bez `task_version.content` i bez ani jednego `asset`. Widać to dopiero
+w ekranie, po pustej treści zadania. Klucz raz wczytany z arkuszami wczytuje się z nimi
+zawsze.
+
+### Zakres pracy w ekranie
+
+Rocznik, kod i wariant filtrują listę **oraz** przycisk „Następne do korekty" —
+i jadą dalej w adresie (`/next?year=2025&variant=100`). Bez zakresu przycisk bierze
+pierwsze czekające zadanie z całego korpusu, więc pilot jednego rocznika kończyłby się
+na pierwszym zapisie.
 
 ## Uruchamianie modułami, nie ścieżkami
 
