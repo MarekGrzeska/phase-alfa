@@ -1,0 +1,12 @@
+{
+  // Testy dostają `@types/node`, bo strażnik zero-DOM czyta `package.json`
+  // i pliki źródłowe z dysku. Produkt tych typów NIE dostaje — pilnuje tego
+  // `tsconfig.json`, który obejmuje wyłącznie `src`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  // `vitest.config.ts` TU, a nie w `tsconfig.json`: produkt obejmuje wyłącznie `src`
+  // (pilnuje tego test zero-DOM). Bez tego wpisu nie widział go żaden tsconfig.
+  "include": ["test", "vitest.config.ts"]
+}

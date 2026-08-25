@@ -35,8 +35,7 @@ tasks:
       - cmd: '(cd backend && dotnet --version) > /dev/null || (echo "BRAK: .NET SDK w wersji z backend/global.json" && exit 1)'
       - cmd: 'node --version > /dev/null || (echo "BRAK: Node.js" && exit 1)'
       - cmd: 'pnpm --version > /dev/null || (echo "BRAK: pnpm — corepack enable pnpm" && exit 1)'
-      - cmd: 'echo "OS={{OS}} ARCH={{ARCH}} — komplet dla G1.1-G1.3."'
-      # Vitest i reszta narzędzi weba dochodzą w G1.4
+      - cmd: 'echo "OS={{OS}} ARCH={{ARCH}} — komplet dla G1.1-G1.4."'
 
   # ------------------------------------------------------------------ baza
   up:
@@ -114,18 +113,22 @@ tasks:
             echo "POMIJAM test:dotnet — brak solution (wchodzi w G1.3)"
           fi
 
-  # Dziś to typecheck klienta API: workspace weba stoi (G1.3.2), ale aplikacji
-  # i testów jednostkowych jeszcze nie ma. Zadanie MÓWI, czego nie sprawdza —
-  # cichy stub jest nieodróżnialny od testu, który przechodzi.
+  # Typecheck JEST tu testem zero-DOM: `packages/core` kompiluje się bez `lib: DOM`,
+  # więc `document` w tym pakiecie nie przechodzi przez `tsc`. Vitest dokłada dwie
+  # pozostałe warstwy — zabronione zależności i skan źródeł.
+  #
+  # `build` jest trzecim krokiem, bo emisja deklaracji (`declaration: true`) potrafi
+  # paść tam, gdzie `--noEmit` przechodzi — CI widziało wtedy błąd, a lokalnie nie.
   test:web:
-    desc: Typecheck workspace'u weba (vitest i zero-DOM wchodzą w G1.4)
+    desc: Typecheck (w tym zero-DOM) + vitest + build
     cmds:
       - cmd: |
           if test -f web/pnpm-workspace.yaml; then
             pnpm -C web -r typecheck
-            echo "UWAGA: vitest i test zero-DOM wchodzą w G1.4 — na razie sam typecheck."
+            pnpm -C web -r test
+            pnpm -C web -r build
           else
-            echo "POMIJAM test:web — brak workspace (wchodzi w G1.3.2)"
+            echo "POMIJAM test:web — brak workspace weba"
           fi
 
   test:contract:
@@ -177,12 +180,32 @@ tasks:
   # z zajetym 5014 nie mial gdzie go zmienic bez edycji repozytorium.
   # `launchSettings.json` nie ma juz `applicationUrl`: wygrywalo ono nawet
   # z jawnym ASPNETCORE_URLS, wiec zadne ustawienie ze srodowiska nie dzialalo.
+  #
+  # `WEB_PORT` poszedl ta sama droga: stal na sztywno w echo ponizej, a Vite przy
+  # zajetym porcie po cichu wstaje na nastepnym. Stad `strictPort` w vite.config.ts.
   dev:
-    desc: API z hot-reloadem (web dochodzi w G1.4)
-    deps: [up]
+    desc: API + web z hot-reloadem
     cmds:
-      - cmd: 'echo "API: http://localhost:${API_PORT:-5014} — /health, /openapi/v1.json (tylko w Development). Web wchodzi w G1.4."'
+      - task: up
+      - cmd: 'echo "API: http://localhost:${API_PORT:-5014} · web: http://localhost:${WEB_PORT:-5173} (proxy /api → API)"'
+      - task: dev:watch
+
+  # Oba serwery stoją, dopóki ich nie ubijesz, więc muszą działać RÓWNOLEGLE.
+  # `deps` w go-task są równoległe, `cmds` — po kolei: w `cmds` vite nie wystartowałby
+  # nigdy, bo `dotnet watch` nie kończy się sam.
+  dev:watch:
+    internal: true
+    deps: [dev:api, dev:web]
+
+  dev:api:
+    internal: true
+    cmds:
       - dotnet watch --project backend/src/Klucz.Api run --urls "http://localhost:${API_PORT:-5014}"
+
+  dev:web:
+    internal: true
+    cmds:
+      - pnpm -C web --filter @klucz/web dev
 
   # ------------------------------------------------------------ dalsze fazy
   mirror:

@@ -113,6 +113,41 @@ jobs:
       - name: Testy
         run: dotnet test backend/Klucz.sln --configuration Release --no-build
 
+  web:
+    name: typecheck (zero-DOM) + vitest
+    runs-on: ubuntu-latest
+
+    # Osobne zadanie od `kontrakt`, bo pyta o co innego: czy warstwa TS sama w sobie
+    # jest zdrowa. Zero-DOM egzekwuje tu `tsc` — `packages/core` kompiluje sie bez
+    # `lib: DOM`, wiec `document` w tym pakiecie nie przechodzi typecheck'u. Vitest
+    # dokłada dwie pozostale warstwy: zabronione zaleznosci i skan zrodel.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Zaleznosci
+        run: pnpm -C web install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm -C web -r typecheck
+
+      - name: Testy
+        run: pnpm -C web -r test
+
+      # Build jest osobnym sprawdzianem: `packages/core` ma sie kompilowac SAM
+      # (bez Vite i bez Reacta), a `apps/web` ma sie faktycznie zbudowac do dist.
+      - name: Build
+        run: pnpm -C web -r build
+
   kontrakt:
     name: dryf OpenAPI
     runs-on: ubuntu-latest
@@ -154,9 +189,11 @@ jobs:
 
       # Bramka dryfu sprawdza, czy KONTRAKT zgadza sie z kodem — nie sprawdza, czy
       # klient dalej sie kompiluje. Zmiana nazwy DTO regenerowana i zacommitowana
-      # przechodzila ja na zielono, a recznie pisany `client.ts`, ktory odwoluje sie
-      # do `components["schemas"]["HealthResponse"]`, przestawal sie kompilowac
-      # i nikt sie o tym nie dowiadywal. `task test:web` nie byl wolany w ZADNYM
-      # zadaniu CI, a CLAUDE.md mowi: CI jest jedynym zrodlem prawdy o zielonym buildzie.
+      # przechodzila ja na zielono, a recznie pisany `client.ts` przestawal sie
+      # kompilowac. Zadanie `web` tego nie zastapi: ono typecheck'uje schema.d.ts
+      # Z REPOZYTORIUM, a tutaj plik jest swiezo wygenerowany z biezacego kodu.
+      #
+      # `--filter @klucz/api-client`, a nie `-r`: pytanie o dryf dotyczy wylacznie
+      # klienta, a caly workspace typecheck'owal sie tu drugi raz bez nowej informacji.
       - name: Typecheck klienta
-        run: pnpm -C web -r typecheck
+        run: pnpm -C web --filter @klucz/api-client typecheck

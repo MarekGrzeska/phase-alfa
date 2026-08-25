@@ -1,0 +1,984 @@
+<title>Przegląd kodu — G1.4 szkielet web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+  /* kolory składni — osobne od semantycznych, żeby zmiana jednych nie ruszała drugich */
+  --t-kw:#8B3E8F; --t-str:#2C7355; --t-com:#6B7C79;
+  --t-num:#B0651A; --t-fn:#2B5C86; --t-type:#0E5B4F; --t-ann:#9E2E2E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+    --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+    --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+  --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:68ch}
+h1,h2,h3,.tag,th,.knum{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:0 0 .3rem;text-wrap:balance}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:52px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-kryt{color:var(--crit)} .n-istot{color:var(--warn)}
+.n-drob{color:var(--accent)} .n-rozw{color:var(--info)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-kryt{background:var(--crit-soft);color:var(--crit)}
+.st-istot{background:var(--warn-soft);color:var(--warn)}
+.st-drob{background:var(--accent-soft);color:var(--accent)}
+.st-rozw{background:var(--info-soft);color:var(--info)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+/* karta komentarza */
+.k{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px 22px;border-left:3px solid var(--rule);box-shadow:var(--shadow);
+  margin:0 0 16px;scroll-margin-top:20px}
+.k.kryt{border-left-color:var(--crit)}
+.k.istot{border-left-color:var(--warn)}
+.k.drob{border-left-color:var(--accent)}
+.k.rozw{border-left-color:var(--info)}
+.k-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+.knum{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+  color:var(--ink-3);min-width:1.6rem}
+.k h3{flex:1 1 18ch;margin:0}
+.k-gdzie{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-3);
+  margin:0 0 .9rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule-soft)}
+.k p{font-size:.95rem;color:var(--ink-2);margin-bottom:.75em}
+.k p:last-child{margin-bottom:0}
+.fix{font-size:.92rem;color:var(--ink);border-top:1px solid var(--rule-soft);
+  padding-top:.8rem;margin-top:1rem}
+.fix b{font-family:Archivo,sans-serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:.4rem}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+/* kolorowanie składni — klasy nadaje skrypt na dole dokumentu */
+.t-kw{color:var(--t-kw);font-weight:600}
+.t-str{color:var(--t-str)}
+.t-com{color:var(--t-com);font-style:italic}
+.t-num{color:var(--t-num)}
+.t-fn{color:var(--t-fn)}
+.t-type{color:var(--t-type)}
+.t-ann{color:var(--t-ann);font-weight:600}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">przegląd kodu · 2026-08-25 · feat/g1.4-web</span>
+  <h1>G1.4 — szkielet web</h1>
+  <p class="lede">
+    Dwa commity na <code>feat/g1.4-web</code>: <code>packages/core</code> bez DOM-u,
+    <code>apps/web</code> na Vite i czwarte zadanie w CI. Nic nie blokuje scalenia —
+    nie ma komentarzy krytycznych. Dwa komentarze istotne dotyczą rzeczy, które
+    <b>dziś działają, a ugryzą przy następnej zmianie</b>: pliki testowe pomijane po cichu
+    i komunikat obiecujący port, którego serwer może nie zająć.
+  </p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n n-kryt">0</span><span class="metric-l">krytyczne</span></div>
+    <div class="metric"><span class="metric-n n-istot">2</span><span class="metric-l">istotne</span></div>
+    <div class="metric"><span class="metric-n n-drob">4</span><span class="metric-l">drobne</span></div>
+    <div class="metric"><span class="metric-n n-rozw">3</span><span class="metric-l">do rozważenia</span></div>
+    <div class="metric"><span class="metric-n">26</span><span class="metric-l">plików w diffie<br>(bez lockfile)</span></div>
+  </div>
+</header>
+
+<section id="zakres">
+  <div class="sec-head">
+    <span class="num">01</span>
+    <h2>Co recenzowano</h2>
+  </div>
+  <div class="col">
+    <p>
+      Branch <code>feat/g1.4-web</code> odbity od <code>67bb62c</code>, dwa commity:
+      <code>14bbca9</code> (szkielet) i <code>7c4ab25</code> (poprawka do pnpm).
+      Plan: <code>docs/plan-A1.md</code>, sekcje <b>G1.4.1</b> i <b>G1.4.2</b>.
+    </p>
+    <p>
+      Bez pliku <code>web/pnpm-lock.yaml</code> diff to 26 plików, 858 linii dodanych
+      i 25 usuniętych. Lockfile (5029 linii) pominięto — jest wynikiem instalacji,
+      nie decyzją autora.
+    </p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th class="n">#</th><th>Stopień</th><th>Rzecz</th><th>Plik</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="n"><a href="#k1">1</a></td><td><span class="tag st-istot">istotny</span></td>
+          <td>Pliki testowe <code>.test.ts</code> w <code>apps/web</code> nigdy się nie uruchamiają</td>
+          <td class="id">apps/web/vitest.config.ts</td></tr>
+        <tr><td class="n"><a href="#k2">2</a></td><td><span class="tag st-istot">istotny</span></td>
+          <td><code>task dev</code> obiecuje port 5173, a Vite po cichu bierze inny</td>
+          <td class="id">Taskfile.yml:183</td></tr>
+        <tr><td class="n"><a href="#k3">3</a></td><td><span class="tag st-drob">drobny</span></td>
+          <td>Manifest PWA bez ikon — aplikacji nie da się zainstalować</td>
+          <td class="id">apps/web/vite.config.ts</td></tr>
+        <tr><td class="n"><a href="#k4">4</a></td><td><span class="tag st-drob">drobny</span></td>
+          <td>„<code>core</code> buduje się osobno” sprawdza wyłącznie CI, nie <code>task test</code></td>
+          <td class="id">Taskfile.yml:120</td></tr>
+        <tr><td class="n"><a href="#k5">5</a></td><td><span class="tag st-drob">drobny</span></td>
+          <td>Lista zakazanych zależności gubi <code>@types/react-dom</code> i inne frameworki</td>
+          <td class="id">core/test/zero-dom.test.ts</td></tr>
+        <tr><td class="n"><a href="#k6">6</a></td><td><span class="tag st-drob">drobny</span></td>
+          <td><code>vitest.config.ts</code> nie należy do żadnego tsconfiga</td>
+          <td class="id">oba pakiety</td></tr>
+        <tr><td class="n"><a href="#k7">7</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+          <td><code>TaskKind</code> powiela słownik ze schematu bazy</td>
+          <td class="id">core/src/session.ts:11</td></tr>
+        <tr><td class="n"><a href="#k8">8</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+          <td>Pole tekstowe pokazuje wartość znormalizowaną przez model</td>
+          <td class="id">apps/web/src/App.tsx</td></tr>
+        <tr><td class="n"><a href="#k9">9</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+          <td>Typecheck weba liczy się w CI dwa razy — przy prywatnym repo to minuty</td>
+          <td class="id">.github/workflows/ci.yml</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="komentarze">
+  <div class="sec-head">
+    <span class="num">02</span>
+    <h2>Komentarze</h2>
+    <p class="sec-sub">Od najważniejszych. Każdy da się przeczytać osobno.</p>
+  </div>
+
+  <article class="k istot" id="k1">
+    <div class="k-head">
+      <span class="knum">1</span>
+      <h3>Pliki testowe <code>.test.ts</code> w <code>apps/web</code> nigdy się nie uruchamiają</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">web/apps/web/vitest.config.ts · <code>test.include</code></p>
+
+    <p>
+      Konfiguracja vitesta w <code>apps/web</code> wpuszcza wyłącznie pliki o rozszerzeniu
+      <code>.test.tsx</code>. Plik <code>.test.ts</code> — czyli naturalny wybór dla testu
+      funkcji pomocniczej, która nie rysuje żadnego komponentu — <b>nie jest uruchamiany
+      ani zgłaszany</b>. Vitest nie mówi „pominięto”; po prostu go nie widzi.
+    </p>
+    <p>
+      Dlaczego to jest problem: taki plik wygląda w repozytorium dokładnie jak każdy inny
+      test, przechodzi przegląd i wchodzi do <code>main</code>, a suite pozostaje zielony.
+      To ten sam gatunek błędu, który <code>CLAUDE.md</code> opisuje w sekcji „Testy, które
+      nic nie sprawdzają”: <i>test, który zawsze był zielony, jest nieodróżnialny od testu,
+      który nic nie sprawdza</i>. Tutaj jest jeszcze gorzej — on nie jest nawet zielony,
+      on nie istnieje.
+    </p>
+    <p>
+      Sprawdzone przebiegiem. Do <code>apps/web/test/</code> trafił plik
+      <code>ignored.test.ts</code> z asercją, która <b>musi</b> paść:
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">web/apps/web/test/ignored.test.ts — celowo czerwony</div>
+      <div class="ev-b"><pre data-lang="ts">import { describe, expect, it } from "vitest";
+
+describe("czy ten plik w ogole sie uruchamia", () =&gt; {
+  it("celowo czerwony", () =&gt; {
+    expect("ten test powinien byc uruchomiony").toBe("ale nie jest");
+  });
+});</pre></div>
+    </div>
+
+    <div class="ev">
+      <div class="ev-h">$ npx vitest run — w katalogu web/apps/web</div>
+      <div class="ev-b"><pre data-lang="out">Test Files  1 passed (1)      ← plik .test.ts nie został nawet policzony
+     Tests  3 passed (3)      ← same testy z App.test.tsx
+KOD WYJSCIA: 0                ← czerwony test przeszedł niezauważony</pre></div>
+    </div>
+
+    <p>
+      Ta sama pułapka stoi po drugiej stronie: <code>packages/core</code> wpuszcza wyłącznie
+      <code>.test.ts</code>, więc plik <code>.test.tsx</code> byłby tam niewidoczny. Tam jest
+      to mniej prawdopodobne (pakiet nie ma prawa dotknąć JSX-a), ale mechanizm jest ten sam.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <p>
+        Najprościej — objąć oba rozszerzenia w obu pakietach:
+      </p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="ts">// web/apps/web/vitest.config.ts
+include: ["test/**/*.test.{ts,tsx}"],
+
+// web/packages/core/vitest.config.ts
+include: ["test/**/*.test.{ts,tsx}"],</pre></div>
+      </div>
+      <p>
+        Wariant mocniejszy: skasować <code>include</code> w ogóle i zostawić domyślny wzorzec
+        vitesta (<code>**/*.{test,spec}.?(c|m)[jt]s?(x)</code>), który obejmuje wszystkie
+        sensowne rozszerzenia. Wtedy nie ma czego przeoczyć przy dokładaniu kolejnego.
+      </p>
+      <p>
+        Niezależnie od wariantu warto powtórzyć powyższy przebieg z celowo czerwonym plikiem
+        <code>.test.ts</code> — poprawka ma być <b>widziana na czerwono</b>, tak jak trzy
+        warstwy zero-DOM.
+      </p>
+    </div>
+  </article>
+
+  <article class="k istot" id="k2">
+    <div class="k-head">
+      <span class="knum">2</span>
+      <h3><code>task dev</code> obiecuje port 5173, a Vite po cichu bierze inny</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">Taskfile.yml:183 · zadanie <code>dev</code></p>
+
+    <p>
+      Komunikat wypisywany przy starcie ma numer portu weba wpisany na sztywno:
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">Taskfile.yml:183</div>
+      <div class="ev-b"><pre data-lang="yaml">- cmd: 'echo "API: http://localhost:${API_PORT:-5014} · web: http://localhost:5173 (proxy /api → API)"'</pre></div>
+    </div>
+
+    <p>
+      Vite domyślnie <b>nie upiera się</b> przy porcie 5173: gdy jest zajęty, wypisuje jedną
+      linijkę i wstaje na następnym wolnym. Deweloper, który ma tam już coś innego (drugie
+      repozytorium, poprzedni <code>task dev</code>, który nie zdążył się zamknąć), dostaje
+      komunikat wskazujący adres, pod którym nic nie stoi — i zaczyna szukać błędu w proxy
+      albo w API, choć oba są sprawne.
+    </p>
+    <p>
+      To jest dokładnie ta klasa błędu, którą repozytorium już raz naprawiło — i to opisało
+      w komentarzu kilka linijek wyżej w tym samym pliku, przy okazji <code>API_PORT</code>:
+      <i>„Stal wczesniej na sztywno w trzech plikach WERSJONOWANYCH naraz […] wiec deweloper
+      z zajetym 5014 nie mial gdzie go zmienic bez edycji repozytorium”</i>. Port weba wrócił
+      tą samą drogą.
+    </p>
+    <p>Sprawdzone przebiegiem — dwa serwery Vite obok siebie:</p>
+
+    <div class="ev">
+      <div class="ev-h">$ npx vite --port 5173, a potem drugi npx vite w tym samym katalogu</div>
+      <div class="ev-b"><pre data-lang="out">Port 5173 is in use, trying another one...
+  ➜  Local:   http://localhost:5174/     ← pierwszy serwer
+
+Port 5173 is in use, trying another one...
+Port 5174 is in use, trying another one...
+  ➜  Local:   http://localhost:5175/     ← drugi serwer
+
+Taskfile przez cały czas obiecuje: http://localhost:5173</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <p>
+        Dwie drogi, obie dobre — wybór zależy od tego, czy port weba ma być konfigurowalny.
+      </p>
+      <p>
+        <b>Głośna porażka</b> — <code>strictPort</code> sprawia, że Vite nie zgaduje, tylko
+        przerywa z komunikatem. Komunikat z Taskfile'a przestaje móc skłamać:
+      </p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="ts">// web/apps/web/vite.config.ts
+server: {
+  port: Number(env.WEB_PORT ?? 5173),
+  strictPort: true,
+  proxy: { /* … */ },
+}</pre></div>
+      </div>
+      <p>
+        <b>Port z konfiguracji</b> — <code>WEB_PORT</code> w <code>.env</code> i
+        <code>.env.example</code>, obok <code>DB_PORT</code>, <code>API_PORT</code>
+        i <code>BLOB_PORT</code>, a w Taskfile <code>${WEB_PORT:-5173}</code>. Wtedy jedna
+        wartość rządzi serwerem i komunikatem naraz — tak samo jak przy API.
+      </p>
+    </div>
+  </article>
+
+  <article class="k drob" id="k3">
+    <div class="k-head">
+      <span class="knum">3</span>
+      <h3>Manifest PWA bez ikon — aplikacji nie da się zainstalować</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">web/apps/web/vite.config.ts · sekcja <code>manifest</code></p>
+
+    <p>
+      Manifest deklaruje nazwę, kolory i <code>display: "standalone"</code>, ale nie ma
+      w nim <code>icons</code>. Przeglądarki traktują ikony jako wymagane: bez nich nie
+      pokazują propozycji instalacji i nie dodają aplikacji do ekranu głównego.
+    </p>
+    <p>
+      Dlaczego warto o tym wiedzieć teraz: build kończy się komunikatem, który wygląda
+      na pełen sukces, i nic nie mówi o brakującym elemencie. Ktoś, kto w W4 sięgnie po
+      „zainstaluj aplikację”, nie zobaczy żadnego błędu — po prostu opcji nie będzie.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">$ cat web/apps/web/dist/manifest.webmanifest</div>
+      <div class="ev-b"><pre data-lang="out">{"name":"Klucz","short_name":"Klucz","description":"Ocenianie odpowiedzi według zasad
+oceniania CKE","start_url":"/","display":"standalone","background_color":"#ffffff",
+"theme_color":"#1f2933","lang":"pl","scope":"/"}
+                                            ← brak klucza "icons"</pre></div>
+    </div>
+
+    <p>
+      Stopień jest drobny, bo plan G1.4.1 nie obiecuje instalowalności — mówi tylko
+      „PWA jako plugin”, a alfa jest POC-em na jednym komputerze. Ale <code>web/README.md</code>
+      i opis commita mówią „PWA”, więc warto, żeby to słowo miało pokrycie albo zastrzeżenie.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <p>
+        Dwie ikony w <code>public/</code> (192 i 512 pikseli) plus wpis w manifeście:
+      </p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="ts">manifest: {
+  // …
+  icons: [
+    { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+  ],
+}</pre></div>
+      </div>
+      <p>
+        Albo — jeśli instalowalność ma poczekać na W4 — jedno zdanie w
+        <code>web/README.md</code>: <i>„manifest jest bez ikon, więc aplikacja nie jest
+        jeszcze instalowalna; ikony wchodzą razem z…”</i>. Zapisane zastrzeżenie kosztuje
+        mniej niż pół godziny szukania, dlaczego przeglądarka milczy.
+      </p>
+    </div>
+  </article>
+
+  <article class="k drob" id="k4">
+    <div class="k-head">
+      <span class="knum">4</span>
+      <h3>„<code>packages/core</code> buduje się osobno” sprawdza wyłącznie CI</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">Taskfile.yml:120 · zadanie <code>test:web</code></p>
+
+    <p>
+      Plan G1.4.1 kończy się zdaniem <i>„Zrobione, gdy: <code>task dev</code> podnosi web
+      z HMR, <code>packages/core</code> buduje się osobno”</i>. Budowanie osobno sprawdza
+      w tym branchu tylko zadanie <code>web</code> w CI (<code>pnpm -C web -r build</code>).
+      Lokalne <code>task test:web</code> uruchamia typecheck i vitest, ale nie build.
+    </p>
+    <p>
+      Różnica nie jest teoretyczna: <code>tsconfig.build.json</code> włącza
+      <code>declaration: true</code>, a emisja deklaracji potrafi paść tam, gdzie
+      <code>--noEmit</code> przechodzi (klasyczny przypadek to typ, którego nie da się
+      nazwać w pliku <code>.d.ts</code>). Skutek dla autora: <code>task test</code> na
+      zielono, push, i czerwone CI z błędu, którego lokalnie nie dało się zobaczyć.
+    </p>
+    <p>
+      Stopień jest drobny, bo <code>CLAUDE.md</code> wprost stawia CI jako jedyne źródło
+      prawdy o zielonym buildzie, a opis zadania (<i>„Typecheck (w tym zero-DOM) + vitest”</i>)
+      mówi uczciwie, czego nie robi. To niedomknięcie pętli, nie kłamstwo.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="yaml">test:web:
+  desc: Typecheck (w tym zero-DOM) + vitest + build
+  cmds:
+    - cmd: |
+        if test -f web/pnpm-workspace.yaml; then
+          pnpm -C web -r typecheck
+          pnpm -C web -r test
+          pnpm -C web -r build
+        else
+          echo "POMIJAM test:web — brak workspace (wchodzi w G1.3.2)"
+        fi</pre></div>
+      </div>
+      <p>
+        Koszt to około sekunda dla <code>core</code> i sekunda dla <code>apps/web</code>.
+        Przy okazji warto poprawić gałąź <code>else</code>: mówi „wchodzi w G1.3.2”,
+        a G1.3.2 dawno weszło — komunikat myli następną osobę.
+      </p>
+    </div>
+  </article>
+
+  <article class="k drob" id="k5">
+    <div class="k-head">
+      <span class="knum">5</span>
+      <h3>Lista zakazanych zależności gubi <code>@types/react-dom</code> i inne frameworki</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">web/packages/core/test/zero-dom.test.ts · stała <code>FORBIDDEN</code></p>
+
+    <p>
+      Lista wymienia <code>react</code>, <code>react-dom</code>, <code>@types/react</code>,
+      <code>jsdom</code>, <code>mathlive</code> i kilka innych — ale nie
+      <code>@types/react-dom</code>, ani żadnego frameworka spoza rodziny Reacta
+      (<code>preact</code>, <code>solid-js</code>, <code>vue</code>, <code>svelte</code>).
+    </p>
+    <p>
+      Ryzyko jest umiarkowane, bo to <b>druga</b> warstwa ochrony: gdyby ktoś dołożył
+      <code>preact</code> i faktycznie go użył, warstwa pierwsza (<code>tsconfig</code>)
+      zapali się na pierwszym dotknięciu DOM-u. Luka dotyczy okna między dopisaniem
+      zależności a jej użyciem — czyli dokładnie tego, po co ta warstwa powstała.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="ts">const FORBIDDEN = [
+  "react", "react-dom", "react-native", "@types/react", "@types/react-dom",
+  "preact", "solid-js", "vue", "svelte", "@angular/core",
+  "mathlive", "jsdom", "happy-dom",
+  "@vitejs/plugin-react", "@testing-library/react", "@testing-library/dom",
+];</pre></div>
+      </div>
+      <p>
+        Wariant, który nie wymaga pilnowania listy: odwrócić regułę i sprawdzać, czy
+        <code>dependencies</code> i <code>peerDependencies</code> są <b>puste</b>.
+        Dziś są, a <code>packages/core</code> z definicji ma nie mieć zależności
+        produkcyjnych — <code>devDependencies</code> zostawić przy liście zakazanych.
+      </p>
+    </div>
+  </article>
+
+  <article class="k drob" id="k6">
+    <div class="k-head">
+      <span class="knum">6</span>
+      <h3><code>vitest.config.ts</code> nie należy do żadnego tsconfiga</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">web/packages/core/vitest.config.ts · web/apps/web/vitest.config.ts</p>
+
+    <p>
+      <code>apps/web/tsconfig.json</code> obejmuje <code>src</code>, <code>test</code>
+      i <code>vite.config.ts</code> — ale nie <code>vitest.config.ts</code>. W
+      <code>packages/core</code> żaden z trzech tsconfigów nie obejmuje go wcale.
+      Błąd typu w tych plikach nie zostanie złapany przez <code>pnpm -r typecheck</code>.
+    </p>
+    <p>Sprawdzone przebiegiem — lista plików, które widzi kompilator:</p>
+
+    <div class="ev">
+      <div class="ev-h">$ npx tsc --noEmit --listFiles | grep -c vitest.config.ts</div>
+      <div class="ev-b"><pre data-lang="out">0        ← apps/web
+0        ← packages/core</pre></div>
+    </div>
+
+    <p>
+      Skutek jest ograniczony: literówka w konfiguracji vitesta i tak wywali się przy
+      pierwszym uruchomieniu testów. Ale <code>vite.config.ts</code> jest sprawdzany,
+      a <code>vitest.config.ts</code> nie — i to rozróżnienie nie wynika z niczego poza
+      przeoczeniem.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="ts">// apps/web/tsconfig.json
+"include": ["src", "test", "vite.config.ts", "vitest.config.ts"]
+
+// packages/core/tsconfig.test.json — tam, gdzie są już typy node
+"include": ["test", "vitest.config.ts"]</pre></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="k rozw" id="k7">
+    <div class="k-head">
+      <span class="knum">7</span>
+      <h3><code>TaskKind</code> powiela słownik ze schematu bazy</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">web/packages/core/src/session.ts:11</p>
+
+    <p>
+      Typ <code>TaskKind</code> wypisuje cztery wartości, które równolegle stoją w więzie
+      <code>CHECK</code> w migracji <code>0001_corpus.sql</code>:
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">web/packages/core/src/session.ts oraz ingest/schema/migrations/0001_corpus.sql</div>
+      <div class="ev-b"><pre data-lang="ts">export type TaskKind = "closed" | "open_short" | "open_extended" | "essay";</pre></div>
+    </div>
+    <div class="ev">
+      <div class="ev-b"><pre data-lang="sql">kind text NOT NULL CHECK (kind IN ('closed', 'open_short', 'open_extended', 'essay'))</pre></div>
+    </div>
+
+    <p>
+      Dziś obie listy się zgadzają — sprawdziłem. Pytanie jest o jutro: to samo pojęcie
+      ma dwa zapisy w dwóch warstwach, a repozytorium ma na taki układ mocną opinię.
+      <code>CLAUDE.md</code> tłumaczy słownik pojęć raz i wprost pisze, że rozjazd między
+      warstwami sprawia, iż <i>„parser, schemat i moduł C# nazywają tę samą rzecz na trzy
+      sposoby”</i>. Dla kontraktu API rozwiązaniem jest generowany <code>schema.d.ts</code>
+      i bramka dryfu; dla tego słownika nie ma dziś nic.
+    </p>
+    <p>
+      Do rozważenia, nie do naprawienia teraz: dopóki zadania są wpisane na sztywno
+      w <code>App.tsx</code>, nie ma czego pilnować. Rzecz staje się realna w chwili, gdy
+      zadania zaczną przychodzić z API — bo wtedy <code>schema.d.ts</code> będzie już
+      niósł ten sam typ, wygenerowany.
+    </p>
+
+    <div class="fix">
+      <b>Propozycja</b>
+      <p>
+        Gdy endpoint z zadaniami powstanie (A2 albo W2), wziąć <code>kind</code>
+        z wygenerowanego schematu zamiast deklarować go po raz drugi — a jeśli
+        <code>packages/core</code> nie ma zależeć od klienta API, przekazywać typ przez
+        parametr generyczny albo trzymać go w <code>packages/core</code> i to <b>stamtąd</b>
+        sprawdzać zgodność testem, który czyta migrację. Wybór jest autora; ważne, żeby
+        był świadomy, a nie domyślny.
+      </p>
+    </div>
+  </article>
+
+  <article class="k rozw" id="k8">
+    <div class="k-head">
+      <span class="knum">8</span>
+      <h3>Pole tekstowe pokazuje wartość znormalizowaną przez model</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">web/apps/web/src/App.tsx · <code>&lt;input value={answerOf(...) ?? ""}&gt;</code></p>
+
+    <p>
+      <code>answerTask</code> celowo kasuje odpowiedź złożoną z samych białych znaków —
+      i to jest dobra decyzja, opisana w komentarzu i pokryta testem. Ale pole w
+      <code>App.tsx</code> bierze swoją wartość <b>z modelu</b>, więc normalizacja modelu
+      jest natychmiast widoczna w tym, co użytkownik ma przed oczami.
+    </p>
+    <p>Sprawdzone przebiegiem, sondą w środowisku jsdom:</p>
+
+    <div class="ev">
+      <div class="ev-h">$ npx vitest run test/probe.test.tsx — sonda, skasowana po pomiarze</div>
+      <div class="ev-b"><pre data-lang="out">po wpisaniu spacji, wartosc pola = ""       ← spacja znika w locie
+po wpisaniu ' 5', wartosc pola   = " 5"     ← tu już jest w porządku
+po wpisaniu '105 ', wartosc pola = "105 "   ← i tu też</pre></div>
+    </div>
+
+    <p>
+      Zasięg jest wąski: znika wyłącznie wpis złożony z samych spacji. Nie ma tu utraty
+      danych ani błędnego wyniku — jest drobna niespójność między tym, co użytkownik
+      wpisał, a tym, co widzi. Przy dzisiejszym szkielecie to bez znaczenia; przy realnym
+      ekranie ucznia w A4, gdzie odpowiedzią bywa wyrażenie matematyczne budowane znak po
+      znaku, warto mieć to rozstrzygnięte świadomie.
+    </p>
+
+    <div class="fix">
+      <b>Propozycja</b>
+      <p>
+        Rozdzielić „co użytkownik wpisuje” od „co model uznaje za odpowiedź”: trzymać
+        surowy tekst pola w stanie komponentu, a do <code>answerTask</code> podawać go bez
+        zmian — model dalej normalizuje na swoje potrzeby, a pole pokazuje to, co zostało
+        wpisane. Albo zostawić jak jest i dopisać jedno zdanie w docstringu
+        <code>answerTask</code>, że wartość zwracana przez <code>answerOf</code> nie nadaje
+        się na <code>value</code> kontrolowanego pola.
+      </p>
+    </div>
+  </article>
+
+  <article class="k rozw" id="k9">
+    <div class="k-head">
+      <span class="knum">9</span>
+      <h3>Typecheck weba liczy się w CI dwa razy</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">.github/workflows/ci.yml · zadania <code>web</code> i <code>kontrakt</code></p>
+
+    <p>
+      Oba zadania wołają <code>pnpm -C web -r typecheck</code>, i oba instalują cały
+      workspace weba. Powód jest dobry i zapisany w komentarzu: <code>kontrakt</code>
+      sprawdza klienta wobec <b>świeżo wygenerowanego</b> <code>schema.d.ts</code>,
+      a <code>web</code> wobec tego z repozytorium. To są dwa różne pytania.
+    </p>
+    <p>
+      Rzecz do rozważenia dotyczy kosztu, nie poprawności. Plan G1.5 ma na ten temat
+      osobne zastrzeżenie: <i>„Repozytorium jest prywatne, więc minuty GitHub Actions liczą
+      się do darmowego limitu konta […] Konsekwencje: cache'ować zależności […] nie odpalać
+      macierzy systemów operacyjnych”</i>. Podwójna instalacja workspace'u i podwójny
+      typecheck to dokładnie ten rachunek.
+    </p>
+
+    <div class="fix">
+      <b>Propozycja</b>
+      <p>
+        Trzy możliwości, w kolejności od najmniej inwazyjnej:
+      </p>
+      <ul class="plain">
+        <li><b>Zostawić i zmierzyć.</b> Jeśli zadanie <code>web</code> trwa około minuty,
+          rachunek jest do przyjęcia — a wtedy warto tę liczbę zapisać przy G1.5, żeby nikt
+          nie wracał do tematu w domysłach.</li>
+        <li><b>Zawęzić <code>kontrakt</code></b> do samego <code>@klucz/api-client</code>
+          (<code>pnpm -C web --filter @klucz/api-client typecheck</code>) — to jedyny pakiet,
+          którego dotyczy pytanie o dryf kontraktu.</li>
+        <li><b>Scalić zadania</b>, jeśli i tak mają wspólną instalację. Kosztem jest to,
+          że przy czerwonym buildzie widać jedną porażkę zamiast dwóch — a rozróżnienie
+          „zepsuty kontrakt” od „zepsuty web” jest coś warte.</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<section id="plan">
+  <div class="sec-head">
+    <span class="num">03</span>
+    <h2>Zgodność z planem</h2>
+    <p class="sec-sub"><code>docs/plan-A1.md</code>, sekcje G1.4.1 i G1.4.2.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Punkt planu</th><th>Stan</th><th>Uwagi</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>G1.4.1 · 1. pnpm workspaces: <code>packages/*</code> + <code>apps/*</code></td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Stało już po G1.3.2; ten branch dokłada dwa pakiety.</td>
+        </tr>
+        <tr>
+          <td>G1.4.1 · 2. <code>packages/core</code>: stan odpowiedzi, kolejność zadań, walidacja przed wysyłką</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Wszystkie trzy rzeczy są w <code>session.ts</code> i mają testy. Zero Reacta i DOM-u.</td>
+        </tr>
+        <tr>
+          <td>G1.4.1 · 3. <code>apps/web</code>: Vite + React + TS, PWA bez agresywnego cache'owania</td>
+          <td><span class="tag st-drob">częściowo</span></td>
+          <td>Service worker wyłączony w dev i bez runtime cachingu — zgodnie z planem.
+              Manifest bez ikon, więc PWA nie jest instalowalne (komentarz <a href="#k3">3</a>).</td>
+        </tr>
+        <tr>
+          <td>G1.4.1 · 4. Vitest w obu paczkach: <code>jsdom</code> w apps, <code>node</code> w core</td>
+          <td><span class="tag st-drob">częściowo</span></td>
+          <td>Środowiska ustawione poprawnie, ale wzorzec plików gubi część testów
+              (komentarz <a href="#k1">1</a>).</td>
+        </tr>
+        <tr>
+          <td>G1.4.1 · 5. Proxy <code>/api</code> na API, bez CORS-u w developmencie</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Sprawdzone: <code>/api/health</code> przez dev server oddaje odpowiedź API
+              z <code>"database":true</code>. Port z <code>.env</code>, nie zaszyty.</td>
+        </tr>
+        <tr>
+          <td>G1.4.1 · Zrobione, gdy: <code>task dev</code> podnosi web z HMR</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Oba serwery wstają równolegle; Vite raportuje gotowość, HMR jest jego trybem domyślnym.</td>
+        </tr>
+        <tr>
+          <td>G1.4.1 · Zrobione, gdy: <code>packages/core</code> buduje się osobno</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Osobny <code>tsconfig.build.json</code>, emisja do <code>dist/</code>.
+              Sprawdza to jednak wyłącznie CI (komentarz <a href="#k4">4</a>).</td>
+        </tr>
+        <tr>
+          <td>G1.4.2 · Warstwa 1: tsconfig bez <code>DOM</code>, <code>types: []</code></td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Widziane na czerwono: <code>error TS2584: Cannot find name 'document'</code>.</td>
+        </tr>
+        <tr>
+          <td>G1.4.2 · Warstwa 2: test zabronionych zależności</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Widziane na czerwono po dopisaniu <code>react</code>. Lista do uzupełnienia
+              (komentarz <a href="#k5">5</a>).</td>
+        </tr>
+        <tr>
+          <td>G1.4.2 · Warstwa 3 (opcjonalna): skan źródeł</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Plan nazywa ją opcjonalną — jest, razem z komunikatem po ludzku.</td>
+        </tr>
+        <tr>
+          <td>G1.4.2 · Zrobione, gdy: <code>document</code> w core łamie <code>task test:web</code></td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Sprawdzone przebiegiem: <code>task test:web</code> kończy się kodem 201.</td>
+        </tr>
+        <tr>
+          <td>Plan podaje <code>"noEmit": false</code> w głównym <code>tsconfig.json</code> pakietu <code>core</code></td>
+          <td><span class="tag st-rozw">plan nieaktualny</span></td>
+          <td>Implementacja rozdziela to na <code>tsconfig.json</code> (typecheck, <code>noEmit</code>)
+              i <code>tsconfig.build.json</code> (emisja). Rozdzielenie jest lepsze — pozwala
+              typecheckować testy bez emitowania ich do <code>dist/</code>. Warto poprawić plan,
+              żeby nie mylił następnej osoby.</td>
+        </tr>
+        <tr>
+          <td>G1.5 · zadanie <code>web</code> w CI</td>
+          <td><span class="tag st-ok">zrobione wcześniej</span></td>
+          <td>Formalnie należy do G1.5, ale bez niego bramka zero-DOM byłaby testem,
+              którego nikt nie uruchamia. Słuszne wyprzedzenie planu.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="dobre">
+  <div class="sec-head">
+    <span class="num">04</span>
+    <h2>Co jest dobre</h2>
+    <p class="sec-sub">Rzeczy warte utrzymania przy kolejnych zmianach — nie kurtuazja.</p>
+  </div>
+
+  <div class="col">
+    <ul class="plain">
+      <li><b>Zero-DOM ma cztery warstwy, a nie trzy.</b> Do trzech z planu dochodzi
+        środowisko <code>node</code> w vitest — jeśli ktoś obejdzie typy przez
+        <code>any</code>, <code>document</code> i tak nie istnieje w czasie wykonania.
+        Ta czwarta warstwa nie kosztowała nic i łapie dokładnie to, czego trzy pozostałe
+        nie widzą.</li>
+      <li><b>Rozdzielenie tsconfiga produktu i testów jest asercją, nie umową.</b>
+        Test zero-DOM sprawdza nie tylko <code>lib</code> i <code>types</code>, ale też
+        że <code>include</code> to dokładnie <code>["src"]</code>. Bez tego ktoś mógłby
+        dopisać <code>test</code> do produktu i po cichu wpuścić <code>@types/node</code>
+        do pakietu, który ma być czysty.</li>
+      <li><b><code>fileURLToPath</code> zamiast <code>new URL(...).pathname</code>.</b>
+        Na Windows to drugie daje <code>/C:/…</code> i zostawia spacje zakodowane jako
+        <code>%20</code> — a ścieżka tego repozytorium ma spacje. Komentarz nad tą linijką
+        mówi wprost dlaczego, więc nikt tego nie „uprości” z powrotem.</li>
+      <li><b>Port API czytany z <code>.env</code>, nie zaszyty.</b> Konfiguracja Vite bierze
+        <code>API_PORT</code> z tego samego pliku, z którego czyta go Taskfile — jedna
+        wartość rządzi proxy i komunikatem API naraz. (Szkoda, że port weba poszedł inną
+        drogą — komentarz <a href="#k2">2</a>.)</li>
+      <li><b>Sekrety nie wyciekają do bundla mimo <code>loadEnv(mode, root, "")</code>.</b>
+        Pusty prefiks wczytuje po stronie Node'a <b>wszystko</b> z <code>.env</code>, łącznie
+        z <code>DB_PASSWORD</code>. Sprawdziłem zbudowany <code>dist/</code>: hasła tam nie ma,
+        bo o tym, co trafia do przeglądarki, decyduje <code>envPrefix</code>, a ten został
+        domyślny. Rzecz działa poprawnie — ale warto o niej wiedzieć, zanim ktoś zmieni
+        <code>envPrefix</code>.</li>
+      <li><b><code>task dev</code> przez <code>deps</code>, nie <code>cmds</code>, z komentarzem
+        dlaczego.</b> <code>cmds</code> idą po kolei, a <code>dotnet watch</code> nie kończy się
+        sam — vite nie wystartowałby nigdy. Komentarz nad zadaniem oszczędza następnej osobie
+        kwadransa na zastanawianiu się, czemu to tak wygląda.</li>
+      <li><b>Model sesji jest niemutowalny i mówi <i>których</i> zadań brakuje.</b>
+        <code>checkBeforeSubmit</code> zwraca listę braków zamiast samego <code>false</code>,
+        <code>goTo</code> poza zakresem oddaje tę samą sesję (test sprawdza tożsamość, nie
+        równość), a pusty arkusz nie dzieli przez zero. To są trzy przypadki brzegowe, o które
+        zwykle nikt nie pyta przed pierwszym błędem w produkcji.</li>
+      <li><b>Poprawka do pnpm została opisana uczciwie.</b> Commit <code>7c4ab25</code> nie
+        mówi „naprawiono CI”, tylko wyjaśnia, że klucz nazywa się <code>allowBuilds</code>,
+        że <code>onlyBuiltDependencies</code> jest ignorowany <b>po cichu</b>, i dlaczego
+        lokalnie nie było tego widać (<i>instalacja kończyła się na „Already up to date”</i>).
+        Następna osoba z tym samym objawem znajdzie odpowiedź w <code>git log</code>.</li>
+    </ul>
+  </div>
+</section>
+
+
+<footer>
+  <p>Przegląd wykonany wg <code>.claude/skills/code-review</code>.</p>
+  <p>Zakres: <code>git diff main...HEAD</code> na <code>feat/g1.4-web</code> (<code>67bb62c..7c4ab25</code>), plan <code>docs/plan-A1.md</code> §G1.4. Pliki otwierane w całości, nie z samego diffa.</p>
+  <p>Sprawdzone uruchomieniem: <code>task test</code> (kod 0) · <code>task test:web</code> z wstawionym <code>document</code> (kod 201) · trzy warstwy zero-DOM osobno na czerwono · <code>task dev</code> i <code>/api/health</code> przez proxy · dwa serwery Vite obok siebie (5174, 5175) · celowo czerwony <code>.test.ts</code> w <code>apps/web</code> (pominięty, kod 0) · <code>tsc --listFiles</code> dla obu pakietów · zbudowany <code>dist/</code> przeszukany pod kątem <code>DB_PASSWORD</code> · wygenerowany <code>manifest.webmanifest</code>.</p>
+  <p>Poza zakresem: HMR sprawdzony wyłącznie startem serwera i jednym żądaniem, bez podmiany pliku w przeglądarce · zachowanie service workera po wdrożeniu (alfa nie ma wdrożenia) · macOS — testowano na Windows, CI chodzi na Linuksie · audyt dostępności ekranu · <code>web/pnpm-lock.yaml</code> (5029 linii, wynik instalacji, nie decyzja autora).</p>
+</footer>
+
+</div>
+
+<script>
+/* Kolorowanie składni bez żadnej biblioteki — dokument ma zostać samodzielny.
+ *
+ * Użycie:  <pre data-lang="python">…</pre>
+ * Języki:  python · yaml · sql · bash · conf · out (wydruk z konsoli)
+ *
+ * Jak działa: reguły każdego języka sklejane są w JEDEN regex z grupami
+ * nazwanymi, więc tekst jest przechodzony raz, a pierwsza pasująca reguła
+ * wygrywa. Dlatego komentarze i napisy stoją na początku listy — inaczej
+ * słowo kluczowe wewnątrz napisu zostałoby pokolorowane osobno.
+ *
+ * Bez skryptu (albo przy jego błędzie) blok zostaje zwykłym tekstem —
+ * czytelnym, tylko czarno-białym.
+ */
+(function () {
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+  function esc(s) { return s.replace(/[&<>]/g, function (c) { return ESC[c]; }); }
+
+  // UWAGA: wewnątrz reguł tylko grupy nieprzechwytujące (?:...) —
+  // zwykły nawias rozjechałby numerację grup w sklejonym wyrażeniu.
+  var RULES = {
+    python: [
+      ['com',  /#[^\n]*/],
+      ['str',  /(?:[rbfu]{0,2})(?:"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/],
+      ['kw',   /\b(?:def|class|return|if|elif|else|for|while|with|as|import|from|try|except|finally|raise|yield|lambda|not|and|or|in|is|None|True|False|pass|assert|del|async|await|global|nonlocal)\b/],
+      ['fn',   /@[A-Za-z_][\w.]*|\b[A-Za-z_]\w*(?=\()/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    yaml: [
+      ['com',  /#[^\n]*/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['fn',   /^[ \t]*(?:-[ \t]+)?[A-Za-z_][\w.\/-]*(?=[ \t]*:)/],
+      ['kw',   /\b(?:true|false|null|yes|no)\b/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    sql: [
+      ['com',  /--[^\n]*/],
+      ['str',  /'(?:[^']|'')*'/],
+      ['kw',   /\b(?:CREATE|TABLE|INDEX|VIEW|COLLATION|SELECT|FROM|WHERE|JOIN|LEFT|INNER|ON|GROUP|ORDER|BY|HAVING|INSERT|INTO|VALUES|UPDATE|DELETE|SET|RETURNING|CONFLICT|DO|NOTHING|NOT|NULL|PRIMARY|FOREIGN|KEY|REFERENCES|UNIQUE|CHECK|DEFAULT|CONSTRAINT|CASCADE|AND|OR|IN|AS|IF|EXISTS|BETWEEN|PROVIDER|LOCALE|COLLATE|BEGIN|COMMIT|DISTINCT|COUNT|SUM|ARRAY_AGG|LIMIT)\b/i],
+      ['type', /\b(?:text|integer|smallint|bigint|serial|smallserial|boolean|date|timestamptz|numeric|jsonb|char|varchar)\b/i],
+      ['num',  /\b\d+\b/]
+    ],
+    bash: [
+      ['com',  /#[^\n]*/],
+      ['ann',  /^\$/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['kw',   /\b(?:if|then|elif|else|fi|for|in|do|done|while|case|esac|function|return|exit|test|echo|cd|export|local)\b/],
+      ['num',  /(?:^|[ \t])-{1,2}[A-Za-z][\w-]*|\b\d+\b/]
+    ],
+    conf: [
+      ['com',  /#[^\n]*/],
+      ['kw',   /^!/],
+      ['fn',   /^[A-Za-z_][A-Za-z0-9_]*(?==)/],
+      ['str',  /(?<==)[^\n]+/]
+    ],
+    ts: [
+      ['com',  /\/\/[^\n]*|\/\*[\s\S]*?\*\//],
+      ['str',  /`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/],
+      ['kw',   /\b(?:import|export|from|as|const|let|var|function|return|if|else|for|of|in|while|type|interface|readonly|extends|implements|class|new|throw|try|catch|finally|async|await|default|typeof|instanceof|null|undefined|true|false|void|never|unknown|any|string|number|boolean|describe|it|expect)\b/],
+      ['fn',   /\b[A-Za-z_$][\w$]*(?=\s*\()/],
+      ['type', /\b[A-Z][A-Za-z0-9_]*\b/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    out: [
+      ['ann',  /←[^\n]*|^\$/],
+      ['str',  /"[^"]*"|'[^']*'/],
+      ['num',  /\b\d+\b/]
+    ]
+  };
+
+  function podswietl(kod, jezyk) {
+    var reguly = RULES[jezyk];
+    if (!reguly) { return esc(kod); }
+    var wzor = reguly.map(function (r, i) {
+      return '(?<g' + i + '>' + r[1].source + ')';
+    }).join('|');
+    var re;
+    try {
+      re = new RegExp(wzor, 'gm');
+    } catch (e) {
+      return esc(kod);           // starsza przeglądarka — zostaje zwykły tekst
+    }
+    var wynik = '', koniec = 0, m;
+    while ((m = re.exec(kod)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      wynik += esc(kod.slice(koniec, m.index));
+      var klasa = null;
+      for (var i = 0; i < reguly.length; i++) {
+        if (m.groups['g' + i] !== undefined) { klasa = reguly[i][0]; break; }
+      }
+      wynik += '<span class="t-' + klasa + '">' + esc(m[0]) + '</span>';
+      koniec = m.index + m[0].length;
+    }
+    return wynik + esc(kod.slice(koniec));
+  }
+
+  var bloki = document.querySelectorAll('pre[data-lang]');
+  for (var i = 0; i < bloki.length; i++) {
+    try {
+      bloki[i].innerHTML = podswietl(bloki[i].textContent, bloki[i].dataset.lang);
+    } catch (e) { /* blok zostaje zwykłym tekstem — lepsze niż pusty */ }
+  }
+})();
+</script>
