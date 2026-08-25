@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Postęp korekty{% endblock %}
+{% block subtitle %}
+  {{ numbers.status.decided }}/{{ numbers.status.total }} rozstrzygniętych
+{% endblock %}
+{% block actions %}
+  {% if next_id %}<a href="/next"><button class="primary">Następne do korekty →</button></a>
+  {% else %}<span class="small">wszystko rozstrzygnięte</span>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Statystyka korekty — pomiar S8</h2>
+  <div class="metrics">
+    <div class="metric">
+      <b>{{ '%.0f'|format(100 * numbers.status.done_share) }}%</b>
+      <span>rozstrzygnięte<br>({{ numbers.status.pending }} czeka)</span>
+    </div>
+    <div class="metric">
+      <b>{{ '%.0f'|format(100 * numbers.status.hit_share) }}%</b>
+      <span>parser trafił sam<br>(bez ręcznej poprawki)</span>
+    </div>
+    <div class="metric">
+      <b>{{ '%.0f'|format(numbers.durations.median) }} s</b>
+      <span>mediana na zadanie<br>({{ numbers.durations.events }} rozstrzygnięć)</span>
+    </div>
+    <div class="metric">
+      <b>{{ '%.1f'|format(numbers.forecast.hours) }} h</b>
+      <span>prognoza reszty<br>mediana × {{ numbers.forecast.tasks }} zadań</span>
+    </div>
+    <div class="metric">
+      <b>{{ numbers.status.rejected }}</b>
+      <span>odrzucone<br>(dziury w korpusie)</span>
+    </div>
+  </div>
+  <p class="small" style="margin-bottom:0">
+    Prognoza mnoży <strong>medianę</strong>, nie średnią: formularz zostawiony
+    otwarty na noc wchodzi do dziennika jako praca i zawyża sumę
+    ({{ numbers.durations.long }} tak
+    {{ 'długa sesja' if numbers.durations.long == 1 else 'długich sesji' }}).
+  </p>
+</div>
+
+<div class="card">
+  <h2>Pokrycie per rocznik</h2>
+  <table>
+    <thead><tr>
+      <th>rocznik</th><th class="n">razem</th><th class="n">czeka</th>
+      <th class="n">bez zmian</th><th class="n">poprawione</th><th class="n">odrzucone</th>
+    </tr></thead>
+    <tbody>
+    {% for row in numbers.years %}
+      <tr>
+        <td class="mono">{{ row.year }}</td>
+        <td class="n">{{ row.total }}</td>
+        <td class="n">{{ row.pending }}</td>
+        <td class="n">{{ row.approved }}</td>
+        <td class="n">{{ row.corrected }}</td>
+        <td class="n">{{ row.rejected }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="small">Korpus pusty — uruchom <span class="mono">task ingest</span>.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Zadania</h2>
+  <form method="get" action="/" class="small" style="margin-bottom:.8rem">
+    <label>status
+      <select name="status">
+        <option value="">wszystkie</option>
+        {% for s in STATUS_LABELS %}
+          <option value="{{ s }}" {% if selected.status == s %}selected{% endif %}>
+            {{ STATUS_LABELS[s] }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>rocznik
+      <select name="year">
+        <option value="">wszystkie</option>
+        {% for y in options.years %}
+          <option value="{{ y }}" {% if selected.year == y %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>kod
+      <select name="code">
+        <option value="">wszystkie</option>
+        {% for c in options.codes %}
+          <option value="{{ c }}" {% if selected.code == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button>Filtruj</button>
+  </form>
+
+  <table>
+    <thead><tr>
+      <th>klucz</th><th>zad.</th><th class="n">pkt</th><th>rodzaj</th><th>status</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for t in tasks %}
+      <tr>
+        <td class="mono small">{{ t.code }} · {{ t.session }}</td>
+        <td class="mono">{{ t.number }}</td>
+        <td class="n">{{ t.max_points }}</td>
+        <td class="small">{{ t.kind }}</td>
+        <td><span class="tag {{ t.review_status }}">{{ STATUS_LABELS[t.review_status] }}</span></td>
+        <td><a href="/task/{{ t.id }}">otwórz</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="small">Nic nie pasuje do filtra.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="small" style="margin-bottom:0">
+    Lista jest ucięta do 200 pozycji — do pracy służy przycisk
+    „Następne do korekty", nie przewijanie.
+  </p>
+</div>
+{% endblock %}
