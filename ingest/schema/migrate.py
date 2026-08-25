@@ -24,6 +24,7 @@ import hashlib
 import os
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 try:
     import psycopg
@@ -41,16 +42,35 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 """
 
 
+CZESCI = ("DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD")
+
+
 def polaczenie() -> str:
-    """Connection string wyłącznie z konfiguracji — nigdy z kodu."""
+    """Adres bazy — wyłącznie z konfiguracji, nigdy z kodu.
+
+    Adres SKŁADANY z części, a nie wpisany w całości, bo numer portu stał
+    wcześniej w `.env` dwa razy: raz dla Dockera, raz w środku gotowego adresu.
+    Przy kolizji portów zmieniało się jedno z nich, drugie zostawało po staremu,
+    a objaw — „baza nieosiągalna" — nie wskazywał na przyczynę.
+
+    `DATABASE_URL` ma pierwszeństwo i służy do wskazania innej bazy niż
+    deweloperska (tak robią testy runnera na bazie tymczasowej).
+    """
     url = os.environ.get("DATABASE_URL")
-    if not url:
+    if url:
+        return url
+
+    brakuje = [k for k in CZESCI if not os.environ.get(k)]
+    if brakuje:
         sys.exit(
-            "BRAK: zmienna DATABASE_URL.\n"
-            "Skopiuj .env.example do .env (albo ustaw ją w środowisku).\n"
-            "Przykład: postgresql://klucz:klucz_dev@localhost:55432/klucz"
+            f"BRAK zmiennych: {', '.join(brakuje)}.\n"
+            "Skopiuj .env.example do .env (albo ustaw je w środowisku)."
         )
-    return url
+
+    return (
+        f"postgresql://{quote(os.environ['DB_USER'])}:{quote(os.environ['DB_PASSWORD'])}"
+        f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+    )
 
 
 def suma(sciezka: Path) -> str:
@@ -73,12 +93,12 @@ def suma(sciezka: Path) -> str:
     return hashlib.sha256(tresc.encode("utf-8")).hexdigest()
 
 
-def migracje() -> list[tuple[str, Path, str]]:
-    if not KATALOG.is_dir():
-        sys.exit(f"BRAK katalogu migracji: {KATALOG}")
-    pliki = sorted(KATALOG.glob("*.sql"))
+def migracje(katalog: Path) -> list[tuple[str, Path, str]]:
+    if not katalog.is_dir():
+        sys.exit(f"BRAK katalogu migracji: {katalog}")
+    pliki = sorted(katalog.glob("*.sql"))
     if not pliki:
-        sys.exit(f"BRAK plików .sql w {KATALOG}")
+        sys.exit(f"BRAK plików .sql w {katalog}")
     return [(p.stem, p, suma(p)) for p in pliki]
 
 
@@ -118,14 +138,26 @@ def status(wszystkie, juz: dict[str, str]) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Migracje schematu korpusu")
     ap.add_argument("--status", action="store_true", help="tylko pokaż stan, nic nie zmieniaj")
+    ap.add_argument(
+        "--migrations",
+        type=Path,
+        default=KATALOG,
+        help="katalog z plikami .sql (domyślnie obok tego skryptu); "
+        "istnieje po to, żeby dało się sprawdzić runner na migracjach testowych",
+    )
     args = ap.parse_args()
 
-    wszystkie = migracje()
+    wszystkie = migracje(args.migrations)
 
-    with psycopg.connect(polaczenie()) as conn:
+    # autocommit=True jest tu WARUNKIEM poprawności, nie optymalizacją.
+    # Bez niego pierwsze zapytanie samo otwiera transakcję, a późniejsze
+    # `conn.transaction()` zakłada wtedy PUNKT PRZYWRACANIA wewnątrz niej
+    # zamiast nowej transakcji. Wszystkie migracje lądowałyby w jednej
+    # wspólnej transakcji, a napis „+ 0001" pojawiałby się przed
+    # jakimkolwiek zatwierdzeniem — czyli kłamał, gdy padnie migracja druga.
+    with psycopg.connect(polaczenie(), autocommit=True) as conn:
         with conn.cursor() as cur:
             cur.execute(TABELA)
-        conn.commit()
 
         with conn.cursor() as cur:
             juz = zastosowane(cur)

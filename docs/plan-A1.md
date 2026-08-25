@@ -65,7 +65,7 @@ phase-alfa/
 │   ├── mirror/                 #   cke_mirror.py (gotowe, idempotentne)
 │   ├── pdf/                    #   layout.py + reconstruct.py (awans z research/)
 │   ├── parsers/                #   omap_e8.py — parser per segment, nie uniwersalny
-│   ├── korekta/                #   ekran korekty (A2 — na razie pusty katalog)
+│   ├── correction/             #   ekran korekty (A2 — na razie pusty katalog)
 │   ├── schema/                 #   migracje SQL + runner
 │   ├── golden/                 #   golden set jako JSON — część kontraktu (A3)
 │   ├── tests/                  #   pytest: regresja parsera, więzy schematu
@@ -158,7 +158,7 @@ volumes:
 > wchodzi jawnie tam, gdzie ma znaczenie — czyli przy sortowaniu treści zadań:
 >
 > ```sql
-> -- migrations/0001_korpus.sql
+> -- migrations/0001_corpus.sql
 > CREATE COLLATION IF NOT EXISTS pl_icu (provider = icu, locale = 'pl-PL');
 > -- ... tresc text COLLATE pl_icu
 > ```
@@ -175,8 +175,8 @@ ma być czytelny jako SQL, a nie wyprowadzalny z modelu w którymkolwiek języku
 ```
 ingest/schema/
 ├── migrations/
-│   ├── 0001_korpus.sql          # schema.sql z research/ pocięty na kroki
-│   ├── 0002_indeksy.sql
+│   ├── 0001_corpus.sql          # schema.sql z research/ pocięty na kroki
+│   ├── 0002_indexes.sql
 │   └── 0003_status_korekty.sql  # (A2 — status per rekord)
 ├── migrate.py                   # runner: ~50 linii, psycopg, tabela schema_migrations
 └── README.md
@@ -196,7 +196,7 @@ ingest/schema/
 
 **Kroki**
 
-1. Przenieść `research/schema/schema.sql` → `ingest/schema/migrations/0001_korpus.sql`.
+1. Przenieść `research/schema/schema.sql` → `ingest/schema/migrations/0001_corpus.sql`.
    Sprawdzić, czy DDL jest czysto Postgresowe (research pisał je jako PG DDL, ale sonda
    ładowała do SQLite — patrz pułapki w G1.2.2).
 2. **Więzy zostają ostre.** `UNIQUE (zadanie_id, punkty)` w `kryterium` złapał prawdziwy

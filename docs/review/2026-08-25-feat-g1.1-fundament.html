@@ -191,6 +191,22 @@ footer p{margin-bottom:.4em}
   </div>
 </header>
 
+<div class="callout" style="border-left-color:var(--ok)">
+  <p>
+    <span class="tag st-ok">stan: zamknięte</span> &nbsp;<strong>Wszystkie osiem uwag zostało
+    naprawionych</strong> na tej samej gałęzi, przed scaleniem. Dokument zostaje jako zapis tego,
+    co znaleziono — nie jako lista rzeczy do zrobienia. Przy każdej uwadze opis problemu
+    i propozycja naprawy są tym, co było w chwili przeglądu.
+  </p>
+  <p>
+    Trzy naprawy dorobiły sobie testy, żeby te same błędy nie wróciły:
+    <code>test_migracja_ktora_padla_nie_cofa_poprzedniej</code> (uwaga 2),
+    <code>test_bom_i_crlf_nie_licza_sie_jako_podmiana</code> oraz przerobiona fikstura
+    <code>conn</code> cofająca transakcję w <code>finally</code> (uwaga 3).
+    Zestaw testów urósł z 8 do 13.
+  </p>
+</div>
+
 <!-- ============ SPIS ============ -->
 <section>
   <div class="sec-head">
@@ -311,7 +327,7 @@ KOD WYJSCIA ZADANIA: 0        ← porażka testu została połknięta</pre></div
     </p>
     <p>
       Skutek jest taki, że <strong>napis na ekranie kłamie</strong>. Przy dwóch migracjach,
-      z których druga się wywali, zobaczysz na ekranie <code>+ 0001_korpus</code> — a po
+      z których druga się wywali, zobaczysz na ekranie <code>+ 0001_corpus</code> — a po
       wszystkim w bazie nie będzie ani jednej, bo cała transakcja się cofnie. Przy dwóch
       migracjach to jeszcze da się rozpoznać. Przy dwunastu, w połowie A2, już nie.
     </p>
@@ -686,7 +702,7 @@ data/inwentarz/*
 </section>
 
 <footer>
-  <p>Przegląd wykonany wg <code>.claude/skills/przeglad-kodu</code> · 25.08.2026.</p>
+  <p>Przegląd wykonany wg <code>.claude/skills/code-review</code> · 25.08.2026.</p>
   <p>
     Zakres: <code>git diff main...HEAD</code> na branchu <code>feat/g1.1-fundament</code>
     (1 commit, 23 pliki, 1302 linie) zestawiony z <code>docs/plan-A1.md</code>, sekcje G1.1.1–G1.1.3.

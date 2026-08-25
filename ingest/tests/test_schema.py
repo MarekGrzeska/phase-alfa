@@ -7,9 +7,8 @@ więzy naprawdę odrzucają złe dane, a widoki dają się wykonać.
 
 from __future__ import annotations
 
-import os
-
 import pytest
+from migrate import polaczenie as adres
 
 psycopg = pytest.importorskip("psycopg")
 
@@ -27,15 +26,36 @@ WIDOKI = {"zadania_per_wymaganie", "blizniaki"}
 
 
 @pytest.fixture(scope="module")
-def conn():
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        pytest.skip("brak DATABASE_URL — `task up` stawia bazę")
+def polaczenie():
+    # adres składa `migrate.adres()` — jedno miejsce dla runnera i dla testów
+    try:
+        url = adres()
+    except SystemExit as e:
+        pytest.skip(f"brak konfiguracji bazy: {e}")
     try:
         with psycopg.connect(url, connect_timeout=5) as c:
             yield c
+            c.rollback()
     except psycopg.OperationalError as e:
         pytest.skip(f"baza nieosiągalna: {e}")
+
+
+@pytest.fixture
+def conn(polaczenie):
+    """Czysta transakcja na każdy test, cofana ZAWSZE — także po nieudanej asercji.
+
+    Wcześniej `conn.rollback()` stało w ostatniej linii testu, więc przy błędzie
+    w połowie nie wykonywało się wcale, a wyjście z bloku połączenia zatwierdzało
+    sztuczne rekordy do bazy deweloperskiej. Do tego kolejny test dziedziczył
+    przerwaną transakcję i czerwieniał bez własnej winy.
+
+    `finally` zamiast `conn.transaction()`, bo ten drugi wymagałby wyjścia
+    przez wyjątek `psycopg.Rollback`, a tu chodzi o cofnięcie bezwarunkowe.
+    """
+    try:
+        yield polaczenie
+    finally:
+        polaczenie.rollback()
 
 
 def test_komplet_tabel(conn):
@@ -63,7 +83,6 @@ def test_widoki_daja_sie_wykonac(conn):
     with conn.cursor() as cur:
         for widok in WIDOKI:
             cur.execute(f"SELECT * FROM {widok} LIMIT 0")  # noqa: S608 - nazwa ze stałej
-    conn.rollback()
 
 
 def test_kolacja_pl_icu_istnieje(conn):
@@ -81,7 +100,6 @@ def test_kolacja_pl_icu_sortuje_po_polsku(conn):
             "ORDER BY x COLLATE pl_icu"
         )
         assert [r[0] for r in cur.fetchall()] == ["lampa", "łąka", "mama"]
-    conn.rollback()
 
 
 def test_wiez_kryterium_odrzuca_dwa_progi_o_tej_samej_punktacji(conn):
@@ -93,10 +111,6 @@ def test_wiez_kryterium_odrzuca_dwa_progi_o_tej_samej_punktacji(conn):
     ktoś tego więzu nie poluzował „bo parser się wywalał".
     """
     with conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO rezim (kod, nazwa, sesja_od) "
-            "VALUES ('test-wiez', 'test', '2024-01-01') RETURNING id"
-        )
         cur.execute(
             "INSERT INTO dokument (segment, rocznik, kod, typ, zrodlo_typu, url, sciezka) "
             "VALUES ('e8', 2025, 'OMAP', 'zasady_oceniania', 'sufiks', "
@@ -119,7 +133,6 @@ def test_wiez_kryterium_odrzuca_dwa_progi_o_tej_samej_punktacji(conn):
                 "INSERT INTO kryterium (zadanie_id, punkty, kolejnosc) VALUES (%s, 0, 2)",
                 (zad_id,),
             )
-    conn.rollback()
 
 
 def test_wiez_punkty_max_odrzuca_bzdure(conn):
@@ -137,7 +150,6 @@ def test_wiez_punkty_max_odrzuca_bzdure(conn):
                 "VALUES (%s, '1', 1, 999, 'zamkniete')",
                 (dok_id,),
             )
-    conn.rollback()
 
 
 def test_migracje_zapisane(conn):

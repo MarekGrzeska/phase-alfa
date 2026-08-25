@@ -72,8 +72,8 @@ w edytorze, który dopisze znacznik, nie wygląda jak podmiana migracji. Czego
 | Plik | Co robi |
 |---|---|
 | `migrate.py` | runner: transakcja per migracja, tabela `schema_migrations`, kontrola sum |
-| `migrations/0001_korpus.sql` | model korpusu N:M — awans z `research/schema/schema.sql` bez zmian |
-| `migrations/0002_indeksy.sql` | indeksy na kluczach obcych (PostgreSQL nie robi ich sam) |
+| `migrations/0001_corpus.sql` | model korpusu N:M — awans z `research/schema/schema.sql` bez zmian |
+| `migrations/0002_indexes.sql` | indeksy na kluczach obcych (PostgreSQL nie robi ich sam) |
 
 Uzasadnienie modelu — dlaczego klucz → arkusz jest N:M, dlaczego kryteria wiszą
 na `zadanie`, a odpowiedzi na `zadanie_wersja`, i skąd trzy poziomy dysjunkcji

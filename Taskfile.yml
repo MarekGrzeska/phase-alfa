@@ -82,20 +82,39 @@ tasks:
   # Zadania poniżej dostaną treść w G1.3 i G1.4. Do tego czasu MÓWIĄ, że nic
   # nie sprawdzają — stub kończący się cicho zerem jest nieodróżnialny
   # od testu, który przechodzi.
+  #
+  # Rozdzielenie przez `if`, a NIE przez `polecenie || echo`: `||` nie odróżnia
+  # „nie ma pliku" od „testy się wywaliły" i połyka jedno i drugie. Od G1.3
+  # czerwony test .NET wypisywałby wtedy POMIJAM i kończył się sukcesem.
   test:dotnet:
     desc: Build + testy architektury (G1.3)
     cmds:
-      - cmd: 'test -f backend/Klucz.sln && dotnet test backend/Klucz.sln || echo "POMIJAM test:dotnet — brak solution (wchodzi w G1.3)"'
+      - cmd: |
+          if test -f backend/Klucz.sln; then
+            dotnet test backend/Klucz.sln
+          else
+            echo "POMIJAM test:dotnet — brak solution (wchodzi w G1.3)"
+          fi
 
   test:web:
     desc: Typecheck + vitest + zero-DOM (G1.4)
     cmds:
-      - cmd: 'test -f web/package.json && pnpm -C web test || echo "POMIJAM test:web — brak workspace (wchodzi w G1.4)"'
+      - cmd: |
+          if test -f web/package.json; then
+            pnpm -C web test
+          else
+            echo "POMIJAM test:web — brak workspace (wchodzi w G1.4)"
+          fi
 
   test:contract:
     desc: Dryf OpenAPI — regeneracja i porównanie z repo (G1.3.2)
     cmds:
-      - cmd: 'test -f backend/artifacts/openapi.json && task openapi:check || echo "POMIJAM test:contract — brak OpenAPI (wchodzi w G1.3.2)"'
+      - cmd: |
+          if test -f backend/artifacts/openapi.json; then
+            task openapi:check
+          else
+            echo "POMIJAM test:contract — brak OpenAPI (wchodzi w G1.3.2)"
+          fi
 
   # ------------------------------------------------------------- development
   dev:

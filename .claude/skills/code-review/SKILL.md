@@ -1,6 +1,6 @@
 ---
-name: przeglad-kodu
-description: Tworzy przegląd kodu (code review) po polsku na podstawie diffa bieżącego brancha i/lub zrealizowanego planu .md, zapisuje go jako samodzielny dokument HTML w katalogu docs/review/. Komentarze posortowane od najważniejszych, każdy z oznaczonym stopniem ważności, wskazaniem pliku i miejsca w kodzie, napisany prostym językiem. Używaj, gdy użytkownik prosi o: "przegląd kodu", "code review", "zrób review", "sprawdź brancha", "oceń co zrobiłem", "/przeglad-kodu".
+name: code-review
+description: Tworzy przegląd kodu (code review) po polsku na podstawie diffa bieżącego brancha i/lub zrealizowanego planu .md, zapisuje go jako samodzielny dokument HTML w katalogu docs/review/. Komentarze posortowane od najważniejszych, każdy z oznaczonym stopniem ważności, wskazaniem pliku i miejsca w kodzie, napisany prostym językiem. Używaj, gdy użytkownik prosi o: "przegląd kodu", "code review", "zrób review", "sprawdź brancha", "oceń co zrobiłem", "/code-review".
 ---
 
 # Przegląd kodu po polsku → dokument HTML
@@ -152,7 +152,7 @@ zasobów poza Google Fonts. Ma się otwierać podwójnym kliknięciem.
 
 **Wygląd:** trzymaj język wizualny reszty dokumentacji projektu (zobacz
 `docs/projekt-klucz/*.html` w repozytorium `cke-mirror`). Skopiuj zestaw zmiennych
-CSS z `szablon.html` — obsługuje tryb jasny i ciemny, w tym ustawienie systemowe.
+CSS z `template.html` — obsługuje tryb jasny i ciemny, w tym ustawienie systemowe.
 
 **Struktura dokumentu:**
 
@@ -191,7 +191,7 @@ tym, co pozwala złapać sedno bez czytania linia po linii.
 | `conf` | `.env`, `.gitignore`, pliki klucz–wartość |
 | `out` | **wydruk z konsoli** — koloruje napisy, liczby, znak zachęty `$` i objaśnienia po `←` |
 
-Podświetlacz to kilkadziesiąt linii czystego JavaScriptu na dole `szablon.html` —
+Podświetlacz to kilkadziesiąt linii czystego JavaScriptu na dole `template.html` —
 **żadnej biblioteki z sieci**, bo dokument ma się otwierać podwójnym kliknięciem
 i działać bez internetu. Skopiuj go razem z szablonem i nie usuwaj.
 

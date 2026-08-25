@@ -1,7 +1,21 @@
 # --- dane: mirror, blob, raporty ---
-data/
+# Wykluczamy ZAWARTOŚĆ katalogu (data/*), nie sam katalog (data/).
+# Git nie zagląda do wykluczonego katalogu, więc po `data/` żadne `!data/...`
+# już nie działa — wyjątki muszą wisieć przy wzorcu z gwiazdką.
+data/*
 !data/.gitkeep
-!data/inwentarz/
+!data/blob/
+data/blob/*
+!data/blob/.gitkeep
+!data/raw/
+data/raw/*
+!data/raw/.gitkeep
+!data/reports/
+data/reports/*
+!data/reports/.gitkeep
+!data/inventory/
+data/inventory/*
+!data/inventory/.gitkeep
 
 # --- Python ---
 __pycache__/
@@ -40,4 +54,4 @@ Thumbs.db
 
 # --- generowane, ale WERSJONOWANE (celowo nie ignorowane) ---
 # web/packages/api-client/src/schema.d.ts  — dryf kontraktu ma łamać build
-# research/bakeoff-wynik.txt               — fixture regresji parsera
+# ingest/tests/fixtures/                   — utrwalone wyjścia warstwy pozycyjnej
