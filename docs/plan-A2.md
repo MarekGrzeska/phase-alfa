@@ -300,6 +300,18 @@ na rocznik zmierzony i zapisany.
 > i bez `asset`. W pilocie każdy kolejny przebieg tego klucza musi mieć tę flagę.
 > Liczby kontrolne z sondy zgadzają się co do jednego: 21 / 42 / 51 / 73 / 14 / 30 /
 > 17 / 14, pokrycie wymagań, odpowiedzi i kryteriów 100%.
+> **(5) Numery stron w bazie były indeksami od zera.** Warstwa pozycyjna numeruje
+> strony od zera, a `task.page`, `task_version.page` i `asset.page` czyta ekran jako
+> numer strony — więc podgląd pokazywał stronę **wcześniejszą** niż rekord. Zadanie 1
+> klucza OMAP-100-2505 stoi na stronie 2, a nie 1; jego rysunek na stronie 4 zeszytu,
+> a nie 3. Błąd nie rzucał się w oczy, bo sąsiednia strona klucza wygląda wiarygodnie;
+> wyszedł dopiero przy składaniu ramki wycinka. Korpus wczytany wcześniej wymaga
+> przeładowania.
+> **(6) `--wyczysc` nie bronił dziennika korekty.** `ON DELETE SET NULL` na
+> `correction_event.task_id` chroni pomiar S8 przed kasowaniem zadań, ale kaskada
+> TRUNCATE-a nie pyta o akcję kasowania i czyści każdą tabelę wskazującą na czyszczoną.
+> Po przeładowaniu z `--overwrite-reviewed` statusy wracają do `pending`, więc stara
+> bramka przepuszczała — a razem z korpusem znikał cały zmierzony czas pracy.
 
 ---
 
@@ -444,6 +456,24 @@ dociągnięcie ramki jest akceptowalnym zamknięciem tematu. 84 zadania × minut
 to półtorej godziny — automat, który zjada dzień strojenia, przegrywa ten rachunek.
 
 **Zrobione, gdy:** 0 zadań z rysunkiem bez wycinka — niezależnie od drogi.
+
+> **Poprawki z implementacji (G2.4.2).**
+> **(1) Weszło PRZED G2.4.1**, bo krok 3 pilotu bez tego nie ma jak się domknąć:
+> automat wykrywania regionu jeszcze nie istnieje, a rocznik 2025 ma 14 zasobów.
+> Kolejność z planu (G2.4.1 równolegle) zostaje — zmienia się tylko to, która droga
+> była pierwsza.
+> **(2) Zamiast canvasu — siatka współrzędnych na podglądzie strony.** Ekran korekty
+> nie ma ani linijki JavaScriptu (decyzja z G2.1.2), więc przeciąganie prostokąta
+> myszą wymagałoby wprowadzenia go z powrotem. Strona zeszytu renderuje się z siatką
+> (kreska co 50 pt, podpis co 100), a ramkę wpisuje się w cztery pola.
+> **(3) `bbox` to `(x0, top, x1, bottom)` liczone od LEWEGO GÓRNEGO rogu** — tak samo
+> jak `top`/`bottom` w warstwie pozycyjnej, z której wezmą się ramki automatu.
+> pdfium przyjmuje marginesy od krawędzi; pomyłka daje wycinek poprawnego **rozmiaru**
+> pokazujący nie ten fragment, więc test sprawdza piksele, a nie wymiary.
+> **(4) Przycisk „Wytnij" nie rozstrzyga zadania.** Ramkę dociąga się na raty:
+> wpisz → obejrzyj wycinek → popraw. Dziennik S8 dostaje wpis dopiero przy
+> zatwierdzeniu, a zmiana ramki liczy się jako poprawka (`corrected`), więc
+> ręczna robota nie wejdzie do S6 jako trafienie parsera.
 
 ---
 

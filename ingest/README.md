@@ -116,6 +116,34 @@ klucz zostaje bez `task_version.content` i bez ani jednego `asset`. Widać to do
 w ekranie, po pustej treści zadania. Klucz raz wczytany z arkuszami wczytuje się z nimi
 zawsze.
 
+### Wycinki graficzne — ręczna ramka (G2.4.2)
+
+Zadanie z rysunkiem ma w widoku kartę „Wycinki graficzne": po lewej strona **zeszytu
+zadań** z siatką współrzędnych (kreska co 50 pt, podpis co 100), po prawej wycinek.
+Ramkę wpisuje się w cztery pola — `x0`, `top`, `x1`, `bottom` w punktach PDF, liczone
+od **lewego górnego** rogu strony — i klika „Wytnij".
+
+```
+data/blob/OMAP/2025-05-14/100/X/z1-0.png     # ścieżka z asset.path, względna
+```
+
+Cięcie robi `pdf/crop.py` (200 DPI) i to ta sama funkcja, której użyje automat
+wykrywania regionu z G2.4.1: automat i ręczna ramka różnią się wyłącznie tym, skąd
+bierze się `bbox`. „Wytnij" nie rozstrzyga zadania — ramkę dociąga się na raty,
+a wpis w dzienniku S8 powstaje dopiero przy zatwierdzeniu. Zmiana ramki liczy się
+jako poprawka, więc nie zasili S6 jako trafienie parsera.
+
+Licznik „wycinków w blobie" na stronie głównej mówi, ile zostało: definicja „zrobione"
+dla G2.4.2 to **zero zadań z rysunkiem bez wycinka**.
+
+### Numery stron są liczone od 1
+
+`task.page`, `task_version.page` i `asset.page` trzymają numer strony taki, jaki stoi
+w stopce PDF-a. Warstwa pozycyjna (`pdf/layout.py`) indeksuje strony **od zera** i ten
+indeks szedł kiedyś wprost do bazy — podgląd pokazywał wtedy stronę wcześniejszą niż
+rekord, co wygląda wiarygodnie i dlatego długo nie rzucało się w oczy. Korpus wczytany
+przed tą poprawką trzeba przeładować.
+
 ### Zakres pracy w ekranie
 
 Rocznik, kod i wariant filtrują listę **oraz** przycisk „Następne do korekty" —
