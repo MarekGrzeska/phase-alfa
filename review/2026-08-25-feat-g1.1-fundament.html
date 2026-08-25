@@ -1,0 +1,692 @@
+<title>Przegląd kodu — G1.1 fundament</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:68ch}
+h1,h2,h3,.tag,th,.knum{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:0 0 .3rem;text-wrap:balance}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:52px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-kryt{color:var(--crit)} .n-istot{color:var(--warn)}
+.n-drob{color:var(--accent)} .n-rozw{color:var(--info)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-kryt{background:var(--crit-soft);color:var(--crit)}
+.st-istot{background:var(--warn-soft);color:var(--warn)}
+.st-drob{background:var(--accent-soft);color:var(--accent)}
+.st-rozw{background:var(--info-soft);color:var(--info)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+.k{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px 22px;border-left:3px solid var(--rule);box-shadow:var(--shadow);
+  margin:0 0 16px;scroll-margin-top:20px}
+.k.kryt{border-left-color:var(--crit)}
+.k.istot{border-left-color:var(--warn)}
+.k.drob{border-left-color:var(--accent)}
+.k.rozw{border-left-color:var(--info)}
+.k-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+.knum{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+  color:var(--ink-3);min-width:1.6rem}
+.k h3{flex:1 1 18ch;margin:0}
+.k-gdzie{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-3);
+  margin:0 0 .9rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule-soft)}
+.k p{font-size:.95rem;color:var(--ink-2);margin-bottom:.75em}
+.k p:last-child{margin-bottom:0}
+.fix{font-size:.92rem;color:var(--ink);border-top:1px solid var(--rule-soft);
+  padding-top:.8rem;margin-top:1rem}
+.fix b{font-family:Archivo,sans-serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:.4rem}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">przegląd kodu · 25.08.2026 · feat/g1.1-fundament</span>
+  <h1>G1.1 — fundament repo</h1>
+  <p class="lede">
+    Fundament działa i jest sprawdzony uruchomieniem — baza wstaje, migracje wchodzą,
+    testy przechodzą, reset od zera przechodzi. <strong>Nic nie blokuje scalenia.</strong>
+    Ale trzy rzeczy trzeba naprawić, zanim wejdzie G1.2, bo wszystkie trzy należą do tej
+    samej rodziny: <em>kod mówi, że coś zrobił, choć tego nie zrobił</em>. Na tym etapie
+    są niegroźne. Za dwa tygodnie każda z nich będzie kosztować pół dnia szukania.
+  </p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n n-kryt">0</span><span class="metric-l">krytyczne</span></div>
+    <div class="metric"><span class="metric-n n-istot">3</span><span class="metric-l">istotne</span></div>
+    <div class="metric"><span class="metric-n n-drob">3</span><span class="metric-l">drobne</span></div>
+    <div class="metric"><span class="metric-n n-rozw">2</span><span class="metric-l">do rozważenia</span></div>
+    <div class="metric"><span class="metric-n">23</span><span class="metric-l">pliki · 1302 linie</span></div>
+  </div>
+</header>
+
+<!-- ============ SPIS ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">01 — SPIS</span>
+    <h2>Osiem uwag, od najważniejszej</h2>
+    <p class="sec-sub">Można iść od góry i przestać w dowolnym momencie. Pierwsze trzy warto zrobić przed G1.2, reszta może poczekać.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="n">#</th><th>Stopień</th><th>Rzecz</th><th>Plik</th></tr></thead>
+      <tbody>
+        <tr><td class="n"><a href="#k1">1</a></td><td><span class="tag st-istot">istotny</span></td><td>Taskfile połknie prawdziwą porażkę testów</td><td class="id">Taskfile.yml</td></tr>
+        <tr><td class="n"><a href="#k2">2</a></td><td><span class="tag st-istot">istotny</span></td><td>Migracje nie są osobnymi transakcjami — a komunikat twierdzi, że są</td><td class="id">migrate.py</td></tr>
+        <tr><td class="n"><a href="#k3">3</a></td><td><span class="tag st-istot">istotny</span></td><td>Nieudany test zostawia śmieci w bazie — i to na stałe</td><td class="id">test_schema.py</td></tr>
+        <tr><td class="n"><a href="#k4">4</a></td><td><span class="tag st-drob">drobny</span></td><td>Katalogi <code>data/</code> nie powstaną na świeżym klonie</td><td class="id">.gitignore</td></tr>
+        <tr><td class="n"><a href="#k5">5</a></td><td><span class="tag st-drob">drobny</span></td><td>Numer portu wpisany w dwóch miejscach — rozjedzie się</td><td class="id">.env.example</td></tr>
+        <tr><td class="n"><a href="#k6">6</a></td><td><span class="tag st-drob">drobny</span></td><td>Baza deweloperska wstaje przy każdym starcie komputera</td><td class="id">docker-compose.yml</td></tr>
+        <tr><td class="n"><a href="#k7">7</a></td><td><span class="tag st-rozw">do rozważenia</span></td><td>Test wstawia rekord, którego do niczego nie używa</td><td class="id">test_schema.py</td></tr>
+        <tr><td class="n"><a href="#k8">8</a></td><td><span class="tag st-rozw">do rozważenia</span></td><td>Wyciszenie reguły, która i tak nie jest włączona</td><td class="id">test_schema.py</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <p>
+      <strong>Dlaczego zero uwag krytycznych.</strong> Nic tu nie niszczy danych, nie wystawia
+      sekretów ani nie łamie granicy Python ↔ C#. Hasło do bazy jest deweloperskie i siedzi
+      w <code>.env.example</code>, który jest przykładem, a <code>.env</code> nie wchodzi do repo —
+      sprawdzone. Wszystkie osiem uwag to rzeczy do naprawienia, nie do gaszenia.
+    </p>
+  </div>
+</section>
+
+<!-- ============ KOMENTARZE ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">02 — UWAGI</span>
+    <h2>Po kolei</h2>
+    <p class="sec-sub">Każda uwaga: co jest nie tak, co się przez to stanie, gdzie to jest i jak to naprawić.</p>
+  </div>
+
+  <!-- 1 -->
+  <div class="k istot" id="k1">
+    <div class="k-head">
+      <span class="knum">1</span>
+      <h3>Taskfile połknie prawdziwą porażkę testów</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">Taskfile.yml — zadania <code>test:dotnet</code>, <code>test:web</code>, <code>test:contract</code></p>
+
+    <p>
+      Zadania testowe mają kształt <code>sprawdź czy plik istnieje &amp;&amp; uruchom testy || wypisz POMIJAM</code>.
+      Zamysł był dobry: dopóki projektu nie ma, powiedz o tym głośno zamiast po cichu przechodzić.
+      Problem w tym, że <code>||</code> nie odróżnia „pliku nie ma" od „testy się wywaliły".
+      Łapie jedno i drugie.
+    </p>
+    <p>
+      Dzisiaj to nie boli, bo plików faktycznie nie ma. Ugryzie w <strong>G1.3</strong>, gdy
+      pojawi się <code>backend/Klucz.sln</code>: od tego momentu czerwone testy .NET będą
+      wypisywać „POMIJAM" i kończyć się sukcesem. Test architektury granic modułów —
+      ten, na którym opiera się cała dyscyplina monolitu — przestanie cokolwiek pilnować,
+      i to bez jednego słowa ostrzeżenia.
+    </p>
+    <p>
+      To dokładnie ta pułapka, przed którą ostrzega <code>docs/plan-A1.md</code>
+      („test, który zawsze był zielony, jest nieodróżnialny od testu, który nic nie sprawdza") —
+      tyle że wpisana w kod, który miał jej pilnować.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — udawany test kończy się błędem, zadanie i tak wychodzi na zero</div>
+      <div class="ev-b"><pre>$ task -t tf-probe.yml jak-w-repo
+task: [jak-w-repo] test -f istnieje.txt &amp;&amp; sh -c "exit 1" || echo "POMIJAM"
+POMIJAM
+KOD WYJSCIA ZADANIA: 0        ← porażka testu została połknięta</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Rozdzielić oba przypadki przez <code>if</code>. Wtedy „nie ma pliku" idzie jedną ścieżką,
+      a „testy padły" drugą — i ta druga przenosi kod błędu na zewnątrz.
+      <div class="ev">
+        <div class="ev-b"><pre>test:dotnet:
+  cmds:
+    - cmd: |
+        if test -f backend/Klucz.sln; then
+          dotnet test backend/Klucz.sln
+        else
+          echo "POMIJAM test:dotnet — brak solution (wchodzi w G1.3)"
+        fi</pre></div>
+      </div>
+      Tak samo w <code>test:web</code> i <code>test:contract</code>.
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="k istot" id="k2">
+    <div class="k-head">
+      <span class="knum">2</span>
+      <h3>Migracje nie są osobnymi transakcjami — a komunikat twierdzi, że są</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/schema/migrate.py — funkcja <code>main()</code>, pętla po nowych migracjach</p>
+
+    <p>
+      W kodzie i w <code>ingest/schema/README.md</code> stoi obietnica: „jeden plik = jeden krok,
+      wykonywany w jednej transakcji razem z wpisem do <code>schema_migrations</code>".
+      W rzeczywistości tak się nie dzieje.
+    </p>
+    <p>
+      Połączenie jest otwierane bez <code>autocommit</code>, więc pierwsze zapytanie
+      (odczyt zastosowanych migracji) samo otwiera transakcję. Gdy potem kod woła
+      <code>conn.transaction()</code>, biblioteka widzi, że transakcja już trwa — i zamiast
+      nowej zakłada <strong>punkt przywracania</strong> wewnątrz starej. Wszystkie migracje
+      lądują więc w jednej wspólnej transakcji, która zatwierdza się dopiero przy wyjściu
+      z bloku połączenia.
+    </p>
+    <p>
+      Skutek jest taki, że <strong>napis na ekranie kłamie</strong>. Przy dwóch migracjach,
+      z których druga się wywali, zobaczysz na ekranie <code>+ 0001_korpus</code> — a po
+      wszystkim w bazie nie będzie ani jednej, bo cała transakcja się cofnie. Przy dwóch
+      migracjach to jeszcze da się rozpoznać. Przy dwunastu, w połowie A2, już nie.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — ta sama biblioteka, te same ustawienia co w migrate.py</div>
+      <div class="ev-b"><pre>autocommit: False
+status po SELECT: 2              ← transakcja już trwa
+savepoint name: '_pg3_1'         ← czyli PUNKT PRZYWRACANIA, nie transakcja
+
+-- to samo z autocommit=True --
+status po SELECT: 0              ← brak otwartej transakcji
+savepoint name: ''               ← czyli prawdziwa transakcja</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Otworzyć połączenie z <code>autocommit=True</code>. Wtedy <code>conn.transaction()</code>
+      zakłada prawdziwą transakcję wokół każdej migracji, obietnica z README staje się prawdą,
+      a napis <code>+ 0001</code> pojawia się dopiero po faktycznym zatwierdzeniu.
+      <div class="ev">
+        <div class="ev-b"><pre>with psycopg.connect(polaczenie(), autocommit=True) as conn:
+    ...
+    # conn.commit() po CREATE TABLE staje się zbędny — usunąć</pre></div>
+      </div>
+      Warto przy okazji dopisać test: dwie migracje, druga celowo błędna, sprawdzenie
+      że pierwsza <em>została</em> w bazie. Bez takiego testu ta wada wróci przy pierwszej
+      przebudowie runnera.
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="k istot" id="k3">
+    <div class="k-head">
+      <span class="knum">3</span>
+      <h3>Nieudany test zostawia śmieci w bazie — i to na stałe</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/tests/test_schema.py — fikstura <code>conn</code> oraz testy więzów</p>
+
+    <p>
+      Testy więzów wstawiają do bazy sztuczne rekordy (reżim <code>test-wiez</code>, dokumenty
+      <code>test://wiez</code> i <code>test://punkty</code>), a sprzątają po sobie wywołaniem
+      <code>conn.rollback()</code> <strong>w ostatniej linii testu</strong>.
+    </p>
+    <p>
+      Dopóki testy przechodzą, wszystko jest w porządku. Gdy jednak któryś sprawdzian nie
+      wypali, wykonanie przerywa się <em>przed</em> tą ostatnią linią i wstawione rekordy
+      zostają w otwartej transakcji. Fikstura kończy się zwykłym wyjściem z bloku połączenia,
+      a to w tej bibliotece oznacza <strong>zatwierdzenie</strong>. Sztuczne dane wchodzą
+      do bazy deweloperskiej na stałe — czyli dokładnie tam, gdzie za chwilę ma stanąć korpus.
+    </p>
+    <p>
+      Do tego fikstura jest wspólna dla całego pliku, więc kolejne testy dziedziczą po
+      poprzednim brudną albo przerwaną transakcję. Jeden prawdziwy błąd potrafi wtedy
+      wyprodukować pięć czerwonych testów, z których cztery nie mają z nim nic wspólnego —
+      i szukanie zaczyna się od złego końca.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Przenieść sprzątanie do fikstury, żeby działo się <em>zawsze</em>, także po nieudanym
+      sprawdzianie — i dać każdemu testowi własną, czystą transakcję.
+      <div class="ev">
+        <div class="ev-b"><pre>@pytest.fixture
+def conn(polaczenie):                  # fikstura na każdy test osobno
+    with polaczenie.transaction() as t:
+        yield polaczenie
+        t.rollback()                   # cofnij ZAWSZE, też przy błędzie
+
+# wtedy z ciała testów znika każde ręczne conn.rollback()</pre></div>
+      </div>
+      Wariant minimalny, jeśli nie chcesz przebudowywać fikstur: zawinąć ciało każdego
+      testu w <code>try/finally</code> z <code>conn.rollback()</code> w <code>finally</code>.
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="k drob" id="k4">
+    <div class="k-head">
+      <span class="knum">4</span>
+      <h3>Katalogi <code>data/</code> nie powstaną na świeżym klonie</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">.gitignore, linie 2–4 · skutek widoczny w .env.example (<code>BLOB_ROOT</code>)</p>
+
+    <p>
+      W <code>.gitignore</code> stoi <code>data/</code>, a pod spodem dwa wyjątki:
+      <code>!data/.gitkeep</code> i <code>!data/inwentarz/</code>. Te wyjątki
+      <strong>nie działają</strong>. Git ma regułę, że jeśli wykluczony jest cały katalog,
+      to nie da się już wyjąć z niego pojedynczego pliku — narzędzie nawet do niego
+      nie zagląda.
+    </p>
+    <p>
+      Skutek: po <code>git clone</code> nie ma katalogów <code>data/blob</code>,
+      <code>data/raw</code> ani <code>data/raporty</code>. Tymczasem <code>.env.example</code>
+      wskazuje <code>BLOB_ROOT=data/blob</code>, a plan zakłada, że w G1.3 stanie tam
+      magazyn plików. Pierwsze uruchomienie na czystej maszynie wywali się na nieistniejącym
+      katalogu — czyli dokładnie w tym sprawdzianie „klon od zera", który zamyka kamień A1.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone — oba pliki ignorowane mimo wyjątków</div>
+      <div class="ev-b"><pre>$ git check-ignore -v data/inwentarz/spis.tsv data/.gitkeep
+.gitignore:2:data/    data/inwentarz/spis.tsv
+.gitignore:2:data/    data/.gitkeep</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Wykluczać <em>zawartość</em> katalogu zamiast samego katalogu — wtedy wyjątki działają:
+      <div class="ev">
+        <div class="ev-b"><pre>data/*
+!data/.gitkeep
+!data/inwentarz/
+data/inwentarz/*
+!data/inwentarz/.gitkeep</pre></div>
+      </div>
+      Do tego dołożyć <code>.gitkeep</code> w <code>data/blob</code>, <code>data/raw</code>
+      i <code>data/raporty</code> — albo zadbać, żeby <code>task up</code> tworzył je sam.
+      Uwaga na pułapkę z <code>Taskfile.yml</code>: <code>mkdir</code> na Windows nie istnieje,
+      więc tworzenie katalogów musi zrobić kod Pythona, nie zadanie w Taskfile.
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="k drob" id="k5">
+    <div class="k-head">
+      <span class="knum">5</span>
+      <h3>Numer portu wpisany w dwóch miejscach — rozjedzie się</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">.env.example — <code>DB_PORT</code> oraz port wewnątrz <code>DATABASE_URL</code></p>
+
+    <p>
+      Ta sama liczba <code>55434</code> stoi w dwóch osobnych linijkach: raz jako
+      <code>DB_PORT</code> (używa jej Docker), raz w środku <code>DATABASE_URL</code>
+      (używa jej Python). Komentarz owszem, prosi o poprawienie obu — ale prośba w komentarzu
+      to nie jest mechanizm.
+    </p>
+    <p>
+      Ta pułapka zadziała dokładnie w najgorszym momencie: przy kolizji portów, czyli
+      wtedy, gdy człowiek już jest zirytowany i szuka najkrótszej drogi. Zmieni
+      <code>DB_PORT</code>, kontener wstanie na nowym porcie, a <code>migrate.py</code>
+      dalej będzie pukał w stary i zgłosi, że baza jest nieosiągalna. Objaw nie wskazuje
+      na przyczynę.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Najprościej: zostawić jedno źródło prawdy i złożyć adres w kodzie z części.
+      <code>migrate.py</code> czytałby wtedy <code>DB_PORT</code> i budował adres sam,
+      a <code>DATABASE_URL</code> zostałby tylko jako opcjonalne nadpisanie
+      („gdy ustawione, ma pierwszeństwo").
+      <br><br>
+      Wariant minimalny, jeśli nie chcesz ruszać kodu: dopisać do <code>task setup</code>
+      sprawdzenie, czy port w <code>DATABASE_URL</code> zgadza się z <code>DB_PORT</code>,
+      i głośno protestować, gdy nie. Rozjazd zostaje wtedy złapany przy pierwszym poleceniu,
+      a nie przy trzecim.
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="k drob" id="k6">
+    <div class="k-head">
+      <span class="knum">6</span>
+      <h3>Baza deweloperska wstaje przy każdym starcie komputera</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">docker-compose.yml — <code>restart: unless-stopped</code></p>
+
+    <p>
+      Kontener ma ustawione automatyczne wznawianie, więc po każdym restarcie systemu
+      wstaje sam i zajmuje swój port — także wtedy, gdy nikt nie pracuje nad tym projektem
+      od tygodni.
+    </p>
+    <p>
+      Dla bazy produkcyjnej to właściwe ustawienie. Dla bazy deweloperskiej na komputerze,
+      na którym stoi już kilka innych Postgresów w kontenerach, to sposób na tę samą kolizję
+      portów, która zablokowała pierwsze uruchomienie tego projektu — tylko że tym razem
+      to <em>my</em> będziemy stroną zajmującą port cudzemu projektowi.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Zmienić na <code>restart: no</code> albo usunąć linię (domyślnie jest <code>no</code>).
+      Kontener podnosi <code>task up</code>, i tylko wtedy, gdy ktoś naprawdę zaczyna pracę.
+      <code>restart: unless-stopped</code> wróci przy pierwszym prawdziwym wdrożeniu — czyli
+      po alfie, razem z odpowiedzią na pytanie App Service vs Container Apps.
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="k rozw" id="k7">
+    <div class="k-head">
+      <span class="knum">7</span>
+      <h3>Test wstawia rekord, którego do niczego nie używa</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">ingest/tests/test_schema.py — <code>test_wiez_kryterium_odrzuca_dwa_progi_o_tej_samej_punktacji</code></p>
+
+    <p>
+      Test zaczyna od wstawienia rekordu do tabeli <code>rezim</code> z <code>RETURNING id</code>,
+      ale wyniku nigdy nie odbiera i nigdzie go nie używa — tabela <code>dokument</code> nie ma
+      odwołania do reżimu. To zostało prawdopodobnie z wcześniejszej wersji testu.
+    </p>
+    <p>
+      Nic się przez to nie psuje. Warto usunąć z innego powodu: w teście, który ma pokazywać
+      <em>dokładnie jeden</em> mechanizm — że więz odrzuca drugi próg o tej samej punktacji —
+      każda dodatkowa linijka podpowiada czytelnikowi, że jest potrzebna. A nie jest.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Usunąć pierwszy <code>cur.execute</code> wstawiający <code>rezim</code>.
+      Test przechodzi bez niego — pozostałe wstawienia go nie potrzebują.
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="k rozw" id="k8">
+    <div class="k-head">
+      <span class="knum">8</span>
+      <h3>Wyciszenie reguły, która i tak nie jest włączona</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">ingest/tests/test_schema.py — <code>test_widoki_daja_sie_wykonac</code>, komentarz <code># noqa: S608</code></p>
+
+    <p>
+      W teście stoi wyciszenie ostrzeżenia <code>S608</code> (sklejanie zapytania SQL
+      z tekstu). Zestaw reguł w <code>pyproject.toml</code> to <code>E, F, I, UP, B, SIM</code> —
+      grupy <code>S</code> tam nie ma, więc to ostrzeżenie i tak nigdy nie padnie.
+      Wyciszenie nic nie robi.
+    </p>
+    <p>
+      Do wyboru są dwie spójne odpowiedzi, obie lepsze niż stan obecny: albo włączyć
+      grupę <code>S</code> (reguły bezpieczeństwa) i wtedy wyciszenie zaczyna coś znaczyć,
+      albo skasować komentarz. Warto też włączyć <code>RUF100</code> — reguła, która
+      sama wyłapuje martwe wyciszenia i nie pozwala im się mnożyć.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Zalecane: dopisać <code>"S"</code> i <code>"RUF"</code> do listy <code>select</code>
+      w <code>pyproject.toml</code>. Zapytania w tym teście są sklejane z nazw ze stałej
+      w kodzie, nie z danych z zewnątrz, więc wyciszenie jest w tym miejscu uzasadnione —
+      i po włączeniu grupy będzie to widać.
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLAN ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">03 — ZGODNOŚĆ Z PLANEM</span>
+    <h2>Czy kod robi to, co zapowiadał <code>docs/plan-A1.md</code></h2>
+    <p class="sec-sub">Punkt po punkcie, wraz z miejscami, w których to plan trzeba było poprawić, a nie kod.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="n">Punkt</th><th>Zapowiedź</th><th>Stan</th><th>Uwagi</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="id">G1.1.1</td><td>Struktura monorepo, <code>.editorconfig</code>, <code>.gitattributes</code> z LF</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td class="dim">Drzewo zgodne z planem. <code>.gitattributes</code> wymusza LF i oznacza binaria</td>
+        </tr>
+        <tr>
+          <td class="id">G1.1.1</td><td><code>data/</code> w <code>.gitignore</code> z wyjątkiem inwentarza</td>
+          <td><span class="tag st-istot">częściowo</span></td>
+          <td>Wyjątek zapisany, ale nie działa — <a href="#k4">uwaga 4</a></td>
+        </tr>
+        <tr>
+          <td class="id">G1.1.2</td><td>Postgres w Dockerze, healthcheck, nazwany wolumen</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td class="dim"><code>task up</code> czeka na gotowość bazy przed migracjami</td>
+        </tr>
+        <tr>
+          <td class="id">G1.1.2</td><td>Schemat z <code>research/</code> pocięty na migracje, więzy ostre</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td class="dim">Model przeniesiony bez zmian; komplet 16 tabel i 2 widoki potwierdzone testem</td>
+        </tr>
+        <tr>
+          <td class="id">G1.1.2</td><td>Runner: transakcja per migracja, sumy kontrolne, idempotencja</td>
+          <td><span class="tag st-istot">częściowo</span></td>
+          <td>Sumy i idempotencja działają (obie widziane w akcji). Transakcja per migracja — nie — <a href="#k2">uwaga 2</a></td>
+        </tr>
+        <tr>
+          <td class="id">G1.1.2</td><td>Connection string wyłącznie z konfiguracji</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td class="dim"><code>.env</code> poza repo — sprawdzone przez <code>git check-ignore</code></td>
+        </tr>
+        <tr>
+          <td class="id">G1.1.3</td><td>Taskfile wieloplatformowy, zero operacji na plikach</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td class="dim">Żadnego <code>rm</code>/<code>cp</code>/<code>mkdir</code>. <code>test -f</code> jest wbudowane w interpreter, więc działa też na Windows</td>
+        </tr>
+        <tr>
+          <td class="id">G1.1.3</td><td><code>task setup</code> — sprawdzian środowiska</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td class="dim">Wypisuje system i architekturę; brakuje sprawdzenia zgodności portów — <a href="#k5">uwaga 5</a></td>
+        </tr>
+        <tr>
+          <td class="id">G1.1.3</td><td>Zadania z G1.3/G1.4 mówią, że pomijają</td>
+          <td><span class="tag st-istot">częściowo</span></td>
+          <td>Mówią — ale połkną też prawdziwą porażkę — <a href="#k1">uwaga 1</a></td>
+        </tr>
+        <tr>
+          <td class="id">plan</td><td>„Port 55432 — brak kolizji z lokalnym Postgresem"</td>
+          <td><span class="tag st-drob">plan poprawiony</span></td>
+          <td class="dim">Założenie nieprawdziwe: port zajmował inny projekt. Plan zaktualizowany w tym samym commicie — port jest teraz konfigurowalny</td>
+        </tr>
+        <tr>
+          <td class="id">plan</td><td>Locale <code>pl_PL.UTF-8</code> przy obrazie alpine</td>
+          <td><span class="tag st-drob">plan poprawiony</span></td>
+          <td class="dim">Poprawione wcześniej, przed implementacją: cluster w <code>C.UTF-8</code>, sortowanie przez kolację ICU</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <p>
+      <strong>Zakres dotrzymany.</strong> Branch nie wchodzi w G1.2–G1.5 ani niczego z nich nie
+      przygotowuje „na zapas". Katalogi <code>backend/</code> i <code>web/</code> są puste poza
+      znacznikami — dokładnie tak, jak zakładał plan.
+    </p>
+  </div>
+</section>
+
+<!-- ============ DOBRE ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">04 — CO JEST DOBRE</span>
+    <h2>Warte utrzymania przy kolejnych zmianach</h2>
+    <p class="sec-sub">Nie kurtuazja — rzeczy, które łatwo zgubić przy następnej przebudowie.</p>
+  </div>
+
+  <ul class="plain">
+    <li>
+      <b>Testy sprawdzają, czy więzy odrzucają złe dane, a nie czy istnieją.</b>
+      <code>test_wiez_kryterium_odrzuca_dwa_progi…</code> odtwarza prawdziwy błąd z sondy
+      i sprawdza, że baza go zatrzyma. To jedyny rodzaj testu, który obroni ten więz przed
+      poluzowaniem „bo parser się wywalał". Tak samo test kolacji: nie sprawdza, że
+      <code>pl_icu</code> istnieje, tylko że <code>ł</code> stoi między <code>l</code> a <code>m</code>.
+    </li>
+    <li>
+      <b>Kontrola sum migracji została zobaczona na czerwono.</b> Mechanizm, który wykrywa
+      podmianę zastosowanej migracji, nie tylko jest napisany — jest sprawdzony celowym
+      zepsuciem pliku. Przy okazji złapał prawdziwe uszkodzenie kodowania, które powstało
+      przypadkiem. To jest różnica między zabezpieczeniem a jego atrapą.
+    </li>
+    <li>
+      <b>Komentarze w schemacie odsyłają do pomiaru, nie do intuicji.</b> Przy każdej
+      nieoczywistej decyzji stoi liczba i powód (31 z 46 kluczy, 84 z 219 zadań, trzy poziomy
+      dysjunkcji na zadaniu 20). Za pół roku nikt nie będzie musiał zgadywać, czemu
+      relacja jest N:M.
+    </li>
+    <li>
+      <b>Wieloplatformowość jest wpisana w konstrukcję, nie w komentarz.</b> Brak operacji
+      na plikach w Taskfile, <code>uv run python</code> zamiast <code>python</code> albo
+      <code>python3</code>, LF wymuszone przez <code>.gitattributes</code>, port wyjęty do
+      konfiguracji. Każde z tych rozstrzygnięć ma w kodzie zapisany powód.
+    </li>
+    <li>
+      <b>Odporność sumy kontrolnej na BOM i CRLF jest przemyślana w obie strony.</b>
+      Runner celowo <em>nie</em> normalizuje samych znaków, więc plik uszkodzony przez złe
+      kodowanie zrywa sumę — i to jest opisane w kodzie jako decyzja, nie przeoczenie.
+    </li>
+  </ul>
+</section>
+
+<footer>
+  <p>Przegląd wykonany wg <code>.claude/skills/przeglad-kodu</code> · 25.08.2026.</p>
+  <p>
+    Zakres: <code>git diff main...HEAD</code> na branchu <code>feat/g1.1-fundament</code>
+    (1 commit, 23 pliki, 1302 linie) zestawiony z <code>docs/plan-A1.md</code>, sekcje G1.1.1–G1.1.3.
+  </p>
+  <p>
+    Sprawdzone uruchomieniem: <code>task setup</code> · <code>task up</code> ·
+    <code>task migrate</code> (dwukrotnie — idempotencja) · <code>task db:reset</code> ·
+    <code>task test</code> · kontrola sum po celowej podmianie migracji ·
+    zachowanie transakcji w psycopg · <code>git check-ignore</code> na wyjątkach w <code>.gitignore</code> ·
+    zachowanie <code>||</code> w zadaniu Taskfile przy błędzie polecenia.
+  </p>
+  <p>
+    Poza zakresem: kod z <code>research/</code> (nieprzeniesiony — wchodzi w G1.2),
+    plik <code>ingest/uv.lock</code> (wygenerowany), zachowanie na macOS
+    (rozumowanie z dokumentacji i konstrukcji, bez uruchomienia na sprzęcie).
+  </p>
+</footer>
+
+</div>

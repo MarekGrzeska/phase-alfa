@@ -1,0 +1,196 @@
+<!--
+  Szablon dokumentu przeglądu kodu.
+
+  Skopiuj całość, podmień treść między znacznikami <!-- TREŚĆ ... -->.
+  Zmienne CSS są te same co w dokumentacji serii „Projekt Klucz", żeby przegląd
+  wyglądał jak część tej samej rodziny dokumentów.
+
+  Klasy do użycia:
+    .st-kryt .st-istot .st-drob .st-rozw   — znaczniki stopnia ważności
+    .k.kryt  .k.istot  .k.drob  .k.rozw    — karty komentarzy (kolor lewej krawędzi)
+    .ev / .ev-h / .ev-b                    — blok z kodem albo wynikiem przebiegu
+    .fix                                   — sekcja „jak naprawić" w karcie
+-->
+<title>Przegląd kodu — ZAKRES</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:68ch}
+h1,h2,h3,.tag,th,.knum{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:0 0 .3rem;text-wrap:balance}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:52px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-kryt{color:var(--crit)} .n-istot{color:var(--warn)}
+.n-drob{color:var(--accent)} .n-rozw{color:var(--info)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-kryt{background:var(--crit-soft);color:var(--crit)}
+.st-istot{background:var(--warn-soft);color:var(--warn)}
+.st-drob{background:var(--accent-soft);color:var(--accent)}
+.st-rozw{background:var(--info-soft);color:var(--info)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+/* karta komentarza */
+.k{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px 22px;border-left:3px solid var(--rule);box-shadow:var(--shadow);
+  margin:0 0 16px;scroll-margin-top:20px}
+.k.kryt{border-left-color:var(--crit)}
+.k.istot{border-left-color:var(--warn)}
+.k.drob{border-left-color:var(--accent)}
+.k.rozw{border-left-color:var(--info)}
+.k-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+.knum{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+  color:var(--ink-3);min-width:1.6rem}
+.k h3{flex:1 1 18ch;margin:0}
+.k-gdzie{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-3);
+  margin:0 0 .9rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule-soft)}
+.k p{font-size:.95rem;color:var(--ink-2);margin-bottom:.75em}
+.k p:last-child{margin-bottom:0}
+.fix{font-size:.92rem;color:var(--ink);border-top:1px solid var(--rule-soft);
+  padding-top:.8rem;margin-top:1rem}
+.fix b{font-family:Archivo,sans-serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:.4rem}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">przegląd kodu · DATA · BRANCH</span>
+  <h1>TYTUŁ</h1>
+  <p class="lede">JEDNO ZDANIE: co recenzowano i czy nadaje się do scalenia.</p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n n-kryt">0</span><span class="metric-l">krytyczne</span></div>
+    <div class="metric"><span class="metric-n n-istot">0</span><span class="metric-l">istotne</span></div>
+    <div class="metric"><span class="metric-n n-drob">0</span><span class="metric-l">drobne</span></div>
+    <div class="metric"><span class="metric-n n-rozw">0</span><span class="metric-l">do rozważenia</span></div>
+    <div class="metric"><span class="metric-n">0</span><span class="metric-l">plików w diffie</span></div>
+  </div>
+</header>
+
+<!-- TREŚĆ: spis (tabela z kotwicami #k1, #k2, ...) -->
+<!-- TREŚĆ: komentarze (karty .k z id="k1" ...) -->
+<!-- TREŚĆ: zgodność z planem (tabela) -->
+<!-- TREŚĆ: co jest dobre -->
+
+<footer>
+  <p>Przegląd wykonany wg <code>.claude/skills/przeglad-kodu</code>.</p>
+  <p>Zakres: KOMENDA · Sprawdzone uruchomieniem: CO · Poza zakresem: CO.</p>
+</footer>
+
+</div>
