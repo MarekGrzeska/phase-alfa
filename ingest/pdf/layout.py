@@ -12,7 +12,7 @@ Domyślny silnik to **pdfplumber (MIT)**. PyMuPDF jest dwulicencyjny
 źródeł przy korzystaniu przez sieć, więc do produktu SaaS nie wchodzi.
 Zostaje jako opcja badawcza — jest ~2× szybszy, a wynik ma identyczny.
 
-    from layout import open_pdf
+    from pdf.layout import open_pdf
     with open_pdf("klucz.pdf") as doc:          # pdfplumber
         for page in doc:
             page.chars, page.bars, page.tables
@@ -153,21 +153,32 @@ class _PlumberPage(Page):
 
 
 class _PlumberDoc:
+    """Dokument pdfplumbera; strony trzymane po numerze.
+
+    Strona musi być TA SAMA przy każdym dostępie, bo `Page` odkłada w polach
+    znaki, ramki i kreski — a wykrywanie tabel kosztuje mniej więcej tyle, co
+    cała reszta parsowania razy dwa. Budowanie nowego obiektu przy każdym
+    `doc[i]` znaczyło, że te pola nie żyły dłużej niż jedno wyrażenie.
+    """
+
     def __init__(self, path):
         import pdfplumber
         self._pdf = pdfplumber.open(path)
+        self._strony: dict[int, Page] = {}
 
     def __iter__(self) -> Iterator[Page]:
-        for i, p in enumerate(self._pdf.pages):
-            yield _PlumberPage(i, p)
+        return (self[i] for i in range(len(self)))
 
     def __len__(self):
         return len(self._pdf.pages)
 
     def __getitem__(self, i):
-        return _PlumberPage(i, self._pdf.pages[i])
+        if i not in self._strony:
+            self._strony[i] = _PlumberPage(i, self._pdf.pages[i])
+        return self._strony[i]
 
     def close(self):
+        self._strony.clear()
         self._pdf.close()
 
 
@@ -216,21 +227,26 @@ class _MuPage(Page):
 
 
 class _MuDoc:
+    """Jak `_PlumberDoc` — strona po numerze, żeby jej pamięć podręczna żyła."""
+
     def __init__(self, path):
         import pymupdf
         self._doc = pymupdf.open(path)
+        self._strony: dict[int, Page] = {}
 
     def __iter__(self):
-        for i in range(self._doc.page_count):
-            yield _MuPage(i, self._doc[i])
+        return (self[i] for i in range(len(self)))
 
     def __len__(self):
         return self._doc.page_count
 
     def __getitem__(self, i):
-        return _MuPage(i, self._doc[i])
+        if i not in self._strony:
+            self._strony[i] = _MuPage(i, self._doc[i])
+        return self._strony[i]
 
     def close(self):
+        self._strony.clear()
         self._doc.close()
 
 
@@ -248,3 +264,40 @@ def open_pdf(path: str, engine: str = "pdfplumber"):
         yield doc
     finally:
         doc.close()
+
+
+# ── zrzut strony do JSON-a — testy bez PDF-a ────────────────────────────────
+# Arkusze CKE nie wchodzą do repozytorium (prawa nierozstrzygnięte, G0.1), więc
+# regresja rekonstrukcji musiałaby chodzić tylko na maszynie z mirrorem. Zrzut
+# warstwy pozycyjnej jest tanim obejściem: znaki, kreski i tabele to kilkadziesiąt
+# kilobajtów JSON-a, z których `reconstruct` odtwarza dokładnie ten sam tekst.
+
+def zrzut_strony(page: Page) -> dict:
+    """Strona → słownik do zapisania w `tests/fixtures/`."""
+    return {
+        "numer": page.number,
+        "szerokosc": page.width,
+        "wysokosc": page.height,
+        "znaki": [[c.c, c.x0, c.x1, c.y0, c.y1, c.size] for c in page.chars],
+        "kreski": [[b.x0, b.x1, b.y] for b in page.bars],
+        "kreski_kandydujace": [[b.x0, b.x1, b.y] for b in page._read_bars()],
+        "tabele": [{"bbox": list(t.bbox), "wiersze": t.rows} for t in page.tables],
+    }
+
+
+class StronaZeZrzutu(Page):
+    """Strona odtworzona ze zrzutu — ma ten sam interfejs co strona z PDF-a."""
+
+    def __init__(self, dane: dict):
+        super().__init__(dane["numer"], dane["szerokosc"], dane["wysokosc"])
+        self._dane = dane
+
+    def _read_chars(self) -> List[Char]:
+        return [Char(c, x0, x1, y0, y1, size)
+                for c, x0, x1, y0, y1, size in self._dane["znaki"]]
+
+    def _read_bars(self) -> List[Bar]:
+        return [Bar(x0, x1, y) for x0, x1, y in self._dane["kreski_kandydujace"]]
+
+    def _read_tables(self) -> List[Table]:
+        return [Table(tuple(t["bbox"]), t["wiersze"]) for t in self._dane["tabele"]]

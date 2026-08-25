@@ -1,0 +1,70 @@
+# Bramka, która nie zależy od pamięci autora.
+#
+# Bez bazy i bez mirrora pakiet testów kurczy się z 33 do 14 — dlatego usługa
+# Postgresa stoi tu obok kroków: „zielone CI" i „CI, które nic nie uruchomiło"
+# mają wyglądać różnie. Liczba pominiętych testów jest wypisywana wprost.
+#
+# Arkusze CKE NIE wchodzą do repozytorium (G0.1), więc testy oznaczone `mirror`
+# pomijają się tutaj świadomie. Regresję rekonstrukcji trzymają zamiast nich
+# zrzuty stron w `ingest/tests/fixtures/`.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  python:
+    name: ruff + pytest + migracje
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: klucz
+          POSTGRES_USER: klucz
+          POSTGRES_PASSWORD: klucz_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U klucz -d klucz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: '5432'
+      DB_NAME: klucz
+      DB_USER: klucz
+      DB_PASSWORD: klucz_ci
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # `--extra dev` bo pytest i ruff stoją w `optional-dependencies.dev`;
+      # bez tego CI instalowałoby sam produkt i nie miało czym uruchomić testów.
+      - name: Zależności
+        working-directory: ingest
+        run: uv sync --frozen --extra dev
+
+      - name: Migracje schematu
+        working-directory: ingest
+        run: uv run python -m schema.migrate
+
+      - name: Lint
+        working-directory: ingest
+        run: uv run ruff check .
+
+      # `-rs` wypisuje powód każdego pominięcia. Bez tego nie widać różnicy
+      # między „testy przeszły" a „testy się nie uruchomiły".
+      - name: Testy
+        working-directory: ingest
+        run: uv run pytest -q -rs

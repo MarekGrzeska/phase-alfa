@@ -1,4 +1,4 @@
-"""Sprawdzian MODELU na jednym prawdziwym kluczu — następca `probe_load.py`.
+"""Sprawdzian MODELU na jednym prawdziwym kluczu — następca sondy `probe_load.py`.
 
 `test_schema.py` sprawdza, czy więzy odrzucają złe dane. Ten plik odpowiada na
 inne pytanie: **czy model udźwignie prawdziwy dokument**. Robi to na jednym
@@ -17,6 +17,7 @@ from urllib.parse import urlsplit, urlunsplit
 import pytest
 
 from schema.migrate import polaczenie as adres
+from sciezki import korzen_mirrora
 
 psycopg = pytest.importorskip("psycopg")
 pytest.importorskip("pdfplumber")
@@ -25,6 +26,10 @@ pytestmark = [pytest.mark.integracyjny, pytest.mark.mirror]
 
 KLUCZ = "data/raw/e8/2025/matematyka/OMAP-100-2505-zasady.pdf"
 BAZA_TESTOWA = "klucz_test_corpus"
+
+# Sparsowany klucz i jego metadane — żeby test o powtórnym ładowaniu nie musiał
+# czytać PDF-a drugi raz (1,5 s) ani duplikować całego fixture'a.
+_POWTORKA: dict = {}
 
 # Liczby zmierzone w sondzie 24.08.2026 na tym samym pliku. Rozjazd znaczy
 # regresję parsera albo ładowarki, a nie „inny wynik".
@@ -37,14 +42,6 @@ OCZEKIWANE = {
     "example_solution": 20,
     "rule": 17,
 }
-
-
-def _mirror_root() -> str:
-    korzen = os.environ.get("MIRROR_ROOT", ".")
-    if not os.path.isabs(korzen):
-        repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        korzen = os.path.normpath(os.path.join(repo, korzen))
-    return korzen
 
 
 def _migruj(url: str) -> None:
@@ -63,7 +60,7 @@ def _migruj(url: str) -> None:
 @pytest.fixture(scope="module")
 def baza_z_kluczem():
     """Świeża baza + jeden klucz załadowany przez prawdziwą ładowarkę."""
-    sciezka = os.path.join(_mirror_root(), KLUCZ)
+    sciezka = os.path.join(korzen_mirrora(), KLUCZ)
     if not os.path.exists(sciezka):
         pytest.skip(f"brak mirrora: {sciezka}")
 
@@ -98,6 +95,7 @@ def baza_z_kluczem():
             }
             with psycopg.connect(url, autocommit=True) as con:
                 loader.Ladowarka(con).zaladuj(k, meta)
+                _POWTORKA["klucz"] = (k, meta)     # patrz test o drugim przebiegu
                 yield con
         finally:
             with adm.cursor() as cur:
@@ -168,3 +166,23 @@ def test_reguly_przekrojowe_maja_zakres_zadan(baza_z_kluczem):
     (z_zakresem,) = baza_z_kluczem.execute(
         "SELECT count(*) FROM rule WHERE tasks_from IS NOT NULL").fetchone()
     assert z_zakresem > 0, "żadna reguła nie ma zakresu zadań"
+
+
+def test_drugi_przebieg_nie_dubluje_i_nie_pada(baza_z_kluczem):
+    """Ten sam klucz załadowany dwa razy ma dać ten sam korpus.
+
+    Baza jest TRWAŁA, więc drugi `task ingest` trafia na własne wiersze
+    z pierwszego. Dopóki `document` wstawiał się gołym INSERT-em, kończyło się
+    to `UniqueViolation` na `document_url_key` — i tak na każdym z 75 kluczy,
+    czyli zero wierszy i kod wyjścia 1, mimo że `run.py` obiecuje w docstringu
+    coś odwrotnego.
+    """
+    from parsers.omap_e8 import loader
+
+    przed = {t: licznik(baza_z_kluczem, t) for t in sorted(OCZEKIWANE)}
+    k, meta = _POWTORKA["klucz"]
+    loader.Ladowarka(baza_z_kluczem).zaladuj(k, meta)      # ma nie rzucić
+    po = {t: licznik(baza_z_kluczem, t) for t in sorted(OCZEKIWANE)}
+
+    assert po == przed, "drugi przebieg zmienił liczby — klucz się zdublował"
+    assert licznik(baza_z_kluczem, "document") == 1, "dokument wszedł drugi raz"

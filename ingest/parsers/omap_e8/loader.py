@@ -24,6 +24,8 @@ from __future__ import annotations
 import os
 import re
 
+from parsers.omap_e8 import parser as K
+
 # ── słownik: język dokumentu (parser) → język schematu (baza) ────────────────
 # Pełny słownik pojęć stoi w CLAUDE.md; tu są tylko wartości, które parser
 # faktycznie emituje. Brak klucza w słowniku ma być głośny, dlatego wszędzie
@@ -97,9 +99,10 @@ class Ladowarka:
     ta sama forma OMAP-200-2505 bywa zadeklarowana przez dwa różne klucze,
     a ta sama ścieżka podstawy programowej wraca w co drugim zadaniu.
 
-    Get-or-create idzie przez `ON CONFLICT ... DO UPDATE ... RETURNING id`,
-    a nie przez samą pamięć procesu. Różnica jest istotna: pamięć chroni tylko
-    w obrębie jednego przebiegu, więc drugi ingest na tej samej bazie zaczynał
+    Get-or-create idzie przez `ON CONFLICT ... DO NOTHING RETURNING id`
+    (a gdy nic nie wróci — `SELECT`), a nie przez samą pamięć procesu. Różnica
+    jest istotna: pamięć chroni tylko w obrębie jednego przebiegu, więc drugi
+    ingest na tej samej bazie zaczynał
     dublować słowniki. Do tego pamięć rozjeżdża się z bazą, gdy transakcja
     jednego klucza zostanie wycofana — a wycofujemy ją zawsze, gdy klucz padnie.
     Słowniki w polach `_rezimy` i spółka zostają wyłącznie jako oszczędność
@@ -110,8 +113,15 @@ class Ladowarka:
         self.con = con
         self._rezimy: dict[str, int] = {}
         self._formy: dict[tuple, int] = {}
-        self._wymagania: dict[tuple, int] = {}
+        # (id, treść zapisana w bazie) — treść trzymamy, żeby dało się zauważyć,
+        # że kolejny klucz cytuje to samo wymaganie inaczej.
+        self._wymagania: dict[tuple, tuple[int, str]] = {}
         self.kolizje_form: dict[tuple, list] = {}
+        # Ta sama ścieżka podstawy z inną treścią niż zapisana. Nie jest to błąd
+        # parsera — dokumenty naprawdę cytują wymagania różnie — ale musi być
+        # widoczne, bo do bazy wchodzi tylko jedna z tych treści.
+        self.kolizje_wymagan: dict[tuple, set] = {}
+        self.kolizje_rezimow: dict[str, list] = {}
 
     def zapomnij_slowniki(self) -> None:
         """Po wycofanej transakcji — identyfikatory z niej już nie istnieją."""
@@ -134,11 +144,19 @@ class Ladowarka:
         cur.execute(
             """INSERT INTO requirement_regime (code, name, session_from, source)
                VALUES (%s, %s, %s, %s)
-               ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name
+               ON CONFLICT (code) DO NOTHING
                RETURNING id""",
             (kod, nazwa or kod, sesja, zrodlo),
         )
-        (rid,) = cur.fetchone()
+        wiersz = cur.fetchone()
+        if wiersz is None:
+            cur.execute("SELECT id, name FROM requirement_regime WHERE code = %s", (kod,))
+            (rid, stara) = cur.fetchone()
+            nowa = nazwa or kod
+            if stara != nowa:
+                self.kolizje_rezimow.setdefault(kod, []).append(nowa)
+        else:
+            (rid,) = wiersz
         self._rezimy[kod] = rid
         return rid
 
@@ -146,17 +164,41 @@ class Ladowarka:
                   sciezka: str, tresc: str) -> int:
         k = (rezim_id, rodzaj, etap, sciezka)
         if k in self._wymagania:
-            return self._wymagania[k]
+            # Porównanie MUSI być też tutaj, nie tylko na ścieżce z bazą:
+            # pamięć procesu przechwytuje drugie i każde następne wystąpienie
+            # tej samej ścieżki, więc licznik rozjazdów oparty wyłącznie na
+            # `ON CONFLICT` nie zapaliłby się nigdy w jednym przebiegu.
+            wid, zapisana = self._wymagania[k]
+            if zapisana != tresc:
+                self.kolizje_wymagan.setdefault((rodzaj, etap, sciezka), set()).add(tresc)
+            return wid
+        # DO NOTHING, nie DO UPDATE: ta sama ścieżka podstawy wraca w kilkudziesięciu
+        # kluczach, a jej treść bywa różna (tabela raz łamie się na stronie, raz nie).
+        # Nadpisywanie znaczyłoby, że w bazie zostaje treść z klucza, który akurat
+        # wszedł ostatni — bez śladu po pozostałych. Pierwsza treść zostaje, każdy
+        # rozjazd idzie do raportu.
         cur.execute(
             """INSERT INTO requirement (regime_id, kind, stage, path, content)
                VALUES (%s, %s, %s, %s, %s)
-               ON CONFLICT (regime_id, kind, stage, path)
-                 DO UPDATE SET content = EXCLUDED.content
+               ON CONFLICT (regime_id, kind, stage, path) DO NOTHING
                RETURNING id""",
             (rezim_id, RODZAJ_WYMAGANIA[rodzaj], etap, sciezka, tresc),
         )
-        (wid,) = cur.fetchone()
-        self._wymagania[k] = wid
+        wiersz = cur.fetchone()
+        if wiersz is None:
+            cur.execute(
+                """SELECT id, content FROM requirement
+                   WHERE regime_id = %s AND kind = %s AND stage IS NOT DISTINCT FROM %s
+                     AND path = %s""",
+                (rezim_id, RODZAJ_WYMAGANIA[rodzaj], etap, sciezka),
+            )
+            (wid, zapisana) = cur.fetchone()
+            if zapisana != tresc:
+                self.kolizje_wymagan.setdefault((rodzaj, etap, sciezka), set()).add(tresc)
+        else:
+            (wid,) = wiersz
+            zapisana = tresc
+        self._wymagania[k] = (wid, zapisana)
         return wid
 
     def forma(self, cur, rezim_id: int, egzamin: str, przedmiot: str, kod: str,
@@ -175,12 +217,26 @@ class Ladowarka:
             """INSERT INTO exam_form
                (regime_id, exam, subject, code, variant, version, session)
                VALUES (%s, %s, %s, %s, %s, %s, %s)
-               ON CONFLICT (code, variant, version, session)
-                 DO UPDATE SET subject = EXCLUDED.subject
+               ON CONFLICT (code, variant, version, session) DO NOTHING
                RETURNING id""",
             (rezim_id, egzamin, przedmiot, kod, wariant, wersja, sesja),
         )
-        (fid,) = cur.fetchone()
+        wiersz = cur.fetchone()
+        if wiersz is None:
+            # Forma zadeklarowana wcześniej — przez inny klucz albo przez
+            # poprzedni przebieg. Kolizje między kluczami zbiera gałąź wyżej;
+            # tutaj interesuje nas tylko identyfikator.
+            cur.execute(
+                """SELECT id FROM exam_form
+                   WHERE code = %s AND variant = %s
+                     AND version IS NOT DISTINCT FROM %s AND session = %s""",
+                (kod, wariant, wersja, sesja),
+            )
+            (fid,) = cur.fetchone()
+            if zrodlo:
+                self.kolizje_form.setdefault(k, []).append(zrodlo)
+        else:
+            (fid,) = wiersz
         self._formy[k] = fid
         return fid
 
@@ -207,8 +263,29 @@ class Ladowarka:
             self.zapomnij_slowniki()
             raise
 
+    def _wyczysc_klucz(self, cur, url: str) -> None:
+        """Kasuje to, co ten klucz zapisał poprzednim razem.
+
+        Bez tego drugi przebieg pada na `UNIQUE (marking_scheme_id, number)`
+        w `task` — a klucz ma się dać załadować ponownie, bo poprawka w parserze
+        musi wchodzić bez czyszczenia całego korpusu. Kasujemy PO ZADANIACH,
+        nie po dokumencie: `task.marking_scheme_id` celowo nie ma kaskady, żeby
+        nie dało się usunąć dokumentu, którego zadania wciąż stoją w bazie.
+        Wszystko pod zadaniem (wersje, kryteria, odpowiedzi, zasoby) leci
+        kaskadą z `task`.
+        """
+        cur.execute("SELECT id FROM document WHERE url = %s", (url,))
+        wiersz = cur.fetchone()
+        if wiersz is None:
+            return
+        (doc_id,) = wiersz
+        cur.execute("DELETE FROM task WHERE marking_scheme_id = %s", (doc_id,))
+        cur.execute("DELETE FROM rule WHERE marking_scheme_id = %s", (doc_id,))
+        cur.execute("DELETE FROM exam_form_document WHERE document_id = %s", (doc_id,))
+
     def _zaladuj(self, cur, k, meta: dict, arkusze: dict | None) -> dict:
         sesja = k.termin or meta.get("sesja_data") or "2019-01-01"
+        self._wyczysc_klucz(cur, meta["url"])
 
         rezimy_id = {}
         for r in k.rezimy:
@@ -220,10 +297,16 @@ class Ladowarka:
         )[0]
 
         cur.execute(
+            # Dokument ma naturalny klucz — URL, i to on ma `UNIQUE` w schemacie.
+            # Baza jest trwała, więc drugi przebieg trafia na własne wiersze
+            # z pierwszego; goły INSERT (bezpieczny w SQLite tworzonym w pamięci)
+            # kończyłby się tu `UniqueViolation` na każdym z 75 kluczy.
             """INSERT INTO document
                (segment, year, code, variants, session, kind, kind_source,
                 url, path, pages)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+               ON CONFLICT (url) DO UPDATE SET path = EXCLUDED.path,
+                                               pages = EXCLUDED.pages
                RETURNING id""",
             (meta["segment"], int(meta["rocznik"]), meta["kod"],
              meta.get("warianty"), sesja, "marking_scheme",
@@ -235,6 +318,12 @@ class Ladowarka:
         # Forma własna pliku: ta, której dotyczą zeszyty zadań i wersje.
         m_wlasna = RE_WLASNA_FORMA.search(os.path.basename(meta["sciezka"]))
         wlasna = (m_wlasna.group(1), m_wlasna.group(2)) if m_wlasna else None
+
+        # Wariant WŁASNY pliku — ten, którego dotyczą zeszyty zadań i wycinki.
+        # Kolumna `warianty` bywa listą sześciu form, więc do ścieżki zasobu
+        # bierzemy pierwszy człon, a nie całą listę.
+        wlasny_wariant = (wlasna[1] if wlasna
+                          else (meta.get("warianty") or "100").split(",")[0])
 
         forma_ids, wersje_wlasne = {}, []
         for f in k.formy:
@@ -252,10 +341,9 @@ class Ladowarka:
             # Klucz bez nagłówka „Formy arkusza" (roczniki 2019 i 2020) albo
             # forma własna nieujęta w wykazie — forma i tak musi istnieć,
             # bo bez niej nie ma gdzie powiesić wersji zadania.
-            kod, wariant = wlasna or (
-                meta["kod"], (meta.get("warianty") or "100").split(",")[0])
+            kod = wlasna[0] if wlasna else meta["kod"]
             fid = self.forma(cur, domyslny_rezim, k.egzamin,
-                             meta.get("przedmiot", "matematyka"), kod, wariant,
+                             meta.get("przedmiot", "matematyka"), kod, wlasny_wariant,
                              None, sesja)
             self._spnij_forme(cur, fid, klucz_doc, "klucz")
             wersje_wlasne = [(None, fid)]
@@ -269,7 +357,7 @@ class Ladowarka:
         for z in k.zadania:
             self._wstaw_zadanie(cur, z, klucz_doc, meta, rezimy_id,
                                 domyslny_rezim, wersje_wlasne, arkusze,
-                                arkusz_ids, stat)
+                                arkusz_ids, stat, sesja, wlasny_wariant)
 
         for r in k.reguly:
             cur.execute(
@@ -300,6 +388,7 @@ class Ladowarka:
                 """INSERT INTO document
                    (segment, year, code, variants, session, kind, kind_source, url, path)
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   ON CONFLICT (url) DO UPDATE SET path = EXCLUDED.path
                    RETURNING id""",
                 (meta["segment"], int(meta["rocznik"]), meta["kod"],
                  meta.get("warianty"), sesja, "paper", "suffix",
@@ -313,7 +402,8 @@ class Ladowarka:
         return arkusz_ids
 
     def _wstaw_zadanie(self, cur, z, klucz_doc, meta, rezimy_id, domyslny_rezim,
-                       wersje_wlasne, arkusze, arkusz_ids, stat) -> None:
+                       wersje_wlasne, arkusze, arkusz_ids, stat,
+                       sesja: str, wariant: str) -> None:
         cur.execute(
             """INSERT INTO task
                (marking_scheme_id, number, position, max_points, kind)
@@ -371,13 +461,19 @@ class Ladowarka:
                     (wid_wersji, podpunkt, odp))
                 stat["odpowiedzi"] += 1
 
-            for zas in tresc.get("zasoby", []):
+            for i, zas in enumerate(tresc.get("zasoby", [])):
                 cur.execute(
                     """INSERT INTO asset (task_version_id, kind, path, page, bbox)
                        VALUES (%s, %s, %s, %s, %s)""",
                     (wid_wersji, RODZAJ_ZASOBU[zas["rodzaj"]],
-                     # ścieżka WZGLĘDNA wobec korzenia blob storage
-                     f"{meta['kod']}/{wersja or '0'}/z{z.numer}.png",
+                     # Ścieżka WZGLĘDNA wobec korzenia blob storage, i musi
+                     # zawierać WSZYSTKO, co odróżnia jeden wycinek od drugiego:
+                     # sesję i wariant też. Bez nich zadanie 16 z maja 2025
+                     # i zadanie 16 z maja 2024 wskazywały ten sam plik — tak
+                     # samo jak wszystkie warianty dostosowane, bo 200, 400, 700
+                     # i 800 mają ten sam kod arkusza.
+                     f"{meta['kod']}/{sesja}/{wariant or '0'}"
+                     f"/{wersja or '0'}/z{z.numer}-{i}.png",
                      zas["strona"], [float(x) for x in zas["bbox"]]),
                 )
                 stat["zasobow"] += 1
@@ -431,15 +527,17 @@ class Ladowarka:
 
 
 def _rodzaj_reguly(tresc: str) -> str:
-    """Klasyfikacja reguły — te same przesłanki co w `parser._reguly`.
+    """Klasyfikacja reguły — JEDNA definicja, ta z parsera.
+
+    Wcześniej stała tu druga kopia „tych samych przesłanek", która sprawdzała
+    inne podciągi (`tylko poprawny` zamiast `tylko poprawny wynik`, `dyskalkuli`
+    zamiast `dyskalkulią`). Reguły przekrojowe idą przez parser, a „Uwagi" przy
+    zadaniu przez ładowarkę — więc ten sam zapis dostawał dwa różne typy zależnie
+    od tego, w którym miejscu klucza stał.
 
     Zwraca nazwę w języku dokumentu; na angielski tłumaczy ją RODZAJ_REGULY.
     """
-    return ("rachunkowa" if "błęd" in tresc and "rachunkow" in tresc else
-            "sam_wynik" if "tylko poprawny" in tresc else
-            "sprzeczne_rozwiazania" if "sprzecznych" in tresc else
-            "dostosowanie" if "dostosowanych zasad" in tresc or "dyskalkuli" in tresc else
-            "kalkulator" if "kalkulator" in tresc else "inna")
+    return K.rodzaj_reguly(tresc)
 
 
 TABELE = ("requirement_regime", "requirement", "document", "exam_form",

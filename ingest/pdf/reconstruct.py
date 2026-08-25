@@ -24,7 +24,8 @@ Cztery rzeczy, które płaska ekstrakcja niszczy w kluczach CKE, i sposób na ka
    warunek w korpusie. Rozstrzyga rozmiar fontu — 9,0 pkt przy bazie 11,0
    i pozycja na samym dole strony. Włącza to `page_text(pomin_przypisy=True)`.
 
-Test rozstrzygający (patrz `bakeoff.py`): zadanie 16 z OMAP-100-2505-zasady.pdf
+Test rozstrzygający (pomiar: `tests/fixtures/bakeoff-2026-08-24.txt`, regresja:
+`tests/test_pdf_layer.py`): zadanie 16 z OMAP-100-2505-zasady.pdf
 składa się w `7/15-(1/5+1/6)=14/30-11/30=3/30=1/10`.
 """
 from __future__ import annotations
@@ -103,15 +104,31 @@ def _mark_scripts(chars: Sequence[Char]) -> List[tuple]:
     return out
 
 
+def _rozmiar_bazowy(chars: Sequence[Char]) -> float:
+    """Rozmiar pisma wiersza — MEDIANA, nie rozmiar pierwszego znaku.
+
+    Pierwszym znakiem wiersza bywa odnośnik do przypisu albo indeks górny
+    (7 pt przy tekście 11 pt). Okno szukania pięter kurczyło się wtedy
+    z 15,95 pt do 10,15 pt i ta sama kreska przestawała być ułamkiem —
+    ale tylko w tej warstwie, która rozmiaru nie podała jawnie. Mediana nie
+    daje się zbić pojedynczym glifem, więc wszystkie warstwy dostają tę samą
+    liczbę bez pamiętania o argumencie.
+    """
+    if not chars:
+        return 11.0
+    rozmiary = sorted(c.size for c in chars)
+    return rozmiary[len(rozmiary) // 2]
+
+
 def _pietra(chars: Sequence[Char], bar: Bar, size: float | None = None):
     """Piętra kreski — (licznik, mianownik) albo None, gdy to nie ułamek.
 
     Jedno miejsce na test „czy ta kreska jest kreską ułamkową", bo pytają
     o to trzy warstwy: składanie wyrażenia, grupowanie wierszy i pomiar
-    zasięgu w `bakeoff.py`. Rozjechanie się ich odpowiedzi kosztowało
-    wcześniej sklejone wiersze (patrz `page_text`).
+    zasięgu (`tests/fixtures/bakeoff-2026-08-24.txt`). Rozjechanie się ich
+    odpowiedzi kosztowało wcześniej sklejone wiersze (patrz `page_text`).
     """
-    win = Y_WINDOW * (size if size else (chars[0].size if chars else 11.0))
+    win = Y_WINDOW * (size if size else _rozmiar_bazowy(chars))
     num = [c for c in chars if _in_bar(c, bar) and bar.y - win < c.cy < bar.y]
     den = [c for c in chars if _in_bar(c, bar) and bar.y < c.cy < bar.y + win]
     if not _fits(num, bar) or not _fits(den, bar):
@@ -256,7 +273,10 @@ def page_text(page, pomin_przypisy: bool = False) -> str:
         return ""
     anchor: dict[int, float] = {}
     for bar in bars:
-        pietra = _pietra(chars, bar, size=11.0)
+        # Bez `size=`: rozmiar liczy `_rozmiar_bazowy` — ta sama liczba, którą
+        # dostaje `render`. Wpisane tu wcześniej 11.0 znaczyło, że obie warstwy
+        # potrafiły rozstrzygnąć tę samą kreskę inaczej.
+        pietra = _pietra(chars, bar)
         if pietra is None:
             continue
         for c in pietra[0] + pietra[1]:

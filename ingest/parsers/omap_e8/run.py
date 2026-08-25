@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Ingest całego zakresu — 75 kluczy matematyki E8 do jednej bazy, z raportem.
 
-`probe_load.py` sprawdza model na jednym kluczu. Ten skrypt sprawdza PARSER
+`tests/test_corpus_load.py` sprawdza model na jednym kluczu. Ten skrypt sprawdza PARSER
 na wszystkim, co jest w mirrorze: ładuje każdy klucz do tej samej bazy
 z włączonymi więzami i mierzy pokrycie — ile zadań, ile z wymaganiami
 podstawy, ile z odpowiedzią, ile z kryteriami. Liczby są tu ważniejsze niż
@@ -24,37 +24,30 @@ przebieg dokłada się do pierwszego, chyba że podasz `--wyczysc`.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
 import os
 import sys
 import time
 import warnings
+from pathlib import Path
 
 import psycopg
 
 from parsers.omap_e8 import loader
 from parsers.omap_e8 import parser as K
 from schema.migrate import polaczenie
-
-HERE = os.path.dirname(os.path.abspath(__file__))
-warnings.filterwarnings("ignore")
+from sciezki import KORZEN_REPO, korzen_mirrora, spis_urls
 
 for _s in (sys.stdout, sys.stderr):
     if hasattr(_s, "reconfigure"):
         _s.reconfigure(encoding="utf-8", errors="replace")
 
-# Korzeń mirrora — katalog, w którym leżą `data/index/urls.tsv` i `data/raw/`.
-# Mirror bywa poza tym repozytorium (zasada „mirror raz, potem tylko kopia"),
-# więc ścieżka idzie z konfiguracji, a nie z układu katalogów.
-#
-# Ścieżkę względną liczymy od KORZENIA REPOZYTORIUM, nie od katalogu roboczego.
-# Taskfile uruchamia ten moduł z `ingest/`, więc `../cke-mirror` z `.env`
-# wskazywałoby wtedy na `phase-alfa/cke-mirror` — katalog, którego nie ma.
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
-_MIRROR = os.environ.get("MIRROR_ROOT", ".")
-ROOT = (_MIRROR if os.path.isabs(_MIRROR)
-        else os.path.normpath(os.path.join(REPO, _MIRROR)))
-URLS = os.path.join(ROOT, "data", "index", "urls.tsv")
+# Korzeń mirrora i spis — reguła stoi w `sciezki.py`, wspólna dla mirrora,
+# runnera i testów. Wcześniej każdy z nich liczył ją u siebie, z własną liczbą
+# wywołań `dirname` dobraną do swojej głębokości w drzewie.
+ROOT = str(korzen_mirrora())
+URLS = str(spis_urls())
 
 # Progi pokrycia. Nie są ambicją, tylko linią, poniżej której wynik znaczy
 # „parser się rozjechał", a nie „klucz jest ubogi". Zmierzone na korpusie:
@@ -149,7 +142,15 @@ def main() -> int:
                     help="doczytaj zeszyty zadań — treść zadań i zasoby "
                          "(8× wolniej: 15 min zamiast 2, bo arkusze są pełne grafiki)")
     ap.add_argument("--szczegoly", action="store_true", help="wiersz na każdy klucz")
+    ap.add_argument("--raport", default=None,
+                    help="gdzie zapisać raport (domyślnie data/reports/ingest-RRRR-MM-DD.txt)")
     args = ap.parse_args()
+
+    # Zawężone i dopiero tutaj: `filterwarnings("ignore")` w ciele modułu gasiło
+    # wszystko w całym procesie — także `ResourceWarning` o niezamkniętych
+    # plikach i połączeniach — każdemu, kto ten moduł zaimportuje.
+    for modul in ("pdfplumber", "pdfminer", "pypdf"):
+        warnings.filterwarnings("ignore", category=UserWarning, module=modul)
 
     kody = {k.strip() for k in args.kod.split(",") if k.strip()}
     segmenty = {s.strip() for s in args.segment.split(",") if s.strip()}
@@ -218,9 +219,46 @@ def main() -> int:
                      "; ".join(w["uwagi"])[:34]))
     czas = time.perf_counter() - t0
 
-    _raport(con, wyniki, pominiete, bledy, czas, lad)
-    con.close()
+    try:
+        _zapisz_raport(args.raport, con, wyniki, pominiete, bledy, czas, lad)
+    finally:
+        # W `finally`, bo raport potrafi się wywalić na zapytaniu — a wtedy
+        # połączenie zostawało otwarte i nikt się o tym nie dowiadywał,
+        # bo `ResourceWarning` było wyciszone.
+        con.close()
     return 1 if bledy or any(w["blad"] for w in wyniki) else 0
+
+
+def _zapisz_raport(sciezka, con, wyniki, pominiete, bledy, czas, lad) -> None:
+    """Ten sam raport na ekran i do pliku — plan G1.2.2 każe go porównać z sondą.
+
+    Porównanie „z pamięci" nie jest porównaniem: raport ma zostać na dysku,
+    żeby dało się do niego wrócić po tygodniu i zobaczyć, co się zmieniło.
+    """
+    sciezka = sciezka or (KORZEN_REPO / "data" / "reports"
+                          / ("ingest-%s.txt" % time.strftime("%Y-%m-%d")))
+    sciezka = Path(sciezka)
+    sciezka.parent.mkdir(parents=True, exist_ok=True)
+    with (open(sciezka, "w", encoding="utf-8") as fh,
+          contextlib.redirect_stdout(_Tee(sys.stdout, fh))):
+        _raport(con, wyniki, pominiete, bledy, czas, lad)
+    print("\nRaport zapisany: %s" % sciezka)
+
+
+class _Tee:
+    """Pisze naraz na ekran i do pliku — raport ma być w obu miejscach."""
+
+    def __init__(self, *strumienie):
+        self._strumienie = strumienie
+
+    def write(self, tekst: str) -> int:
+        for s in self._strumienie:
+            s.write(tekst)
+        return len(tekst)
+
+    def flush(self) -> None:
+        for s in self._strumienie:
+            s.flush()
 
 
 def _ocena(k, stat: dict, r: dict) -> dict:
@@ -255,6 +293,18 @@ def _ocena(k, stat: dict, r: dict) -> dict:
             "wym": wym, "odp": odp, "kryt": kryt, "stat": stat,
             "reguly": len(k.reguly), "rezimy": [x["kod"] for x in k.rezimy],
             "uwagi": uwagi, "blad": bool(uwagi)}
+
+
+def _blizniakow(blizniaki: dict, warianty: str) -> int:
+    """Ile bliźniaków ma klucz obsługujący te warianty.
+
+    Kolumna `warianty` ze spisu bywa listą (`100,200,400,500,660,K00`), a słownik
+    jest kluczowany pojedynczym `exam_form.variant`. Odpytywanie go całą listą
+    dawało zawsze zero — i to dokładnie przy kluczach wielowariantowych, czyli
+    tych, dla których powstał model N:M.
+    """
+    return sum(blizniaki.get(w.strip(), 0)
+               for w in (warianty or "").split(",") if w.strip())
 
 
 def _raport(con, wyniki, pominiete, bledy, czas, lad) -> None:
@@ -306,7 +356,7 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad) -> None:
         print("  %-8s %6d %8d %8.1f %10d %9.1f"
               % (wariant, len(grupa), zadan,
                  sum(g["punkty"] for g in grupa) / len(grupa),
-                 blizniaki.get(wariant, 0), zadan / len(grupa)))
+                 _blizniakow(blizniaki, wariant), zadan / len(grupa)))
 
     print("\n" + "─" * 74)
     print("MAPA BRAKÓW — najczęściej sprawdzane punkty podstawy programowej")
@@ -390,6 +440,21 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad) -> None:
         print("  pokrycie kryteriów  : %.1f%%" % (100 * sum(w["kryt"] for w in wyniki) / n))
     if lad.kolizje_form:
         print("  form w dwóch kluczach: %d" % len(lad.kolizje_form))
+    # Ta sama ścieżka podstawy z inną treścią niż zapisana w bazie. Do korpusu
+    # wchodzi pierwsza — reszta ginęłaby bez śladu, gdyby nie ta linia.
+    if lad.kolizje_wymagan:
+        print("  wymagań o rozjechanej treści: %d (do bazy weszła pierwsza)"
+              % len(lad.kolizje_wymagan))
+        # Klucz sortowania przez `str`, bo `etap` bywa None (roczniki bez podziału
+        # na klasy) — gołe `sorted` porównałoby wtedy None ze stringiem i wywaliło
+        # cały raport w miejscu, w którym raport miał ostrzegać.
+        for (rodzaj, etap, sciezka) in sorted(lad.kolizje_wymagan,
+                                              key=lambda k: (k[0], k[1] or "", k[2]))[:5]:
+            print("    ↳ %s %s %s — wersji treści: %d"
+                  % (rodzaj, etap or "—", sciezka,
+                     1 + len(lad.kolizje_wymagan[(rodzaj, etap, sciezka)])))
+    if lad.kolizje_rezimow:
+        print("  reżimów o rozjechanej nazwie: %d" % len(lad.kolizje_rezimow))
     if pominiete:
         print("  brak pliku w mirrorze: %d (%s)"
               % (len(pominiete), ", ".join(pominiete[:3])))

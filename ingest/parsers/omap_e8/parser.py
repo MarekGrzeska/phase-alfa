@@ -22,13 +22,14 @@ w ciele parsera. Rozpoznanie dialektu jest pomiarem na tekście dokumentu,
 nie zgadywaniem po nazwie pliku — ta sama sesja potrafi mieć dwa układy
 (OMAP-800 kontra OMAP-100 z tego samego maja).
 
-    from klucz import czytaj_klucz
+    from parsers.omap_e8.parser import czytaj_klucz
     k = czytaj_klucz("data/raw/e8/2025/matematyka/OMAP-100-2505-zasady.pdf")
     k.dialekt, len(k.zadania), k.ostrzezenia
 
 Wynik jest w kształcie `schema.sql`: `formy`, `zadania` z `kryteria` →
 `warunki` → `zapisy`, `odpowiedzi` per wersja, `reguly` przekrojowe.
-Ładuje go `ingest.py` (75 kluczy) albo `probe_load.py` (jeden, ze sprawdzianem).
+Ładuje go `loader.py`: przez `run.py` (75 kluczy, raport pokrycia) albo przez
+`tests/test_corpus_load.py` (jeden klucz, ze sprawdzianem liczb).
 """
 from __future__ import annotations
 
@@ -757,18 +758,27 @@ def _rozdziel_kolumny(blok: str, wersje: Sequence[str], out: dict) -> None:
 
     Bliźniaki stoją obok siebie w tabeli, ale po sklejeniu wierszy wychodzą
     jeden pod drugim: pierwszy wiersz to wersja X, drugi — Y. Przy zadaniu
-    wieloczęściowym wierszy jest 2·n i numer podpunktu je rozdziela.
+    wieloczęściowym wierszy jest 2·n i rozdziela je NUMER PODPUNKTU, a nie
+    połowa listy: podział na pół rozrzuca 1.1 i 1.2 jednej wersji na dwie
+    różne wersje, gdy tylko wierszy jest nieparzyście albo gdy druga wersja
+    w tym miejscu nic nie ma.
     """
     linie = [l.strip() for l in blok.split("\n") if l.strip()]
     if not linie:
         return
     z_podpunktami = [RE_PODPUNKT.match(l) for l in linie]
     if all(z_podpunktami) and len(linie) >= 2:
-        polowa = len(linie) // 2
-        for w, kawalek in zip(wersje, (linie[:polowa], linie[polowa:])):
-            out.setdefault(w, []).extend(
-                (RE_PODPUNKT.match(l).group(1), RE_PODPUNKT.match(l).group(2))
-                for l in kawalek)
+        # Które to z kolei wystąpienie danego numeru — pierwsze należy do
+        # pierwszej wersji, drugie do drugiej. Wystąpienie ponad liczbę wersji
+        # znaczy, że tabela wygląda inaczej, niż zakłada ten kod: wtedy nie
+        # zgadujemy, tylko oddajemy je pierwszej wersji i to widać w bazie.
+        widziane: dict[str, int] = {}
+        for m in z_podpunktami:
+            numer, tresc = m.group(1), m.group(2)
+            i = widziane.get(numer, 0)
+            widziane[numer] = i + 1
+            out.setdefault(wersje[i] if i < len(wersje) else wersje[0], []).append(
+                (numer, tresc))
         return
     for w, l in zip(wersje, linie):
         out.setdefault(w, []).append((None, l[:200]))
@@ -880,6 +890,23 @@ def _oczysc(s: str) -> str:
     return " ".join(s.split()).lstrip("•-– ").strip(" ,;").replace("Zasady oceniania", "").strip()
 
 
+def rodzaj_reguly(tresc: str) -> str:
+    """Rodzaj reguły przekrojowej — po treści zapisu, w języku dokumentu.
+
+    Publiczna, bo woła ją też ładowarka przy „Uwagach" pod pojedynczym zadaniem.
+    Druga kopia tych przesłanek w `loader.py` sprawdzała krótsze podciągi
+    (`tylko poprawny`, `dyskalkuli`) i przez to ten sam zapis dostawał inny typ
+    zależnie od tego, czy stał pod zadaniem, czy pod całym arkuszem.
+    """
+    return ("rachunkowa" if "błęd" in tresc and "rachunkow" in tresc else
+            "sam_wynik" if "tylko poprawny końcowy wynik" in tresc
+                           or "tylko poprawny wynik" in tresc else
+            "sprzeczne_rozwiazania" if "sprzecznych" in tresc else
+            "dostosowanie" if "dostosowanych zasad" in tresc
+                              or "dyskalkulią" in tresc else
+            "kalkulator" if "kalkulator" in tresc else "inna")
+
+
 def _reguly(tekst: str, dial: Dialekt) -> List[dict]:
     """Sekcja reguł przekrojowych — „Uwagi ogólne".
 
@@ -901,13 +928,7 @@ def _reguly(tekst: str, dial: Dialekt) -> List[dict]:
     out = []
     for linia in dial.reguly_punkt.findall(blok):
         tresc = " ".join((linia if isinstance(linia, str) else linia[0]).split())
-        rodzaj = ("rachunkowa" if "błęd" in tresc and "rachunkow" in tresc else
-                  "sam_wynik" if "tylko poprawny końcowy wynik" in tresc
-                                 or "tylko poprawny wynik" in tresc else
-                  "sprzeczne_rozwiazania" if "sprzecznych" in tresc else
-                  "dostosowanie" if "dostosowanych zasad" in tresc
-                                    or "dyskalkulią" in tresc else
-                  "kalkulator" if "kalkulator" in tresc else "inna")
+        rodzaj = rodzaj_reguly(tresc)
         zak = re.search(r"zadani\w+\s+(\d+)[.,]?\s*[–—-]\s*(\d+)", tresc)
         if not zak:
             zak = re.search(r"zadani\w+\s+(\d+)\.(?:,| i)\s.*?(\d+)\.", tresc)
@@ -934,7 +955,9 @@ def parsuj_wymagania(tab, dial: Dialekt,
     w żadnym dokumencie.
     """
     if tab is None or not tab.rows:
-        return None, []
+        # Puste listy, nie None: adnotacja obiecuje listy, a ładowarka iteruje
+        # po wyniku bez sprawdzania. `None` cofałoby cały klucz na TypeError.
+        return [], []
     pary = _kolumny(tab)
     ogolne: List[dict] = []
     szczegolowe = []
@@ -1082,9 +1105,15 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> dict:
                 out.setdefault(nr, {"tresc": " ".join(tresc.split())[:1500],
                                     "strona": page.number,
                                     "zasoby": []})
-                # zadanie odwołujące się do grafiki — zmierzone 38% w E8
-                if re.search(r"\b(diagram\w*|rysunk\w+|rysunek|wykres\w*|siatc\w+"
-                             r"|osi liczbowej)\b", tresc, re.I):
+                # Zadanie odwołujące się do grafiki — zmierzone 38% w E8.
+                # Numer zadania trafia się na dwóch stronach (kontynuacja albo
+                # powtórzony nagłówek), a treść bierzemy tylko z pierwszej —
+                # więc i zasób ma być jeden na stronę, nie jeden na trafienie.
+                # Inaczej to samo zadanie dostawało kilka identycznych wpisów.
+                strony_zasobow = {z["strona"] for z in out[nr]["zasoby"]}
+                if page.number not in strony_zasobow and re.search(
+                        r"\b(diagram\w*|rysunk\w+|rysunek|wykres\w*|siatc\w+"
+                        r"|osi liczbowej)\b", tresc, re.I):
                     out[nr]["zasoby"].append({
                         "rodzaj": "diagram",
                         "strona": page.number,

@@ -3,11 +3,15 @@
 cke_mirror.py — jeden skrypt: buduje strukturę katalogów, zwozi arkusze CKE,
 pokazuje postęp i wypisuje raport z wykonania.
 
-    python3 cke_mirror.py                      # cały rdzeń (~2 500 plików, ~2,6 GB)
-    python3 cke_mirror.py --filtr matematyka   # sam zakres K2 (190 plików, ~130 MB)
-    python3 cke_mirror.py --segment e8 --rocznik 2026
-    python3 cke_mirror.py --tylko-spis         # inwentarz bez pobierania PDF-ów
-    python3 cke_mirror.py --tylko-raport       # kompletność tego, co już leży na dysku
+    task mirror                                # cały rdzeń (~2 500 plików, ~2,6 GB)
+    task mirror -- --filtr matematyka          # sam zakres K2 (190 plików, ~130 MB)
+    task mirror -- --segment e8 --rocznik 2026
+    task mirror -- --tylko-spis                # inwentarz bez pobierania PDF-ów
+    task mirror -- --dry-run                   # nic nie pobiera: raport z tego, co leży na dysku
+
+Bez Taskfile'a: `uv run python -m mirror.cke_mirror ...` z katalogu `ingest/`.
+Uruchamianie przez ścieżkę (`python ingest/mirror/cke_mirror.py`) ustawia
+`sys.path` na katalog pliku i import `sciezki` się sypie.
 
 Zakres = "rdzeń Klucza": egzamin ósmoklasisty 2019-2026, matura Formuła 2023
 (2023-2026), matura Formuła 2015 (2015-2023). Poza rdzeniem świadomie zostają
@@ -34,6 +38,8 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import quote, unquote, urljoin, urlsplit
+
+from sciezki import korzen_mirrora
 
 # Raport rysuje ramki znakami Unicode, a Windows przy przekierowaniu stdout do
 # pliku wybiera kodowanie strony kodowej (cp1250) i wywala się na nich — czyli
@@ -640,9 +646,15 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description="Mirror arkuszy CKE: struktura katalogów + zwózka + raport.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Przykład: python3 cke_mirror.py --filtr matematyka --jobs 8")
-    ap.add_argument("--katalog", type=Path, default=Path(__file__).resolve().parent,
-                    help="korzeń projektu (domyślnie katalog skryptu)")
+        epilog="Przykład: task mirror -- --filtr matematyka --jobs 8")
+    # Korzeń bierzemy z tego samego miejsca co parser (`MIRROR_ROOT` z .env,
+    # ścieżka względna liczona od korzenia repo). Domyślna wartość „katalog
+    # skryptu" była poprawna, dopóki skrypt leżał w korzeniu repozytorium
+    # cke-mirror; po awansie do ingest/mirror/ zwoziłaby korpus do
+    # ingest/mirror/data/, czyli tam, gdzie `task ingest` go nie szuka.
+    ap.add_argument("--katalog", type=Path, default=None,
+                    help="korzeń mirrora (domyślnie MIRROR_ROOT z .env, "
+                         "względnie do korzenia repozytorium)")
     ap.add_argument("--jobs", type=int, default=8,
                     help="równoległe strumienie (domyślnie 8 — pomiar: 0,42 s/plik)")
     ap.add_argument("--segment", choices=list(SEGMENTS), help="ogranicz do jednego segmentu")
@@ -651,11 +663,12 @@ def main() -> int:
     ap.add_argument("--limit", type=int, help="pobierz najwyżej N plików (do testów)")
     ap.add_argument("--force", action="store_true", help="pobierz ponownie mimo obecności pliku")
     ap.add_argument("--tylko-spis", action="store_true", help="zbuduj spis, nie pobieraj PDF-ów")
-    ap.add_argument("--tylko-raport", action="store_true", help="użyj spisu z dysku, nic nie pobieraj")
+    ap.add_argument("--tylko-raport", "--dry-run", action="store_true", dest="tylko_raport",
+                    help="użyj spisu z dysku, nic nie pobieraj (przebieg na sucho)")
     ap.add_argument("--cicho", action="store_true", help="bez paska postępu")
     args = ap.parse_args()
 
-    lay = Layout(args.katalog.resolve())
+    lay = Layout(args.katalog.resolve() if args.katalog else korzen_mirrora())
     created = lay.build()
 
     if args.tylko_raport:
