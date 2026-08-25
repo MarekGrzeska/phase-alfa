@@ -22,7 +22,12 @@
     <!-- To ten pakiet generuje dokument przy buildzie (narzędzie GetDocument.Insider).
          PrivateAssets: jest potrzebny do zbudowania, nie do uruchomienia. -->
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" PrivateAssets="all" />
-    <PackageReference Include="Npgsql" />
+    <!-- Npgsql tu NIE WCHODZI. Kompozycja nie potrzebuje sterownika bazy — dostaje
+         gotowy port `IDatabaseProbe` z Contracts, a jedynym miejscem, które trzyma
+         Npgsql w ręku, jest `Klucz.Corpus.Infrastructure`. Sam wpis w tym pliku był
+         zaproszeniem, żeby napisać `new NpgsqlConnection(...)` wprost w Program.cs.
+         Pilnują tego dwa sita w `No_module_touches_the_database_directly`:
+         deklaracje w csproj-ach i referencje assembly. -->
   </ItemGroup>
 
   <ItemGroup>
