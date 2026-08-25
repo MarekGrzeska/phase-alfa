@@ -1,0 +1,43 @@
+# --- dane: mirror, blob, raporty ---
+data/
+!data/.gitkeep
+!data/inwentarz/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# --- .NET ---
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+
+# --- Node ---
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+.turbo/
+
+# --- środowisko ---
+.env
+.env.local
+*.local
+
+# --- IDE / OS ---
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- generowane, ale WERSJONOWANE (celowo nie ignorowane) ---
+# web/packages/api-client/src/schema.d.ts  — dryf kontraktu ma łamać build
+# research/bakeoff-wynik.txt               — fixture regresji parsera
