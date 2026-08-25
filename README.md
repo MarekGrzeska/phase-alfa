@@ -28,6 +28,7 @@ Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 ## Plany i przeglądy
 
 - [`docs/plan-A1.md`](docs/plan-A1.md) — szczegółowy plan implementacji **G1.1–G1.5** (kamień A1)
+- [`docs/g1.2-ingest.html`](docs/g1.2-ingest.html) — **G1.2** ingest: co powstało, co osiąga, jak podłączyć się do bazy DBeaverem
 - [`docs/review/`](docs/review/) — przeglądy kodu; plan mówi, co miało powstać, przegląd — co z tego wyszło
 
 Przeglądy tworzy skill [`.claude/skills/code-review`](.claude/skills/code-review/SKILL.md)
