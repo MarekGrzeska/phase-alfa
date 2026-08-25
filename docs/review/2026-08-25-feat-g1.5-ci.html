@@ -1,0 +1,874 @@
+<title>Przegląd kodu — G1.5 CI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+  /* kolory składni — osobne od semantycznych, żeby zmiana jednych nie ruszała drugich */
+  --t-kw:#8B3E8F; --t-str:#2C7355; --t-com:#6B7C79;
+  --t-num:#B0651A; --t-fn:#2B5C86; --t-type:#0E5B4F; --t-ann:#9E2E2E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+    --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+    --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+  --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:68ch}
+h1,h2,h3,.tag,th,.knum{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:0 0 .3rem;text-wrap:balance}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:52px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-kryt{color:var(--crit)} .n-istot{color:var(--warn)}
+.n-drob{color:var(--accent)} .n-rozw{color:var(--info)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-kryt{background:var(--crit-soft);color:var(--crit)}
+.st-istot{background:var(--warn-soft);color:var(--warn)}
+.st-drob{background:var(--accent-soft);color:var(--accent)}
+.st-rozw{background:var(--info-soft);color:var(--info)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+/* karta komentarza */
+.k{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px 22px;border-left:3px solid var(--rule);box-shadow:var(--shadow);
+  margin:0 0 16px;scroll-margin-top:20px}
+.k.kryt{border-left-color:var(--crit)}
+.k.istot{border-left-color:var(--warn)}
+.k.drob{border-left-color:var(--accent)}
+.k.rozw{border-left-color:var(--info)}
+.k-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+.knum{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+  color:var(--ink-3);min-width:1.6rem}
+.k h3{flex:1 1 18ch;margin:0}
+.k-gdzie{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-3);
+  margin:0 0 .9rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule-soft)}
+.k p{font-size:.95rem;color:var(--ink-2);margin-bottom:.75em}
+.k p:last-child{margin-bottom:0}
+.fix{font-size:.92rem;color:var(--ink);border-top:1px solid var(--rule-soft);
+  padding-top:.8rem;margin-top:1rem}
+.fix b{font-family:Archivo,sans-serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:.4rem}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+/* kolorowanie składni — klasy nadaje skrypt na dole dokumentu */
+.t-kw{color:var(--t-kw);font-weight:600}
+.t-str{color:var(--t-str)}
+.t-com{color:var(--t-com);font-style:italic}
+.t-num{color:var(--t-num)}
+.t-fn{color:var(--t-fn)}
+.t-type{color:var(--t-type)}
+.t-ann{color:var(--t-ann);font-weight:600}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">przegląd kodu · 2026-08-25 · feat/g1.5-ci</span>
+  <h1>G1.5 — CI, która liczy się raz</h1>
+  <p class="lede">
+      Trzy commity na <code>feat/g1.5-ci</code>: wyzwalacz CI, tryb zamknięty restore'a
+      i skrypty startowe. Nic nie blokuje scalenia — nie ma komentarzy krytycznych.
+      Trzy komentarze istotne dotyczą rzeczy, które <b>obiecują więcej, niż dają</b>:
+      README mówi o ochronie gałęzi, której GitHub na tym planie w ogóle nie udostępnia,
+      zadania CI nie mają limitu czasu, a skrypt dla macOS-a nie ma bitu wykonywalności.
+    </p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n n-kryt">0</span><span class="metric-l">krytyczne</span></div>
+    <div class="metric"><span class="metric-n n-istot">3</span><span class="metric-l">istotne</span></div>
+    <div class="metric"><span class="metric-n n-drob">4</span><span class="metric-l">drobne</span></div>
+    <div class="metric"><span class="metric-n n-rozw">3</span><span class="metric-l">do rozważenia</span></div>
+    <div class="metric"><span class="metric-n">8</span><span class="metric-l">plików w diffie<br>(bez lockfile'ów)</span></div>
+  </div>
+</header>
+
+<section id="zakres">
+  <div class="sec-head">
+    <span class="num">01</span>
+    <h2>Co recenzowano</h2>
+  </div>
+  <div class="col">
+    <p>
+      Branch <code>feat/g1.5-ci</code> odbity od <code>8a8dcc1</code> (merge PR-a #5), trzy commity:
+      <code>57f9b97</code> (wyzwalacz, cache, uprawnienia), <code>5ef905e</code> (skrypty startowe)
+      i <code>c5dde36</code> (poprawki skryptu po sprawdzianie klonu od zera).
+      Plan: <code>docs/plan-A1.md</code>, sekcja G1.5.
+    </p>
+    <p>
+      Bez siedmiu plików <code>packages.lock.json</code> diff to <b>8 plików, 220 linii dodanych
+      i 6 usuniętych</b>. Lockfile'e (843 linie) pominięto w liczeniu — są wynikiem
+      <code>dotnet restore</code>, nie decyzją autora. To, że mają wejść do repozytorium,
+      jest decyzją i zostało sprawdzone osobno.
+    </p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th class="n">#</th><th>Stopień</th><th>Rzecz</th><th>Plik</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="n"><a href="#k1">1</a></td><td><span class="tag st-istot">istotny</span></td>
+          <td><a href="#k1">README obiecuje ochronę <code>main</code>, której GitHub tu nie udostępnia</a></td>
+          <td class="id">README.md:116</td></tr>
+        <tr><td class="n"><a href="#k2">2</a></td><td><span class="tag st-istot">istotny</span></td>
+          <td><a href="#k2">Zadania CI bez <code>timeout-minutes</code> — 6 godzin z limitu za jeden zwis</a></td>
+          <td class="id">.github/workflows/ci.yml</td></tr>
+        <tr><td class="n"><a href="#k3">3</a></td><td><span class="tag st-istot">istotny</span></td>
+          <td><a href="#k3">Skrypt dla macOS-a bez bitu wykonywalności — README każe go wołać przez <code>./</code></a></td>
+          <td class="id">scripts/dev-stack.sh</td></tr>
+        <tr><td class="n"><a href="#k4">4</a></td><td><span class="tag st-drob">drobny</span></td>
+          <td><a href="#k4">Backtick w komunikacie zjada słowo „task"</a></td>
+          <td class="id">scripts/dev-stack.ps1:30</td></tr>
+        <tr><td class="n"><a href="#k5">5</a></td><td><span class="tag st-drob">drobny</span></td>
+          <td><a href="#k5">Wersja PowerShell kończy się zerem, choć <code>task dev</code> padł</a></td>
+          <td class="id">scripts/dev-stack.ps1</td></tr>
+        <tr><td class="n"><a href="#k6">6</a></td><td><span class="tag st-drob">drobny</span></td>
+          <td><a href="#k6">Akcje na Node 20 — GitHub ostrzega w każdym przebiegu</a></td>
+          <td class="id">.github/workflows/ci.yml</td></tr>
+        <tr><td class="n"><a href="#k7">7</a></td><td><span class="tag st-drob">drobny</span></td>
+          <td><a href="#k7">Skrypt dla Linuksa podpowiada instalację przez <code>brew</code></a></td>
+          <td class="id">scripts/dev-stack.sh</td></tr>
+        <tr><td class="n"><a href="#k8">8</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+          <td><a href="#k8">Czym zastąpić bramkę na <code>main</code>, skoro ochrona jest niedostępna</a></td>
+          <td class="id">docs/plan-A1.md §G1.5</td></tr>
+        <tr><td class="n"><a href="#k9">9</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+          <td><a href="#k9">Zmiana samego przeglądu HTML odpala cztery zadania</a></td>
+          <td class="id">.github/workflows/ci.yml</td></tr>
+        <tr><td class="n"><a href="#k10">10</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+          <td><a href="#k10">BOM w skrypcie <code>.ps1</code> pilnuje wyłącznie komentarz</a></td>
+          <td class="id">scripts/dev-stack.ps1</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="komentarze">
+  <div class="sec-head">
+    <span class="num">02</span>
+    <h2>Komentarze</h2>
+    <p class="sec-sub">Od najważniejszych. Każdy da się przeczytać osobno.</p>
+  </div>
+
+  <div class="k istot" id="k1">
+    <div class="k-head">
+      <span class="knum">1</span>
+      <h3>README obiecuje ochronę <code>main</code>, której GitHub na tym planie nie udostępnia</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">README.md:116 · sekcja „CI"</p>
+
+    <p>
+      Ostatnie zdanie nowej sekcji o CI brzmi: „Gałąź <code>main</code> jest chroniona: merge
+      dopiero po przejściu wszystkich czterech zadań". Ochrona nie została włączona — i nie
+      chodzi tylko o to, że autor odłożył decyzję. GitHub jej tutaj <b>nie da</b>: ochrona
+      gałęzi w repozytorium prywatnym wymaga planu Pro.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">$ gh api repos/MarekGrzeska/phase-alfa/branches/main/protection</div>
+      <div class="ev-b"><pre data-lang="out">{"message":"Upgrade to GitHub Pro or make this repository public to enable
+this feature.","status":"403"}          &#8592; nie „nie wlaczono", tylko „nie mozna"</pre></div>
+    </div>
+
+    <p>
+      <b>Dlaczego to jest problem:</b> README jest instrukcją dla następnej osoby i dla autora
+      za pół roku. Zdanie mówi „jest bramka" w miejscu, gdzie bramki nie ma — a czytelnik
+      zachowa się tak, jakby była: wypchnie coś na <code>main</code> w przekonaniu, że
+      cokolwiek go zatrzyma, jeśli testy są czerwone. To ten sam gatunek co test, który
+      zawsze przechodzi: dokument, który zawsze mówi „bezpiecznie".
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <p>
+        Zdanie zamienić na stan faktyczny i powiedzieć, co naprawdę pilnuje jakości —
+        czyli PR i cztery zadania, których wynik widać przed scaleniem:
+      </p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="conf">Ochrony galezi NIE MA i na tym planie GitHuba byc nie moze (repozytorium jest
+prywatne, ochrona wymaga Pro). Bramka jest wiec dyscyplina, nie ustawieniem:
+scalamy przez PR i dopiero z czterema zielonymi checkami.</pre></div>
+      </div>
+      <p>
+        Ta sama poprawka należy się planowi (<a href="#k8">komentarz 8</a>): krok 3
+        w §G1.5 opisuje czynność, której nie da się wykonać.
+      </p>
+    </div>
+  </div>
+
+  <div class="k istot" id="k2">
+    <div class="k-head">
+      <span class="knum">2</span>
+      <h3>Zadania CI nie mają limitu czasu — jeden zwis to 6 godzin z miesięcznego limitu</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">.github/workflows/ci.yml · wszystkie cztery zadania</p>
+
+    <p>
+      Żadne z czterech zadań nie ustawia <code>timeout-minutes</code>, więc obowiązuje
+      domyślny limit GitHuba: <b>360 minut na zadanie</b>. Zawieszony <code>dotnet test</code>,
+      <code>docker pull</code> czekający na sieć albo usługa Postgresa, która nigdy nie
+      zgłosi zdrowia, będą stać sześć godzin i dopiero wtedy zostaną ubite.
+    </p>
+
+    <p>
+      <b>Dlaczego to jest problem:</b> repozytorium jest prywatne, więc minuty liczą się
+      do limitu konta (2000/miesiąc na planie Free) — i to jest ten sam rachunek, dla
+      którego w tym samym PR-ze zmieniono wyzwalacz z <code>['**']</code> na <code>main</code>.
+      Jeden zwis kasuje <b>18% budżetu miesięcznego</b> i nie mówi nic, czego nie
+      powiedziałby po dwóch minutach. Zmiana wyzwalacza oszczędza kilka minut na push;
+      brak limitu potrafi oddać kilkaset naraz.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">zmierzone czasy zadań (przebieg 32877307223) wobec domyślnego limitu</div>
+      <div class="ev-b"><pre data-lang="out">ruff + pytest + migracje        28s
+typecheck (zero-DOM) + vitest   41s
+dryf OpenAPI                  1m02s
+build + testy backendu        1m06s
+domyslny limit GitHuba          360 min   &#8592; okolo 200 razy wiecej niz najdluzsze zadanie</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <p>Jedna linijka na zadanie, z zapasem rzędu dziesięciokrotności zmierzonego czasu:</p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="yaml">jobs:
+  python:
+    name: ruff + pytest + migracje
+    runs-on: ubuntu-latest
+    timeout-minutes: 10</pre></div>
+      </div>
+      <p>
+        Zapas ma być duży, bo zimny cache i wolniejszy runner to normalne wahania —
+        limit ma łapać <b>zwis</b>, nie gorszy dzień. Dziesięć minut przy zadaniu, które
+        chodzi 28 sekund, spełnia oba warunki.
+      </p>
+    </div>
+  </div>
+
+  <div class="k istot" id="k3">
+    <div class="k-head">
+      <span class="knum">3</span>
+      <h3>Skrypt dla macOS-a nie ma bitu wykonywalności, a README każe go wołać przez <code>./</code></h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">scripts/dev-stack.sh · README.md, tabela „Cały stos jednym poleceniem"</p>
+
+    <p>
+      README podaje dla macOS-a i Linuksa polecenie <code>./scripts/dev-stack.sh</code>,
+      a plik wszedł do repozytorium z trybem <code>100644</code> — czyli bez prawa
+      uruchomienia. Na macOS-ie i Linuksie to polecenie kończy się
+      <code>permission denied</code> zanim cokolwiek się wykona.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">$ git ls-files -s scripts/</div>
+      <div class="ev-b"><pre data-lang="out">100644 dcaa103 0  scripts/dev-stack.ps1
+100644 b661b09 0  scripts/dev-stack.sh    &#8592; 644, nie 755 — brak prawa uruchomienia</pre></div>
+    </div>
+
+    <p>
+      <b>Dlaczego to jest problem:</b> ten skrypt istnieje po to, żeby pierwsze uruchomienie
+      po klonie było jednym poleceniem z README. Na Windows sprawdzian klonu od zera przeszedł
+      (bit wykonywalności nie ma tam znaczenia), więc ścieżki macOS-owej nikt nie widział —
+      a to właśnie ona jest jedyną, do której ten plik służy. Objaw jest przy tym mylący:
+      użytkownik widzi błąd uprawnień i szuka problemu w swoim systemie, nie w repozytorium.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="bash">git update-index --chmod=+x scripts/dev-stack.sh
+git commit -m "fix: bit wykonywalnosci na dev-stack.sh"</pre></div>
+      </div>
+      <p>
+        <code>git update-index --chmod=+x</code>, a nie <code>chmod</code> — na Windows
+        system plików nie niesie tego bitu, więc zmiana musi trafić wprost do indeksu gita.
+        Alternatywa, jeśli bit ma nie być potrzebny: zmienić README na
+        <code>sh scripts/dev-stack.sh</code> — ale wtedy dwie platformy dostają dwie różne
+        konwencje wywołania bez powodu.
+      </p>
+    </div>
+  </div>
+
+  <div class="k drob" id="k4">
+    <div class="k-head">
+      <span class="knum">4</span>
+      <h3>Backtick w komunikacie zjada słowo „task"</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">scripts/dev-stack.ps1:30 · komunikat przy braku go-task</p>
+
+    <p>
+      W PowerShellu backtick jest znakiem ucieczki, a <code>`t</code> to tabulator.
+      Komunikat napisany jako <code>"brak `task` — zainstaluj: …"</code> nie pokazuje więc
+      nazwy brakującego narzędzia, tylko tabulator i resztę słowa.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">$ powershell -NoProfile -Command '$m = "brak `task` — zainstaluj: winget install Task.Task"; …'</div>
+      <div class="ev-b"><pre data-lang="out">WIDAC: [brak 	ask - zainstaluj: winget install Task.Task]
+TAB w srodku: True             &#8592; `t zamienilo sie w tabulator, nazwa narzedzia znikla</pre></div>
+    </div>
+
+    <p>
+      <b>Dlaczego to jest problem:</b> to jest pierwszy komunikat, jaki zobaczy ktoś na
+      maszynie bez <code>go-task</code> — czyli w jedynej sytuacji, dla której ta gałąź kodu
+      powstała. Zamiast „brak task" czyta „brak &nbsp;&nbsp;&nbsp;&nbsp;ask". Reszta zdania
+      ratuje sytuację, ale komunikat diagnostyczny nie powinien wymagać domyślania się.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <p>Apostrofy w środku napisu, dokładnie tak jak w wersji <code>.sh</code>:</p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="bash">Fail "brak 'task' — zainstaluj: winget install Task.Task"</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="k drob" id="k5">
+    <div class="k-head">
+      <span class="knum">5</span>
+      <h3>Wersja PowerShell kończy się kodem 0, nawet gdy <code>task dev</code> padł</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">scripts/dev-stack.ps1 · ostatnia linijka</p>
+
+    <p>
+      Skrypt kończy się wywołaniem <code>task dev</code> i niczym więcej. Windows PowerShell
+      nie przenosi kodu wyjścia natywnego programu na kod wyjścia skryptu, więc plik zawsze
+      kończy się zerem. Wersja <code>.sh</code> zachowuje się odwrotnie — <code>set -e</code>
+      i ostatnie polecenie oddają prawdziwy kod.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">$ powershell -File tail-exit.ps1 — skrypt konczy sie `cmd /c "exit 3"`</div>
+      <div class="ev-b"><pre data-lang="out">kod wyjscia skryptu PS: 0      &#8592; program zwrocil 3, skrypt raportuje sukces</pre></div>
+    </div>
+
+    <p>
+      <b>Dlaczego to jest problem:</b> <code>task dev</code> potrafi paść z powodu, który
+      ten sam PR właśnie wprowadził — <code>strictPort</code> przerywa start Vite, gdy port
+      jest zajęty. Człowiek przy konsoli zobaczy błąd i nic złego się nie stanie; ale dwie
+      wersje tego samego skryptu odpowiadają na to samo pytanie inaczej, a wrapper, który
+      zawsze mówi „sukces", jest dokładnie tym, przed czym ostrzega <code>CLAUDE.md</code>.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="bash">task dev
+exit $LASTEXITCODE</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="k drob" id="k6">
+    <div class="k-head">
+      <span class="knum">6</span>
+      <h3>Akcje na Node 20 — GitHub ostrzega w każdym przebiegu</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">.github/workflows/ci.yml · actions/checkout@v4, actions/setup-dotnet@v4</p>
+
+    <p>
+      Każdy przebieg kończy się ostrzeżeniem: dwie użyte akcje deklarują Node 20, a GitHub
+      uruchamia je na Node 24 wbrew deklaracji.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">ostrzeżenie z przebiegu 32878030217</div>
+      <div class="ev-b"><pre data-lang="out">! Node.js 20 is deprecated. The following actions target Node.js 20 but are
+  being forced to run on Node.js 24: actions/checkout@v4, actions/setup-dotnet@v4</pre></div>
+    </div>
+
+    <p>
+      <b>Dlaczego to jest problem — i kiedy:</b> dziś to sam szum w logu, bo podkładka
+      działa. Ugryzie w dniu, w którym GitHub ją zdejmie: zadania staną na kroku
+      <code>checkout</code>, czyli na pierwszym, i to bez związku ze zmianą, która akurat
+      będzie w PR-ze. Data nie jest ogłoszona, ostrzeżenie chodzi od września 2025.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <p>
+        Podbić obie akcje do <code>@v5</code> — z jednym sprawdzeniem po drodze:
+        <code>setup-dotnet@v5</code> musi dalej przyjmować wejścia <code>cache</code>
+        i <code>cache-dependency-path</code>, bo na nich stoi cache NuGeta z tego PR-a.
+        Jeśli nazwy się zmieniły, cache przestanie działać po cichu — bez błędu, tylko
+        z wolniejszym przebiegiem.
+      </p>
+    </div>
+  </div>
+
+  <div class="k drob" id="k7">
+    <div class="k-head">
+      <span class="knum">7</span>
+      <h3>Skrypt dla Linuksa podpowiada instalację przez <code>brew</code></h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">scripts/dev-stack.sh · komunikat przy braku go-task</p>
+
+    <p>
+      Komunikat brzmi <code>brak 'task' — zainstaluj: brew install go-task/tap/go-task</code>,
+      a skrypt obsługuje macOS <b>i</b> Linuksa. Na Linuksie <code>brew</code> zwykle nie
+      istnieje, więc podpowiedź prowadzi do instalowania menedżera pakietów po to, żeby
+      zainstalować jedno narzędzie.
+    </p>
+
+    <div class="fix">
+      <b>Jak to naprawić</b>
+      <p>Dołożyć wariant niezależny od systemu — ten sam, który stoi w README:</p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="bash">fail "brak 'task' — zainstaluj: brew install go-task/tap/go-task (macOS)
+albo npm i -g @go-task/cli (wszedzie)"</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="k rozw" id="k8">
+    <div class="k-head">
+      <span class="knum">8</span>
+      <h3>Czym zastąpić bramkę na <code>main</code>, skoro ochrona jest niedostępna</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">docs/plan-A1.md §G1.5, krok 3</p>
+
+    <p>
+      Plan mówi: „Ochrona gałęzi <code>main</code>: wymagane przejście wszystkich czterech
+      zadań". Tego kroku nie da się dziś wykonać (<a href="#k1">komentarz 1</a>) — nie
+      dlatego, że go pominięto, tylko dlatego, że GitHub odmawia. Plan opisuje więc
+      czynność niewykonalną, a to myli następną osobę bardziej niż brak wpisu.
+    </p>
+
+    <div class="fix">
+      <b>Propozycja</b>
+      <p>Cztery drogi, w kolejności od najtańszej:</p>
+      <ul class="plain">
+        <li><b>Skreślić krok i zapisać dlaczego.</b> Plan mówi wtedy prawdę, a dyscyplina
+          zostaje na autorze — przy jednoosobowym repozytorium to uczciwy wybór.</li>
+        <li><b>Hak <code>pre-push</code> lokalnie.</b> Odrzuca push prosto na
+          <code>main</code>. Pilnuje nawyku, ale <b>nie jest bramką</b>: hak siedzi
+          w <code>.git/</code>, więc nie wchodzi do repozytorium i nie działa na drugiej
+          maszynie, dopóki ktoś go tam nie zainstaluje.</li>
+        <li><b>Repozytorium publiczne.</b> Ochrona staje się darmowa, a minuty Actions
+          przestają się liczyć do limitu — czyli znika też powód zmiany wyzwalacza z tego
+          PR-a. Kolizji z G0.1 nie ma, bo arkusze CKE i tak nie wchodzą do repozytorium.
+          Decyzja jest jednak szersza niż CI i należy do autora.</li>
+        <li><b>GitHub Pro.</b> Stały koszt za jedno ustawienie; przy jednej osobie trudno
+          to uzasadnić.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="k rozw" id="k9">
+    <div class="k-head">
+      <span class="knum">9</span>
+      <h3>Zmiana samego przeglądu HTML odpala cztery zadania</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">.github/workflows/ci.yml · sekcja <code>on</code></p>
+
+    <p>
+      Ten dokument, plany w <code>docs/</code> i README nie zmieniają żadnego bajtu kodu,
+      a mimo to każdy commit dotykający wyłącznie ich uruchamia cztery zadania — łącznie
+      około trzech i pół minuty. Przy rachunku minut, którym ten PR się zajmuje, to jest
+      pozycja tego samego rzędu co usunięta podwójna instalacja workspace'u.
+    </p>
+
+    <p>
+      <b>Zastrzeżenie, przez które to jest „do rozważenia", a nie „drobny":</b>
+      <code>paths-ignore</code> sprawia, że zadanie się <b>nie uruchamia</b>, a nie że kończy
+      się sukcesem. Gdy kiedykolwiek wejdą wymagane checki (<a href="#k8">komentarz 8</a>),
+      taki PR utknie w stanie „expected — waiting for status", i to bez żadnego komunikatu,
+      który prowadziłby do przyczyny. To pułapka znana i nieprzyjemna.
+    </p>
+
+    <div class="fix">
+      <b>Propozycja</b>
+      <p>
+        Jeśli ochrona <code>main</code> ma pozostać niedostępna, <code>paths-ignore</code> na
+        <code>docs/**</code> i <code>**/*.md</code> jest bezpieczne i oszczędza realne minuty.
+        Jeśli kiedyś dojdą wymagane checki — wtedy zamiast <code>paths-ignore</code> stosuje
+        się zadanie-zaślepkę, która zgłasza sukces przy zmianie samej dokumentacji. Do czasu
+        podjęcia decyzji z <a href="#k8">komentarza 8</a> lepiej nie ruszać niczego.
+      </p>
+    </div>
+  </div>
+
+  <div class="k rozw" id="k10">
+    <div class="k-head">
+      <span class="knum">10</span>
+      <h3>BOM w skrypcie <code>.ps1</code> pilnuje wyłącznie komentarz</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">scripts/dev-stack.ps1 · nagłówek pliku</p>
+
+    <p>
+      Plik zaczyna się ostrzeżeniem, że musi być zapisany jako UTF-8 <b>z BOM-em</b> — bo bez
+      niego Windows PowerShell 5.1 czyta go jako ANSI i skrypt się rozsypuje. Ostrzeżenie jest
+      prawdziwe i dobrze uzasadnione, ale to komentarz, a nie bramka: edytor, który zapisze
+      plik bez BOM-u, zepsuje skrypt i nikt się o tym nie dowie aż do następnego uruchomienia
+      na Windows. W repozytorium, które zero-DOM pilnuje czterema warstwami, to wyraźny wyjątek.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">$ git show HEAD:scripts/dev-stack.ps1 | head -c 3 | od -An -tx1</div>
+      <div class="ev-b"><pre data-lang="out">ef bb bf                       &#8592; BOM przezyl gita — sprawdzone, ale nikt tego nie pilnuje</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Propozycja</b>
+      <p>
+        Trzy bajty da się sprawdzić jednym poleceniem. Miejsce jest kwestią gustu — krok
+        w zadaniu <code>python</code> (jedyne, które nie potrzebuje niczego poza powłoką)
+        albo osobny test:
+      </p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="bash">test "$(head -c 3 scripts/dev-stack.ps1 | od -An -tx1 | tr -d ' ')" = "efbbbf" ||
+  { echo "BRAK BOM: PowerShell 5.1 przeczyta ten plik jako ANSI"; exit 1; }</pre></div>
+      </div>
+      <p>
+        Wariant tańszy w utrzymaniu, ale słabszy: trzymać w <code>.ps1</code> polszczyznę bez
+        znaków diakrytycznych. Wtedy plik jest czystym ASCII i BOM przestaje być potrzebny —
+        kosztem zasady 2 z <code>CLAUDE.md</code>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section id="plan">
+  <div class="sec-head">
+    <span class="num">03</span>
+    <h2>Zgodność z planem</h2>
+    <p class="sec-sub"><code>docs/plan-A1.md</code>, sekcja G1.5.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Punkt planu</th><th>Stan</th><th>Uwagi</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Cztery zadania równoległe: <code>dotnet</code>, <code>web</code>,
+              <code>python</code>, <code>contract</code></td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Stały od G1.2–G1.4; ten branch zmienia nazwę <code>kontrakt</code> →
+              <code>contract</code>, zgodnie z planem i z zasadą 4.</td>
+        </tr>
+        <tr>
+          <td>Krok 1 · każde zadanie z cache'em</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>uv, pnpm i NuGet. Trafienie w cache potwierdzone w logu drugiego przebiegu:
+              <code>Cache restored from key: dotnet-cache-Linux-db836e77…</code></td>
+        </tr>
+        <tr>
+          <td>Krok 1 · <code>concurrency</code> z <code>cancel-in-progress: true</code></td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Z jedną świadomą różnicą wobec planu: anulowanie działa tylko na PR-ach,
+              na <code>main</code> nie. Odstępstwo opisane w planie.</td>
+        </tr>
+        <tr>
+          <td>Krok 2 · <code>permissions: contents: read</code></td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Na poziomie całego przepływu, nie pojedynczych zadań — szerzej, niż wymagał plan.</td>
+        </tr>
+        <tr>
+          <td>Krok 3 · ochrona gałęzi <code>main</code></td>
+          <td><span class="tag st-kryt">niewykonalne</span></td>
+          <td>GitHub odmawia: prywatne repozytorium na planie Free.
+              <a href="#k1">Komentarz 1</a> i <a href="#k8">8</a>.</td>
+        </tr>
+        <tr>
+          <td>Krok 4 · sprawdzian klonu od zera</td>
+          <td><span class="tag st-istot">częściowo</span></td>
+          <td>Przeszedł na Windows, w całości i bez kroków spoza README. Ścieżki macOS-owej
+              nie sprawdzono, a to właśnie ona jest zepsuta (<a href="#k3">komentarz 3</a>).</td>
+        </tr>
+        <tr>
+          <td>„Zrobione, gdy: każdy z czterech sprawdzianów widziany raz na czerwono"</td>
+          <td><span class="tag st-ok">zrobione</span></td>
+          <td>Cztery bramki plus piąta, której plan nie przewidywał:
+              <code>NU1004</code> przy rozjeździe lockfile'a.</td>
+        </tr>
+        <tr>
+          <td>Wersjonowane <code>packages.lock.json</code> i <code>--locked-mode</code></td>
+          <td><span class="tag st-rozw">poza planem</span></td>
+          <td>Plan mówił tylko „cache'ować NuGet". Rozszerzenie jest uzasadnione — cache
+              potrzebował stabilnego klucza — i domyka zasadę, którą Python i web już miały.
+              Odstępstwo dopisane do planu, więc jest świadome.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="dobre">
+  <div class="sec-head">
+    <span class="num">04</span>
+    <h2>Co jest dobre</h2>
+    <p class="sec-sub">Rzeczy warte utrzymania przy kolejnych zmianach — nie kurtuazja.</p>
+  </div>
+
+  <ul class="plain">
+    <li><b>Podwójny przebieg zniknął i widać to w liczbach.</b> Wcześniej jeden push do
+      gałęzi z otwartym PR-em dawał dwa przebiegi po cztery zadania. Po zmianie trzy pushe
+      na tę gałąź dały trzy przebiegi, nie sześć — sprawdzone w <code>gh run list</code>,
+      a nie założone.</li>
+    <li><b><code>cancel-in-progress</code> wyłączone na <code>main</code>.</b> Łatwo było
+      wpisać <code>true</code> za planem i skończyć z gałęzią główną, na której część
+      przebiegów jest anulowana bez śladu, co właściwie pokazywały. Wyjątek jest wąski
+      i opisany w komentarzu.</li>
+    <li><b>Lockfile'e NuGeta domykają zasadę, nie dokładają nowej.</b> Python miał
+      <code>uv sync --frozen</code>, web <code>pnpm install --frozen-lockfile</code>,
+      a backend nie miał nic. Teraz trzy warstwy przywracają zależności tak samo,
+      a <code>NU1004</code> widziano na czerwono.</li>
+    <li><b>Sprawdzian klonu od zera złapał dwa realne błędy.</b> I to nie byle jakie:
+      obie pułapki PowerShella 5.1 wyglądały na coś zupełnie innego niż były
+      (<code>zatrzymuje : The term 'zatrzymuje' is not recognized</code> przy błędzie
+      kodowania, „Docker nie odpowiada" przy działającym Dockerze). Bez uruchomienia
+      całej ścieżki żadna z nich nie miała prawa się ujawnić.</li>
+    <li><b>Obie pułapki wylądowały w <code>CLAUDE.md</code>, nie tylko w commicie.</b>
+      Dotyczą każdego następnego skryptu <code>.ps1</code>, więc miejsce jest właściwe.
+      Wiedza z jednego debugowania została zamieniona w regułę.</li>
+    <li><b>Skrypty nie powtarzają Taskfile'a.</b> Wołają <code>task</code> i dokładają
+      wyłącznie to, czego Taskfile z definicji nie może: <code>cp .env.example .env</code>
+      (brak <code>cp</code> w interpreterze go-task na Windows) i sprawdzenie, czy silnik
+      Dockera <b>odpowiada</b>, a nie tylko czy jest zainstalowany. Drugie źródło prawdy
+      nie powstało.</li>
+    <li><b>Komunikat po <code>task up</code> mówi, co dalej.</b> „Kontenery zostają w tle;
+      zatrzymuje je <code>task down</code>" — jedno zdanie, które oszczędza pytanie
+      „dlaczego baza dalej stoi po Ctrl+C".</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Przegląd wykonany wg <code>.claude/skills/code-review</code>.</p>
+  <p>Zakres: <code>git diff main...HEAD</code> na <code>feat/g1.5-ci</code>
+    (8a8dcc1..c5dde36), plan <code>docs/plan-A1.md</code> §G1.5. Pliki otwierane w całości,
+    nie z samego diffa.</p>
+  <p>Sprawdzone uruchomieniem: <code>task test</code> (kod 0) · trzy przebiegi CI na tej
+    gałęzi, po jednym na commit · logi cache'u NuGeta, pnpm i uv (miss, potem trafienie) ·
+    <code>gh api …/branches/main/protection</code> (403) · <code>git ls-files -s</code>
+    dla trybu plików · <code>git show HEAD:… | od</code> dla BOM-u ·
+    <code>sh -n</code> i przebieg <code>dev-stack.sh</code> z podstawionym
+    <code>task</code> · odtworzenie pułapki backticka i kodu wyjścia w PowerShellu 5.1 ·
+    sprawdzian klonu od zera na Windows (kontenery, 3 migracje, <code>/health</code>,
+    web 200, proxy <code>/api/health</code>).</p>
+  <p>Poza zakresem: <b>macOS i Linux</b> — <code>dev-stack.sh</code> uruchomiono wyłącznie
+    w Git Bashu na Windows, z podstawionym <code>task</code>; pełnej ścieżki na tych
+    systemach nikt nie przeszedł · zachowanie CI przy zimnym cache'u innym niż pierwszy
+    przebieg · <code>packages.lock.json</code> pod innym SDK niż 10.0.202 · zawartość
+    siedmiu lockfile'ów (843 linie, wynik <code>restore</code>, nie decyzja autora).</p>
+</footer>
+
+</div>
+
+<script>
+/* Kolorowanie składni bez żadnej biblioteki — dokument ma zostać samodzielny.
+ *
+ * Użycie:  <pre data-lang="python">…</pre>
+ * Języki:  python · yaml · sql · bash · conf · out (wydruk z konsoli)
+ *
+ * Jak działa: reguły każdego języka sklejane są w JEDEN regex z grupami
+ * nazwanymi, więc tekst jest przechodzony raz, a pierwsza pasująca reguła
+ * wygrywa. Dlatego komentarze i napisy stoją na początku listy — inaczej
+ * słowo kluczowe wewnątrz napisu zostałoby pokolorowane osobno.
+ *
+ * Bez skryptu (albo przy jego błędzie) blok zostaje zwykłym tekstem —
+ * czytelnym, tylko czarno-białym.
+ */
+(function () {
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+  function esc(s) { return s.replace(/[&<>]/g, function (c) { return ESC[c]; }); }
+
+  // UWAGA: wewnątrz reguł tylko grupy nieprzechwytujące (?:...) —
+  // zwykły nawias rozjechałby numerację grup w sklejonym wyrażeniu.
+  var RULES = {
+    python: [
+      ['com',  /#[^\n]*/],
+      ['str',  /(?:[rbfu]{0,2})(?:"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/],
+      ['kw',   /\b(?:def|class|return|if|elif|else|for|while|with|as|import|from|try|except|finally|raise|yield|lambda|not|and|or|in|is|None|True|False|pass|assert|del|async|await|global|nonlocal)\b/],
+      ['fn',   /@[A-Za-z_][\w.]*|\b[A-Za-z_]\w*(?=\()/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    yaml: [
+      ['com',  /#[^\n]*/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['fn',   /^[ \t]*(?:-[ \t]+)?[A-Za-z_][\w.\/-]*(?=[ \t]*:)/],
+      ['kw',   /\b(?:true|false|null|yes|no)\b/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    sql: [
+      ['com',  /--[^\n]*/],
+      ['str',  /'(?:[^']|'')*'/],
+      ['kw',   /\b(?:CREATE|TABLE|INDEX|VIEW|COLLATION|SELECT|FROM|WHERE|JOIN|LEFT|INNER|ON|GROUP|ORDER|BY|HAVING|INSERT|INTO|VALUES|UPDATE|DELETE|SET|RETURNING|CONFLICT|DO|NOTHING|NOT|NULL|PRIMARY|FOREIGN|KEY|REFERENCES|UNIQUE|CHECK|DEFAULT|CONSTRAINT|CASCADE|AND|OR|IN|AS|IF|EXISTS|BETWEEN|PROVIDER|LOCALE|COLLATE|BEGIN|COMMIT|DISTINCT|COUNT|SUM|ARRAY_AGG|LIMIT)\b/i],
+      ['type', /\b(?:text|integer|smallint|bigint|serial|smallserial|boolean|date|timestamptz|numeric|jsonb|char|varchar)\b/i],
+      ['num',  /\b\d+\b/]
+    ],
+    bash: [
+      ['com',  /#[^\n]*/],
+      ['ann',  /^\$/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['kw',   /\b(?:if|then|elif|else|fi|for|in|do|done|while|case|esac|function|return|exit|test|echo|cd|export|local)\b/],
+      ['num',  /(?:^|[ \t])-{1,2}[A-Za-z][\w-]*|\b\d+\b/]
+    ],
+    conf: [
+      ['com',  /#[^\n]*/],
+      ['kw',   /^!/],
+      ['fn',   /^[A-Za-z_][A-Za-z0-9_]*(?==)/],
+      ['str',  /(?<==)[^\n]+/]
+    ],
+    out: [
+      ['ann',  /←[^\n]*|^\$/],
+      ['str',  /"[^"]*"|'[^']*'/],
+      ['num',  /\b\d+\b/]
+    ]
+  };
+
+  function podswietl(kod, jezyk) {
+    var reguly = RULES[jezyk];
+    if (!reguly) { return esc(kod); }
+    var wzor = reguly.map(function (r, i) {
+      return '(?<g' + i + '>' + r[1].source + ')';
+    }).join('|');
+    var re;
+    try {
+      re = new RegExp(wzor, 'gm');
+    } catch (e) {
+      return esc(kod);           // starsza przeglądarka — zostaje zwykły tekst
+    }
+    var wynik = '', koniec = 0, m;
+    while ((m = re.exec(kod)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      wynik += esc(kod.slice(koniec, m.index));
+      var klasa = null;
+      for (var i = 0; i < reguly.length; i++) {
+        if (m.groups['g' + i] !== undefined) { klasa = reguly[i][0]; break; }
+      }
+      wynik += '<span class="t-' + klasa + '">' + esc(m[0]) + '</span>';
+      koniec = m.index + m[0].length;
+    }
+    return wynik + esc(kod.slice(koniec));
+  }
+
+  var bloki = document.querySelectorAll('pre[data-lang]');
+  for (var i = 0; i < bloki.length; i++) {
+    try {
+      bloki[i].innerHTML = podswietl(bloki[i].textContent, bloki[i].dataset.lang);
+    } catch (e) { /* blok zostaje zwykłym tekstem — lepsze niż pusty */ }
+  }
+})();
+</script>

@@ -20,7 +20,7 @@ fail() {
 }
 
 command -v task > /dev/null 2>&1 ||
-    fail "brak 'task' — zainstaluj: brew install go-task/tap/go-task"
+    fail "brak 'task' — zainstaluj: brew install go-task/tap/go-task (macOS) albo npm i -g @go-task/cli (wszedzie)"
 
 # Docker musi ODPOWIADAĆ, a nie tylko być zainstalowany: przy wyłączonym silniku
 # `docker --version` przechodzi, a `task up` wywala się dopiero po kilkunastu
