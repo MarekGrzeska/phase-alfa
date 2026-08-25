@@ -1,0 +1,121 @@
+# Jedno wejście do wszystkich pętli — Windows, macOS i CI wołają to samo.
+#
+# go-task ma wbudowany interpreter POSIX sh (mvdan/sh), więc `&&`, `||`,
+# potoki i podstawienia działają na Windows BEZ instalowania bash-a.
+# Ale interpreter nie dostarcza coreutils: `rm`, `cp`, `mkdir -p` na Windows
+# NIE ISTNIEJĄ. Stąd reguła: zero operacji na plikach w tym pliku —
+# sprzątanie robią narzędzia, które to potrafią same.
+
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  PY: uv run python
+
+tasks:
+  default:
+    cmds: [task --list]
+    silent: true
+
+  # ---------------------------------------------------------------- środowisko
+  setup:
+    desc: Sprawdza, czy maszyna ma komplet narzędzi
+    silent: true
+    # Wartości w apostrofach: bez nich YAML łamie się na dwukropku w "BRAK: ..."
+    cmds:
+      - cmd: 'docker --version > /dev/null || (echo "BRAK: Docker" && exit 1)'
+      - cmd: 'uv --version > /dev/null || (echo "BRAK: uv — https://docs.astral.sh/uv/" && exit 1)'
+      - cmd: 'test -f .env || (echo "BRAK: .env — skopiuj z .env.example" && exit 1)'
+      - cmd: 'echo "OS={{OS}} ARCH={{ARCH}} — komplet dla G1.1."'
+      # .NET, Node i pnpm dochodzą w G1.3/G1.4 — sprawdzane, gdy będą potrzebne
+
+  # ------------------------------------------------------------------ baza
+  up:
+    desc: Postgres + migracje schematu
+    cmds:
+      - docker compose up -d --wait
+      - task: migrate
+
+  down:
+    desc: Zatrzymuje Postgresa (dane zostają)
+    cmds: [docker compose down]
+
+  migrate:
+    desc: Stosuje brakujące migracje schematu
+    dir: ingest
+    cmds: ['{{.PY}} schema/migrate.py']
+
+  migrate:status:
+    desc: Pokazuje, które migracje weszły
+    dir: ingest
+    cmds: ['{{.PY}} schema/migrate.py --status']
+
+  db:reset:
+    desc: 'Baza od zera (UWAGA: kasuje wolumen z korpusem)'
+    prompt: Skasować wolumen z korpusem i postawić bazę od nowa?
+    cmds:
+      - docker compose down -v
+      - task: up
+
+  db:psql:
+    desc: Konsola SQL w kontenerze
+    interactive: true
+    cmds: [docker compose exec db psql -U klucz -d klucz]
+
+  # ------------------------------------------------------------------ testy
+  test:
+    desc: Wszystkie testy deterministyczne
+    cmds:
+      - task: test:python
+      - task: test:dotnet
+      - task: test:web
+      - task: test:contract
+
+  test:python:
+    desc: ruff + pytest
+    dir: ingest
+    cmds:
+      - uv run ruff check .
+      - uv run pytest -q
+
+  # Zadania poniżej dostaną treść w G1.3 i G1.4. Do tego czasu MÓWIĄ, że nic
+  # nie sprawdzają — stub kończący się cicho zerem jest nieodróżnialny
+  # od testu, który przechodzi.
+  test:dotnet:
+    desc: Build + testy architektury (G1.3)
+    cmds:
+      - cmd: 'test -f backend/Klucz.sln && dotnet test backend/Klucz.sln || echo "POMIJAM test:dotnet — brak solution (wchodzi w G1.3)"'
+
+  test:web:
+    desc: Typecheck + vitest + zero-DOM (G1.4)
+    cmds:
+      - cmd: 'test -f web/package.json && pnpm -C web test || echo "POMIJAM test:web — brak workspace (wchodzi w G1.4)"'
+
+  test:contract:
+    desc: Dryf OpenAPI — regeneracja i porównanie z repo (G1.3.2)
+    cmds:
+      - cmd: 'test -f backend/artifacts/openapi.json && task openapi:check || echo "POMIJAM test:contract — brak OpenAPI (wchodzi w G1.3.2)"'
+
+  # ------------------------------------------------------------- development
+  dev:
+    desc: API + web z hot-reloadem (G1.3/G1.4)
+    deps: [up]
+    cmds:
+      - cmd: 'echo "dev wchodzi w G1.3 (dotnet watch) i G1.4 (vite). Baza już stoi."'
+
+  # ------------------------------------------------------------ dalsze fazy
+  mirror:
+    desc: Zwózka korpusu CKE (G1.2.3)
+    dir: ingest
+    cmds: ['{{.PY}} mirror/cke_mirror.py {{.CLI_ARGS}}']
+
+  ingest:
+    desc: Przebieg parsera na korpusie (A2)
+    dir: ingest
+    cmds: ['{{.PY}} parsers/omap_e8/ingest.py {{.CLI_ARGS}}']
+
+  bench:
+    desc: Benchmark golden setu (A3)
+    cmds:
+      - cmd: 'echo "bench wchodzi w A3 (G3.3)."'

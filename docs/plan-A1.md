@@ -131,7 +131,8 @@ services:
       # C.UTF-8, NIE pl_PL.UTF-8 — patrz uwaga o locale niżej
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
     ports:
-      - "55432:5432"        # 55432, żeby nie kolidować z lokalnym Postgresem
+      # Port KONFIGUROWALNY, nie zaszyty — patrz uwaga niżej
+      - "${DB_PORT:-55434}:5432"
     volumes:
       - klucz-pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -143,6 +144,12 @@ services:
 volumes:
   klucz-pgdata:
 ```
+
+> **Port hosta jest konfigurowalny.** `55432` wydaje się bezpiecznie wysoki i nie jest —
+> na maszynie deweloperskiej stoi zwykle kilka innych Postgresów w kontenerach
+> (przy pierwszym `task up` port zajmował inny projekt). Stąd `${DB_PORT:-55434}`
+> w compose i `DB_PORT` w `.env`: kolizja to zmiana jednej liczby, nie edycja
+> pliku wersjonowanego.
 
 > **Locale: cluster w `C.UTF-8`, polskie sortowanie przez ICU tam, gdzie jest potrzebne.**
 > Obraz alpine stoi na musl, które **nie ma `pl_PL.UTF-8`** — `initdb` z takim locale
@@ -752,7 +759,7 @@ merge dopiero po alfie.
 | Migracje plain SQL + własny runner | schemat jest kontraktem — ma być czytelny jako SQL; C# go tylko czyta |
 | `openapi.json` wersjonowany w repo | zmiana kontraktu widoczna w diffie PR-a, nie dopiero w CI |
 | pnpm zamiast npm | rygorystyczne `node_modules` wyłapuje niezadeklarowane zależności |
-| Port 55432 na zewnątrz | brak kolizji z lokalnym Postgresem |
+| Port hosta przez `${DB_PORT:-55434}`, nie zaszyty | wysoki numer nie gwarantuje wolnego portu — sprawdzone boleśnie: 55432 zajmował inny projekt w kontenerze |
 | Zero-DOM przez `lib: ["ES2022"]` | egzekwuje kompilator, nie code review |
 
 **Trzy rzeczy, które w A1 najłatwiej przeoczyć**

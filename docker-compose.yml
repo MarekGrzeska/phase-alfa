@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: klucz-db
+    environment:
+      POSTGRES_DB: klucz
+      POSTGRES_USER: klucz
+      POSTGRES_PASSWORD: klucz_dev
+      # C.UTF-8, NIE pl_PL.UTF-8 — obraz alpine stoi na musl, które polskich
+      # locale nie ma, więc initdb z pl_PL.UTF-8 w ogóle by nie wstał.
+      # Polskie sortowanie wchodzi przez kolację ICU `pl_icu` (migracja 0001).
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    ports:
+      # Port na zewnątrz jest KONFIGUROWALNY, nie zaszyty. Wysoki numer nie
+      # gwarantuje wolnego portu — na maszynie deweloperskiej stoi zwykle
+      # kilka innych Postgresów w kontenerach. Gdy `task up` powie
+      # „address already in use", zmień DB_PORT w .env i tyle.
+      - "${DB_PORT:-55434}:5432"
+    volumes:
+      # Nazwany wolumen, NIE bind-mount — bind-mount do kontenera
+      # potrafi być na macOS dramatycznie wolny.
+      - klucz-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U klucz -d klucz"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  klucz-pgdata:

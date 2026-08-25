@@ -1,0 +1,30 @@
+[project]
+name = "klucz-ingest"
+version = "0.1.0"
+description = "Offline ETL: PDF-y CKE -> rekordy w PostgreSQL. Nie obsluguje ruchu uzytkownika."
+requires-python = ">=3.10"
+dependencies = [
+    "psycopg[binary]>=3.2",
+    # G1.2 dolozy: pdfplumber (MIT), pypdf (BSD), cryptography
+    # (jeden klucz w korpusie jest zaszyfrowany AES z pustym haslem wlasciciela)
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integracyjny: wymaga dzialajacej bazy (DATABASE_URL)",
+    "mirror: wymaga pobranego mirrora CKE w data/raw/",
+]

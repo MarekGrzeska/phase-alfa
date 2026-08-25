@@ -1,0 +1,21 @@
+# LF wszędzie — fixture'y parsera muszą być bajtowo identyczne
+# na Windows, macOS i na Linuksie w CI.
+* text=auto eol=lf
+
+# Binaria — nigdy nie tykać
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+
+# Windowsowe skrypty wymagają CRLF
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Diff po ludzku
+*.md    diff=markdown
+*.py    diff=python
+*.cs    diff=csharp
