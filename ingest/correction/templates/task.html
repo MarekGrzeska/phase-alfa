@@ -126,6 +126,56 @@
       {% endfor %}
     </div>
 
+    {% if task.assets %}
+    <div class="card">
+      <h2>Wycinki graficzne <span class="small">ramka w punktach PDF, od lewego górnego rogu</span></h2>
+      <p class="small">
+        Strona zeszytu obok ma siatkę: kreska co 50 pt, podpis co 100.
+        Odczytaj rogi rysunku, wpisz je i kliknij „Wytnij" — wycinek pokaże się
+        pod ramką. Poprawianie jest tanie, plik nadpisuje się w miejscu.
+      </p>
+      {% for a in task.assets %}
+        <div class="criterion">
+          <div class="row">
+            <span class="mono small">{{ a.variant }}{% if a.version %}-{{ a.version }}{% endif %} · {{ a.kind }}</span>
+            <label class="small">strona
+              <input name="asset.{{ a.id }}.page" value="{{ a.page }}" size="3">
+              {% if a.paper_pages %}<span class="small">z {{ a.paper_pages }}</span>{% endif %}
+            </label>
+            {% for name in ['x0', 'top', 'x1', 'bottom'] %}
+              <label class="small">{{ name }}
+                <input name="asset.{{ a.id }}.{{ name }}" value="{{ '%.1f'|format(a.box[name]) }}" size="6">
+              </label>
+            {% endfor %}
+            <button name="action" value="crop" class="small">Wytnij</button>
+            {% if not a.framed %}<span class="tag pending">ramka: cała strona</span>{% endif %}
+          </div>
+          <div class="split" style="margin-top:.5rem">
+            <div>
+              <p class="small" style="margin:0 0 .2rem">zeszyt zadań, strona {{ a.page }}</p>
+              {% if a.paper_path %}
+                <img src="/asset/{{ a.id }}/page.png?n={{ a.page }}" style="width:100%"
+                     alt="strona {{ a.page }} zeszytu zadań z siatką współrzędnych">
+              {% else %}
+                <p class="small">Brak zeszytu w bazie — przeładuj klucz poleceniem
+                  <span class="mono">task ingest -- --z-arkuszami</span>.</p>
+              {% endif %}
+            </div>
+            <div>
+              <p class="small" style="margin:0 0 .2rem">wycinek <span class="mono">{{ a.path }}</span></p>
+              {% if a.cropped %}
+                <img src="/asset/{{ a.id }}.png" style="max-width:100%"
+                     alt="wycinek zasobu {{ a.id }}">
+              {% else %}
+                <p class="small">Jeszcze nie wycięty.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="card">
       <h2>Kryteria <span class="small">próg → warunek → zapis równoważny</span></h2>
       {% for c in task.criteria %}

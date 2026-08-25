@@ -511,3 +511,79 @@ def test_lista_filtruje_po_wariancie(client, task, klucz_z_innego_rocznika):
     tylko_100 = client.get("/?variant=100")
     assert f"/task/{task['id']}" in tylko_100.text
     assert f"/task/{klucz_z_innego_rocznika}" not in tylko_100.text
+
+
+@pytest.fixture
+def zasob(con, task, tmp_path, monkeypatch) -> dict:
+    """Zasób z ramką „cała strona" plus zeszyt zadań na dysku, z czego go wyciąć."""
+    pdfium = pytest.importorskip("pypdfium2")
+    monkeypatch.setenv("MIRROR_ROOT", str(tmp_path))
+    monkeypatch.setenv("BLOB_ROOT", str(tmp_path / "blob"))
+    (tmp_path / "raw").mkdir()
+    document = pdfium.PdfDocument.new()
+    document.new_page(595.0, 842.0)
+    document.save(str(tmp_path / "raw" / "zeszyt.pdf"))
+    document.close()
+
+    with con.cursor() as cur:
+        cur.execute(
+            "INSERT INTO document (segment, year, code, variants, session, kind, "
+            "kind_source, url, path, pages) VALUES ('e8', 2025, 'OMAP', '100,X', "
+            "'2025-05-01', 'paper', 'suffix', 'test://zeszyt', 'raw/zeszyt.pdf', 1) "
+            "RETURNING id"
+        )
+        paper = cur.fetchone()["id"]
+        cur.execute("SELECT exam_form_id FROM task_version WHERE id = %s",
+                    (task["version"],))
+        form_id = cur.fetchone()["exam_form_id"]
+        cur.execute("INSERT INTO exam_form_document VALUES (%s, %s, 'paper')",
+                    (form_id, paper))
+        cur.execute(
+            "INSERT INTO asset (task_version_id, kind, path, page, bbox) "
+            "VALUES (%s, 'diagram', 'TEST/z20-0.png', 1, '{0,0,595,842}') RETURNING id",
+            (task["version"],),
+        )
+        return {"id": cur.fetchone()["id"], "blob": tmp_path / "blob"}
+
+
+def _ramka(zasob, x0="100", top="50", x1="300", bottom="150") -> dict:
+    return {f"asset.{zasob['id']}.x0": x0, f"asset.{zasob['id']}.top": top,
+            f"asset.{zasob['id']}.x1": x1, f"asset.{zasob['id']}.bottom": bottom,
+            f"asset.{zasob['id']}.page": "1"}
+
+
+def test_reczna_ramka_tnie_wycinek_i_liczy_sie_jako_poprawka(client, con, task, zasob):
+    """Zawór nr 3: ramka dociągnięta ręcznie zamyka temat wycinka (G2.4.2).
+
+    Zmiana ramki jest zmianą rekordu, więc zadanie ma wyjść jako `corrected` —
+    inaczej S6 policzyłby ręczną robotę jako trafienie parsera.
+    """
+    response = _post(client, task, action="approve", **_full(task), **_ramka(zasob))
+
+    assert response.status_code == 303
+    assert (zasob["blob"] / "TEST" / "z20-0.png").exists()
+    assert _state(con, task["id"])["review_status"] == "corrected"
+    bbox = con.execute("SELECT bbox FROM asset WHERE id = %s",
+                       (zasob["id"],)).fetchone()["bbox"]
+    assert [float(v) for v in bbox] == [100.0, 50.0, 300.0, 150.0]
+
+
+def test_ramka_poza_strona_nie_zapisuje_niczego(client, con, task, zasob):
+    response = _post(client, task, action="approve", **_full(task),
+                     **_ramka(zasob, x1="900"))
+
+    assert response.status_code == 422
+    assert "poza stronę" in response.text
+    assert not (zasob["blob"] / "TEST" / "z20-0.png").exists()
+    assert _state(con, task["id"])["review_status"] == "pending"
+
+
+def test_przycisk_wytnij_nie_rozstrzyga_zadania(client, con, task, zasob):
+    """„Wytnij" to podgląd ramki, nie zatwierdzenie — dziennik ma zostać pusty."""
+    response = _post(client, task, action="crop", **_full(task), **_ramka(zasob))
+
+    assert response.status_code == 303
+    assert response.headers["location"].startswith(f"/task/{task['id']}?")
+    assert (zasob["blob"] / "TEST" / "z20-0.png").exists()
+    assert _state(con, task["id"])["review_status"] == "pending"
+    assert _events(con) == []

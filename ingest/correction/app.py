@@ -18,7 +18,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from correction import db, pages, stats
+from correction import assets, db, pages, stats
+from pdf import crop as crop_pdf
 
 app = FastAPI(title="Klucz — ekran korekty", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -221,6 +222,43 @@ def task_page(task_id: int, n: int | None = None) -> FileResponse:
         raise HTTPException(404, str(e)) from e
 
 
+@app.get("/asset/{asset_id}.png")
+def asset_crop(asset_id: int) -> FileResponse:
+    """Wycinek z bloba — to, co zobaczy przeglądarka korpusu (W2)."""
+    with db.connect() as con, con.cursor() as cur:
+        asset = assets.source(cur, asset_id)
+    if asset is None:
+        raise HTTPException(404, f"nie ma zasobu {asset_id}")
+    try:
+        path = crop_pdf.target_path(asset["path"])
+    except crop_pdf.CropError as e:
+        raise HTTPException(404, str(e)) from e
+    if not path.exists():
+        raise HTTPException(404, "ten zasób nie ma jeszcze wycinka — dociągnij ramkę")
+    return FileResponse(path, media_type="image/png")
+
+
+@app.get("/asset/{asset_id}/page.png")
+def asset_page(asset_id: int, n: int | None = None, grid: str = "1") -> FileResponse:
+    """Strona ZESZYTU ZADAŃ, z której tnie się wycinek — domyślnie z siatką."""
+    with db.connect() as con, con.cursor() as cur:
+        asset = assets.source(cur, asset_id)
+    if asset is None:
+        raise HTTPException(404, f"nie ma zasobu {asset_id}")
+    if asset["paper_path"] is None:
+        raise HTTPException(
+            404,
+            "ta wersja zadania nie ma w bazie zeszytu zadań — przeładuj klucz "
+            "poleceniem `task ingest -- --z-arkuszami`",
+        )
+    try:
+        return FileResponse(
+            pages.render(asset["paper_path"], n or asset["page"], grid=grid == "1"),
+            media_type="image/png")
+    except pages.PageUnavailable as e:
+        raise HTTPException(404, str(e)) from e
+
+
 @app.post("/task/{task_id}")
 async def task_save(request: Request, task_id: int):
     # Ekran nie ma uwierzytelnienia, bo stoi na 127.0.0.1 — ale „na localhoście"
@@ -257,7 +295,18 @@ async def task_save(request: Request, task_id: int):
                 if db.load_task(cur, task_id) is None:
                     raise HTTPException(404, f"nie ma zadania {task_id}")
                 changes = db.save(cur, task_id, form)
-                if action.startswith("add:"):
+                if action == "crop":
+                    # Ramkę dociąga się na raty: wpisz, obejrzyj wycinek, popraw.
+                    # Rozstrzygnięcia tu NIE MA — `db.save` już wyciął plik,
+                    # a formularz wraca z tym samym `started_at`, żeby pomiar S8
+                    # liczył czas pracy nad zadaniem, a nie od ostatniego cięcia.
+                    target = f"/task/{task_id}?" + urlencode(
+                        {"started_at": started_at.isoformat(),
+                         **({"edited_before": "1"}
+                            if edited_before or changes["edited"] else {}),
+                         **({"page": shown_page} if shown_page else {}),
+                         **{k: v for k, v in scope.items() if v is not None}})
+                elif action.startswith("add:"):
                     _add_row(cur, task_id, action)
                     # Przekierowanie, nie render: odświeżenie strony po dodaniu
                     # wiersza nie ma dokładać kolejnego. `started_at` jedzie

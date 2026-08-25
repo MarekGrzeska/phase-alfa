@@ -9,6 +9,7 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from correction import assets
 from schema.migrate import polaczenie
 
 STATUSES = ("pending", "approved", "corrected", "rejected")
@@ -290,6 +291,7 @@ def load_task(cur, task_id: int) -> dict | None:
     )
     task["rules"] = [r for r in cur.fetchall() if rule_applies(r, task["number"])]
     task["versions"] = versions
+    task["assets"] = assets.for_task(cur, task_id)
     return task
 
 
@@ -395,6 +397,9 @@ def save(cur, task_id: int, form: Mapping[str, str]) -> dict[str, dict[str, int]
         _save_rows(cur, task_id, form, prefix, table, columns, skips[prefix],
                    edited, problems)
     _save_requirements(cur, task_id, form, edited, deleted)
+    # Ostatnie, bo cięcie PNG dotyka dysku: gdy walidacja tekstu i tak wywróci
+    # zapis, plik nie ma po co powstawać.
+    assets.save(cur, task_id, form, edited, problems)
 
     if problems:
         raise ValidationError(problems)
