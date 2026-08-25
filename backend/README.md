@@ -5,7 +5,7 @@ Czyta gotową strukturę z bazy i ze składu blobów. **Nigdy nie otwiera PDF-a*
 to robi wyłącznie Python (patrz `DECYZJE.md` i `CLAUDE.md`).
 
 ```bash
-task dev                  # API z hot-reloadem na http://localhost:5014
+task dev                  # API z hot-reloadem na http://localhost:$API_PORT (domyślnie 5014)
 task test:dotnet          # build + testy architektury i zachowania
 task openapi:generate     # dokument OpenAPI + typy klienta TS
 task openapi:check        # bramka dryfu kontraktu
@@ -32,7 +32,7 @@ co `IBlobStore` i `IDatabaseProbe`. Jeden nawyk, nie trzy.
 | Projekt | Co |
 |---|---|
 | `src/Klucz.Contracts` | DTO i porty. Zero pakietów — także tranzytywnie |
-| `src/Klucz.Corpus` | korpus; `Infrastructure/` to JEDYNE miejsce z Npgsql |
+| `src/Klucz.Corpus` | korpus; `Infrastructure/` to JEDYNE miejsce z Npgsql — i jedyny csproj, któremu wolno go zadeklarować |
 | `src/Klucz.Grading` | ocenianie (treść w A3) |
 | `src/Klucz.Learning` | nauka i powtórki (treść w A4) |
 | `src/Klucz.Api` | minimal API, kompozycja modułów, `/health` |
@@ -48,16 +48,30 @@ Test granicy, którego nikt nie widział czerwonego, jest dekoracją. Oba sprawd
 
 ```
 $ # 1. Grading sięga po typ z Corpusa
-  Niepowodzenie Moduly_nie_widza_sie_nawzajem
+  Niepowodzenie Modules_do_not_see_each_other
    Klucz.Grading sięga do: Klucz.Grading.ProbaZlamaniaGranicy
 
 $ # 2. do Klucz.Learning dopisany pakiet PdfPig
-  Niepowodzenie Backend_nie_parsuje_PDF
-   Backend sięgnął po bibliotekę do PDF-ów: Klucz.Learning.csproj: <PackageReference Include="PdfPig" />
+  Niepowodzenie Backend_does_not_parse_PDF
+   Backend sięgnął po bibliotekę do PDF-ów: Klucz.Learning.csproj: PdfPig
 ```
 
-Powtórzenie: dopisz `<PackageReference Include="PdfPig" />` (plus `PackageVersion`
-w `Directory.Packages.props`) i uruchom `task test:dotnet`.
+Powtórzenie: dopisz `<PackageReference Include="PdfPig" />` i uruchom `task test:dotnet`.
+Sam `<PackageVersion Include="PdfPig" />` w `Directory.Packages.props` też wystarczy —
+sito czyta oba pliki.
+
+Każda z pięciu reguł ma **trzy różne sita**, bo żadne nie widzi tego, co pozostałe:
+
+| Sito | Widzi | Nie widzi |
+|---|---|---|
+| referencje assembly (NetArchTest, `GetReferencedAssemblies`) | to, czego kod **używa** | pakietu dopisanego, ale jeszcze nie zawołanego |
+| deklaracje w `*.csproj` i `Directory.Packages.props` | **zamiar**, zanim ktoś go użyje | pakietu, który wszedł tranzytywnie |
+| `obj/project.assets.json` | całe drzewo po `restore` | niczego z powyższych — dlatego stoją wszystkie trzy |
+
+Kompilator nie emituje referencji do assembly, z którego nic nie wzięto. Samo sito
+assembly zapalało się więc dopiero przy commicie, który pakietu **używa** — czyli
+wtedy, gdy granica jest już przekroczona, a test przestaje być granicą i staje się
+protokołem z wypadku.
 
 ## Kontrakt: OpenAPI → klient TS
 
@@ -67,7 +81,14 @@ dzięki temu zmiana kontraktu widać w diffie PR-a, a nie dopiero w CI.
 
 `task openapi:check` regeneruje dokument i typy, po czym porównuje z repozytorium.
 Zmieniłeś DTO i nie przegenerowałeś klienta → czerwony build. To samo chodzi w CI
-jako osobne zadanie `kontrakt`.
+jako osobne zadanie `kontrakt`, które dodatkowo **kompiluje klienta TS** — bramka
+dryfu pilnuje zgodności kontraktu z kodem, ale nie tego, czy ręcznie pisany
+`client.ts` dalej się buduje.
+
+Generacja idzie przez `dotnet build --no-incremental`. MSBuild jest przyrostowy:
+przy aktualnym projekcie pomija cel generujący dokument, a bramka porównuje wtedy
+plik, którego nikt nie odtworzył — sam ze sobą. Zaraz po buildzie stoi asercja, że
+artefakt istnieje, bo „nie wygenerowano" wygląda tak samo jak „nie ma zmian".
 
 ## Konfiguracja
 
@@ -75,8 +96,18 @@ Adres bazy **wyłącznie ze zmiennych środowiskowych** (`DB_HOST`, `DB_PORT`, `
 `DB_USER`, `DB_PASSWORD`; `DATABASE_URL` ma pierwszeństwo). Składany z części,
 tak samo jak po stronie Pythona — numer portu stoi w `.env` raz.
 
-Korzeń składu blobów: `Blob:Root` z `appsettings.json`, nadpisywalny zmienną
-`BLOB_ROOT`. W bazie stoją ścieżki **względne** wobec tego korzenia.
+`DATABASE_URL` jest rozkładany na części razem z **query stringiem**: `sslmode`
+i reszta parametrów trafiają do connection stringa, a nie są zjadane. Nieznany
+parametr zatrzymuje składanie adresu — cicha utrata parametru bezpieczeństwa jest
+gorsza niż głośny błąd konfiguracji. Każdy błąd tej ścieżki (brak zmiennych, zły
+`DB_PORT`, popsuty adres) wychodzi z `/health` jako `degraded`, nigdy jako 500.
+
+Korzeń składu blobów: zmienna **`BLOB_ROOT`**, w drugiej kolejności `Blob:Root`
+z `appsettings.json`, domyślnie `data/blob`. Kolejność jest istotna i pilnuje jej
+test: `Blob:Root` stoi w pliku, więc zawsze coś zwraca — postawiony pierwszy
+zjadałby `BLOB_ROOT` w całości, a korpus rozjeżdżałby się na dwie lokalizacje
+(Python pisze w nowej, C# czyta ze starej). W bazie stoją ścieżki **względne**
+wobec tego korzenia.
 
 ### Azurite — emulator Azure Blob Storage
 
@@ -103,10 +134,28 @@ postawionego Postgresa.
 Gotowość procesu i stan bazy **osobno** — proces potrafi stać, gdy baza leży:
 
 ```json
-{ "status": "ok", "database": true, "version": "1.0.0.0" }
-{ "status": "degraded", "database": false, "version": "1.0.0.0" }
+{ "status": "ok", "database": true, "version": "0.1.0" }
+{ "status": "degraded", "database": false, "version": "0.1.0+3cf423e…" }
 ```
 
 Kod odpowiedzi to zawsze 200: „API żyje" jest odpowiedzią, po którą się tu przychodzi.
 Powód awarii bazy idzie do logu, nie do odpowiedzi HTTP — adres i nazwa użytkownika
 nie są rzeczami, które wystawia się bez pytania.
+
+`degraded` obejmuje też **błąd konfiguracji**, nie tylko leżącą bazę: literówka
+w `DB_PORT` czy popsuty `DATABASE_URL` dają `degraded`, a nie HTTP 500 ze stack
+trace. Monitoring widzący „API leży", gdy API stoi i zła jest wyłącznie
+konfiguracja, jest gorszy niż jego brak.
+
+Pole `version` to `InformationalVersion`, czyli `VersionPrefix`
+z `Directory.Build.props`. CI dokłada do niego SHA commita
+(`-p:SourceRevisionId=<sha>`), więc odpowiedź z wdrożenia mówi, który commit tam
+stoi. Wersji assembly nikt nie ustawiał, więc wcześniej pole było stałą `1.0.0.0`
+i nie odróżniało żadnych dwóch buildów.
+
+## `/openapi/v1.json`
+
+Wystawiane **tylko w `Development`**. Pełny opis API to mapa powierzchni ataku,
+a poza deweloperką nikt go stąd nie czyta: klient TS bierze typy z wersjonowanego
+`backend/artifacts/openapi.json`, a ten powstaje przy **buildzie** (GetDocument.Insider
+woła generator z DI), nie przez ten endpoint.
