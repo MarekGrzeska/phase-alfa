@@ -1,0 +1,1250 @@
+<title>Przegląd kodu — G1.2 ingest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+  /* kolory składni — osobne od semantycznych, żeby zmiana jednych nie ruszała drugich */
+  --t-kw:#8B3E8F; --t-str:#2C7355; --t-com:#6B7C79;
+  --t-num:#B0651A; --t-fn:#2B5C86; --t-type:#0E5B4F; --t-ann:#9E2E2E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+    --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+    --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+  --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:68ch}
+h1,h2,h3,.tag,th,.knum{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:0 0 .3rem;text-wrap:balance}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:52px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-kryt{color:var(--crit)} .n-istot{color:var(--warn)}
+.n-drob{color:var(--accent)} .n-rozw{color:var(--info)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-kryt{background:var(--crit-soft);color:var(--crit)}
+.st-istot{background:var(--warn-soft);color:var(--warn)}
+.st-drob{background:var(--accent-soft);color:var(--accent)}
+.st-rozw{background:var(--info-soft);color:var(--info)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+/* karta komentarza */
+.k{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px 22px;border-left:3px solid var(--rule);box-shadow:var(--shadow);
+  margin:0 0 16px;scroll-margin-top:20px}
+.k.kryt{border-left-color:var(--crit)}
+.k.istot{border-left-color:var(--warn)}
+.k.drob{border-left-color:var(--accent)}
+.k.rozw{border-left-color:var(--info)}
+.k-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+.knum{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+  color:var(--ink-3);min-width:1.6rem}
+.k h3{flex:1 1 18ch;margin:0}
+.k-gdzie{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-3);
+  margin:0 0 .9rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule-soft)}
+.k p{font-size:.95rem;color:var(--ink-2);margin-bottom:.75em}
+.k p:last-child{margin-bottom:0}
+.fix{font-size:.92rem;color:var(--ink);border-top:1px solid var(--rule-soft);
+  padding-top:.8rem;margin-top:1rem}
+.fix b{font-family:Archivo,sans-serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:.4rem}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+/* kolorowanie składni — klasy nadaje skrypt na dole dokumentu */
+.t-kw{color:var(--t-kw);font-weight:600}
+.t-str{color:var(--t-str)}
+.t-com{color:var(--t-com);font-style:italic}
+.t-num{color:var(--t-num)}
+.t-fn{color:var(--t-fn)}
+.t-type{color:var(--t-type)}
+.t-ann{color:var(--t-ann);font-weight:600}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">przegląd kodu · 25.08.2026 · feat/g1.2-ingest</span>
+  <h1>G1.2 — awans ingestu z <code>research/</code></h1>
+  <p class="lede">
+    Przeprowadzka się udała: 75 kluczy ładuje się do Postgresa, 1436 zadań, liczby zgadzają
+    się z sondą, <code>task test:python</code> przechodzi w komplecie. <strong>Ale trzech rzeczy
+    nie wolno zostawić.</strong> Korpus zwożony na świeżej maszynie ląduje w katalogu, w którym
+    parser go nie szuka; drugie uruchomienie ingestu pada na wszystkich kluczach; a treść wymagań
+    podstawy programowej jest po cichu nadpisywana przy każdym kolejnym kluczu — sprawdzone
+    przebiegiem, 33 ścieżki na 135 już się rozjechały.
+  </p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n n-kryt">3</span><span class="metric-l">krytyczne</span></div>
+    <div class="metric"><span class="metric-n n-istot">12</span><span class="metric-l">istotne</span></div>
+    <div class="metric"><span class="metric-n n-drob">4</span><span class="metric-l">drobne</span></div>
+    <div class="metric"><span class="metric-n n-rozw">2</span><span class="metric-l">do rozważenia</span></div>
+    <div class="metric"><span class="metric-n">26</span><span class="metric-l">plików · 4293 linie</span></div>
+  </div>
+</header>
+
+<div class="callout" style="border-left-color:var(--ok)">
+  <p>
+    <strong>Status: wszystkie 21 uwag naprawione</strong> (25.08.2026, w drzewie roboczym
+    gałęzi <code>feat/g1.2-ingest</code>). Dokument zostaje taki, jaki był w chwili
+    przeglądu — opisuje stan <em>przed</em> naprawą, żeby dało się sprawdzić, czy poprawka
+    dotyczy tego samego, co uwaga.
+  </p>
+  <p>
+    Po naprawie: <code>ruff check .</code> czysto, <code>pytest -q</code> daje
+    <strong>51 passed, 2 xfailed</strong> (było 33 passed), a bez bazy i mirrora —
+    jak w CI — <strong>23 passed</strong> zamiast 6. Pełny przebieg
+    <code>task ingest</code> powtórzony trzy razy na tej samej trwałej bazie daje ten sam
+    korpus: 75 dokumentów, 1436 zadań, 2062 punkty, pokrycie 100/100/100, liczby we
+    wszystkich piętnastu tabelach zgodne z sondą. Raport wypisuje teraz to, co wcześniej
+    ginęło: <strong>81 ścieżek podstawy programowej ma w korpusie więcej niż jedną wersję
+    treści</strong> (do bazy wchodzi pierwsza).
+  </p>
+  <p>
+    Przy naprawie wyszły dwa błędy, których w przeglądzie nie było, bo obie linie powstały
+    razem z poprawkami: <code>UnboundLocalError</code> na wariancie własnym formy oraz
+    <code>TypeError</code> przy sortowaniu kolizji, gdy etap wymagania jest pusty.
+    Oba złapane uruchomieniem przed scaleniem.
+  </p>
+</div>
+
+<!-- ============ SPIS ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">01 — SPIS</span>
+    <h2>Dwadzieścia jeden uwag, od najważniejszej</h2>
+    <p class="sec-sub">Można iść od góry i przestać w dowolnym momencie. Pierwsze trzy blokują scalenie — reszta może poczekać, ale uwagi 4–6 ugryzą, zanim skończy się A1.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="n">#</th><th>Stopień</th><th>Rzecz</th><th>Plik</th></tr></thead>
+      <tbody>
+        <tr><td class="n"><a href="#k1">1</a></td><td><span class="tag st-kryt">krytyczny</span></td><td>Treść wymagań podstawy jest po cichu nadpisywana przez kolejne klucze</td><td class="id">loader.py:154</td></tr>
+        <tr><td class="n"><a href="#k2">2</a></td><td><span class="tag st-kryt">krytyczny</span></td><td>Drugie uruchomienie ingestu pada na każdym kluczu</td><td class="id">loader.py:222</td></tr>
+        <tr><td class="n"><a href="#k3">3</a></td><td><span class="tag st-kryt">krytyczny</span></td><td>Mirror zwozi korpus tam, gdzie parser go nie szuka</td><td class="id">cke_mirror.py:644</td></tr>
+        <tr><td class="n"><a href="#k4">4</a></td><td><span class="tag st-istot">istotny</span></td><td>Odpowiedzi bliźniaków dzielone na pół zamiast po numerze podpunktu</td><td class="id">parser.py:767</td></tr>
+        <tr><td class="n"><a href="#k5">5</a></td><td><span class="tag st-istot">istotny</span></td><td>Dwie warstwy różnie rozstrzygają, czy kreska jest ułamkowa</td><td class="id">reconstruct.py:114</td></tr>
+        <tr><td class="n"><a href="#k6">6</a></td><td><span class="tag st-istot">istotny</span></td><td>Wszystkie wycinki mają tę samą ścieżkę w blob storage</td><td class="id">loader.py:380</td></tr>
+        <tr><td class="n"><a href="#k7">7</a></td><td><span class="tag st-istot">istotny</span></td><td>Kryterium odbioru G1.2.3 nie da się uruchomić — nie ma flagi <code>--dry-run</code></td><td class="id">cke_mirror.py:652</td></tr>
+        <tr><td class="n"><a href="#k8">8</a></td><td><span class="tag st-istot">istotny</span></td><td>Cztery z siedmiu testów regresji z planu nie powstały</td><td class="id">tests/</td></tr>
+        <tr><td class="n"><a href="#k9">9</a></td><td><span class="tag st-istot">istotny</span></td><td>CI nie istnieje — katalog workflows jest pusty</td><td class="id">.github/workflows/</td></tr>
+        <tr><td class="n"><a href="#k10">10</a></td><td><span class="tag st-istot">istotny</span></td><td>Dwie kopie klasyfikatora reguł rozjeżdżają się na tym samym tekście</td><td class="id">loader.py:438</td></tr>
+        <tr><td class="n"><a href="#k11">11</a></td><td><span class="tag st-istot">istotny</span></td><td>Kolumna „bliźniaków" pokazuje zero dokładnie tam, gdzie ma pokazywać liczbę</td><td class="id">run.py:309</td></tr>
+        <tr><td class="n"><a href="#k12">12</a></td><td><span class="tag st-istot">istotny</span></td><td><code>parsuj_wymagania</code> zwraca <code>None</code> tam, gdzie ładowarka iteruje</td><td class="id">parser.py:937</td></tr>
+        <tr><td class="n"><a href="#k13">13</a></td><td><span class="tag st-istot">istotny</span></td><td>Test „kontrola odwrotna" nie może sam zapalić się na czerwono</td><td class="id">test_pdf_layer.py:107</td></tr>
+        <tr><td class="n"><a href="#k14">14</a></td><td><span class="tag st-istot">istotny</span></td><td>Jeden brakujący pakiet wyłącza także testy, które miały chodzić zawsze</td><td class="id">test_pdf_layer.py:25</td></tr>
+        <tr><td class="n"><a href="#k15">15</a></td><td><span class="tag st-istot">istotny</span></td><td>Wyciszenie wszystkich ostrzeżeń przy imporcie, dla całego procesu</td><td class="id">run.py:40</td></tr>
+        <tr><td class="n"><a href="#k16">16</a></td><td><span class="tag st-drob">drobny</span></td><td>Raport przebiegu nie jest nigdzie zapisywany — porównanie z sondą robi się z pamięci</td><td class="id">run.py:260</td></tr>
+        <tr><td class="n"><a href="#k17">17</a></td><td><span class="tag st-drob">drobny</span></td><td>Ta sama reguła ścieżki mirrora w trzech kopiach</td><td class="id">test_corpus_load.py:42</td></tr>
+        <tr><td class="n"><a href="#k18">18</a></td><td><span class="tag st-drob">drobny</span></td><td>Docstringi pokazują importy i wywołania, których już nie ma</td><td class="id">layout.py:15</td></tr>
+        <tr><td class="n"><a href="#k19">19</a></td><td><span class="tag st-drob">drobny</span></td><td>Strona budowana od nowa przy każdym dostępie — pamięć podręczna nie działa</td><td class="id">layout.py:167</td></tr>
+        <tr><td class="n"><a href="#k20">20</a></td><td><span class="tag st-rozw">do rozważenia</span></td><td>Rozjazd treści wymagań wart osobnej sekcji w raporcie</td><td class="id">run.py:260</td></tr>
+        <tr><td class="n"><a href="#k21">21</a></td><td><span class="tag st-rozw">do rozważenia</span></td><td>Drugi i trzeci rysunek w zadaniu wchodzą do bazy, ale nie do wyniku parsera</td><td class="id">parser.py</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <p>
+      <strong>Dlaczego akurat te trzy na górze.</strong> Wszystkie trzy dotyczą tego samego:
+      <em>dane wchodzą do korpusu inaczej, niż wygląda</em>. Uwaga 1 kasuje treść wymagań bez
+      jednego słowa w raporcie, uwaga 2 zamienia „dołóż do korpusu" w „wywal się na wszystkim",
+      a uwaga 3 rozdziela zwózkę i parser na dwa różne katalogi na każdej nowej maszynie.
+      Każdą sprawdziłem uruchomieniem — wydruki są w kartach.
+    </p>
+  </div>
+</section>
+
+<!-- ============ KOMENTARZE ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">02 — UWAGI</span>
+    <h2>Po kolei</h2>
+    <p class="sec-sub">Każda uwaga: co jest nie tak, co się przez to stanie, gdzie to jest i jak to naprawić.</p>
+  </div>
+
+  <!-- 1 -->
+  <div class="k kryt" id="k1">
+    <div class="k-head">
+      <span class="knum">1</span>
+      <h3>Treść wymagań podstawy jest po cichu nadpisywana przez kolejne klucze</h3>
+      <span class="tag st-kryt">krytyczny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/loader.py:154 — <code>Slownik.wymaganie()</code>, to samo w <code>rezim()</code> i <code>forma()</code></p>
+
+    <p>
+      Wstawianie wymagania kończy się klauzulą <code>ON CONFLICT ... DO UPDATE SET content =
+      EXCLUDED.content</code>. To znaczy: gdy drugi klucz przyniesie tę samą ścieżkę podstawy
+      programowej (np. <code>V.3</code>) z choćby minimalnie inną treścią, stara treść znika
+      i zostaje nowa. Wygrywa ten klucz, który akurat wszedł ostatni.
+    </p>
+    <p>
+      Przy 75 kluczach ta sama ścieżka wraca kilkadziesiąt razy, a treść bywa różna, bo parser
+      czyta ją z tabeli, która raz się łamie na stronie, raz nie. Sprawdziłem to na dwudziestu
+      kluczach: <strong>33 ścieżki na 135 mają w korpusie więcej niż jedną wersję treści</strong>.
+      Do bazy wchodzi jedna z nich — losowa, bo zależna od kolejności plików w spisie. Nie ma
+      po tym żadnego śladu: ani ostrzeżenia, ani wiersza w raporcie.
+    </p>
+    <p>
+      To jest dokładnie ta kategoria, którą <code>docs/plan-A1.md</code> nazywa najgroźniejszą:
+      wynik wygląda poprawnie i taki nie jest. Kolizje form parser <em>zgłasza</em>
+      (<code>kolizje_form</code> → <code>_raport</code>), kolizje wymagań — nie.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — dwadzieścia kluczy, jeden parser, bez bazy</div>
+      <div class="ev-b"><pre data-lang="out">kluczy sprawdzonych: 20
+sciezek wymagan    : 135
+sciezek z ROZNA trescia: 33        ← każda z nich zostanie nadpisana bez śladu
+  ('ogolne', None, 'II')
+    - "Wykorzystanie i tworzenie informacji. 2. Odczytywanie i interpretowanie danych..."
+    - "Wykorzystanie i tworzenie informacji. 3. Używanie języka matematycznego do opisu..."
+  ('szczegolowe', None, '12.4')
+    - "wykonuje proste obliczenia kalendarzowe na dniach, tygodniach, miesiącach, latach. 14. Zad..."
+    - "wykonuje proste obliczenia kalendarzowe na dniach, tygodniach, miesiącach, latach."</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Nadpisywanie zamienić na <code>DO NOTHING</code> — pierwsza treść zostaje — i policzyć
+      przypadki, w których nowa treść różni się od zapisanej. Licznik idzie do raportu, tak samo
+      jak <code>kolizje_form</code>. Wtedy rozjazd przestaje być niewidzialny i staje się liczbą,
+      którą można obejrzeć.
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="sql">INSERT INTO requirement (regime_id, kind, stage, path, content)
+VALUES (%s, %s, %s, %s, %s)
+ON CONFLICT (regime_id, kind, stage, path) DO NOTHING
+RETURNING id</pre></div>
+      </div>
+      Gdy <code>RETURNING</code> nic nie zwróci, wiersz już był — wtedy dociągamy jego
+      <code>id</code> i <code>content</code> zwykłym <code>SELECT</code>-em i porównujemy treści.
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="k kryt" id="k2">
+    <div class="k-head">
+      <span class="knum">2</span>
+      <h3>Drugie uruchomienie ingestu pada na każdym kluczu</h3>
+      <span class="tag st-kryt">krytyczny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/loader.py:222 (<code>document</code>) i :299 (<code>exam_form_document</code>)</p>
+
+    <p>
+      Wstawienie dokumentu to goły <code>INSERT</code>, a kolumna <code>document.url</code> ma
+      w schemacie <code>UNIQUE</code>. Dopóki korpus siedział w SQLite tworzonym w pamięci przy
+      każdym uruchomieniu, było to bezpieczne — baza startowała pusta. Teraz baza stoi w Dockerze
+      i <strong>jest trwała</strong>, więc drugi przebieg trafia na własne wiersze z pierwszego.
+    </p>
+    <p>
+      Skutek: <code>task ingest</code> uruchomiony po raz drugi bez <code>--wyczysc</code> wywala
+      się na pierwszym kluczu, transakcja się cofa, błąd ląduje w liście <code>bledy</code> —
+      i tak 75 razy z rzędu. Zero wierszy, kod wyjścia 1. Docstring w <code>run.py</code> obiecuje
+      coś odwrotnego: <em>„baza jest TRWAŁA. Drugi przebieg dokłada się do pierwszego"</em>.
+      Nagłówek migracji 0003 stawia ponowne uruchamianie jako cel.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — ten sam dokument wstawiony dwa razy, tak jak robi to drugi ingest</div>
+      <div class="ev-b"><pre data-lang="out">pierwszy przebieg: dokument wszedl
+drugi przebieg: UniqueViolation
+  duplicate key value violates unique constraint "document_url_key"</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Dokument to naturalny klucz — <code>url</code>. Wystarczy oprzeć się na nim zamiast
+      zakładać pustą bazę:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="sql">INSERT INTO document (segment, year, code, variants, session, kind,
+                      kind_source, url, path, pages)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (url) DO UPDATE SET pages = EXCLUDED.pages
+RETURNING id</pre></div>
+      </div>
+      Tu <code>DO UPDATE</code> jest na miejscu (w odróżnieniu od uwagi 1): dokument jest jeden,
+      identyfikowany adresem, a nie zlepkiem treści z wielu źródeł. Przy
+      <code>exam_form_document</code> wystarczy <code>ON CONFLICT DO NOTHING</code>. Potem trzeba
+      dopisać test: „ingest dwa razy pod rząd kończy się tym samym stanem bazy" — dziś nie ma
+      testu, który by to złapał.
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="k kryt" id="k3">
+    <div class="k-head">
+      <span class="knum">3</span>
+      <h3>Mirror zwozi korpus tam, gdzie parser go nie szuka</h3>
+      <span class="tag st-kryt">krytyczny</span>
+    </div>
+    <p class="k-gdzie">ingest/mirror/cke_mirror.py:644 — <code>--katalog</code>, domyślnie <code>Path(__file__).resolve().parent</code></p>
+
+    <p>
+      Domyślnym korzeniem mirrora jest katalog, w którym leży skrypt. Zanim skrypt awansował,
+      leżał w korzeniu repozytorium <code>cke-mirror</code> i domyślna wartość była poprawna.
+      Po przeprowadzce ten sam zapis wskazuje <code>ingest/mirror/</code>. Plik jest co do bajtu
+      identyczny z pierwowzorem — przeprowadzka nie ruszyła domyślnej ścieżki.
+    </p>
+    <p>
+      Świeży klon, <code>.env</code> skopiowany z <code>.env.example</code> (jest tam
+      <code>MIRROR_ROOT=.</code>), potem <code>task mirror -- --filtr matematyka</code>: PDF-y
+      i spis lądują w <code>ingest/mirror/data/</code>. <code>task ingest</code> liczy korzeń
+      od repozytorium i mówi „brak <code>data/index/urls.tsv</code>". Na tej maszynie to nie
+      wychodzi tylko dlatego, że <code>.env</code> wskazuje mirror obok
+      (<code>MIRROR_ROOT=../cke-mirror</code>) — czyli katalog zwożony jeszcze starym skryptem.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — dwie ścieżki, jedno repozytorium</div>
+      <div class="ev-b"><pre data-lang="out">mirror zapisze spis do: C:\Marek\Projekt pod grant\phase-alfa\ingest\mirror\data\index\urls.tsv
+ingest czyta spis z   : C:\Marek\Projekt pod grant\phase-alfa\data\index\urls.tsv</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Mirror ma czytać ten sam <code>MIRROR_ROOT</code>, co parser — jedno źródło prawdy zamiast
+      dwóch domyślnych ścieżek. Domyślna wartość liczona od korzenia repozytorium, nie od pliku:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">REPO = Path(__file__).resolve().parents[2]      # ingest/mirror/x.py → korzeń repo
+_MIRROR = os.environ.get("MIRROR_ROOT", ".")
+DOMYSLNY = Path(_MIRROR) if os.path.isabs(_MIRROR) else (REPO / _MIRROR).resolve()
+
+ap.add_argument("--katalog", type=Path, default=DOMYSLNY,
+                help="korzeń mirrora (domyślnie MIRROR_ROOT z .env, potem korzeń repo)")</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="k istot" id="k4">
+    <div class="k-head">
+      <span class="knum">4</span>
+      <h3>Odpowiedzi bliźniaków dzielone na pół zamiast po numerze podpunktu</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/parser.py:767 — <code>_rozdziel_kolumny()</code></p>
+
+    <p>
+      Funkcja rozdziela odpowiedzi dwóch wersji arkusza (X i Y) stojących w tabeli obok siebie.
+      Własny docstring mówi, że przy zadaniu wieloczęściowym „numer podpunktu je rozdziela" —
+      ale kod numeru nie używa. Bierze listę wierszy i tnie ją na pół: pierwsza połowa do X,
+      druga do Y.
+    </p>
+    <p>
+      Gdy jedna wersja ma dwa podpunkty (1.1 i 1.2), a druga w tym miejscu nie ma nic, podpunkty
+      jednego zadania rozjeżdżają się na dwie wersje: X traci odpowiedź 1.2, a Y dostaje cudzą.
+      Przy nieparzystej liczbie wierszy (jeden zjedzony przez ekstrakcję) podział wychodzi 1:2.
+      Żaden więz bazy tego nie złapie — <code>UNIQUE (task_version_id, part)</code> jest
+      zadowolony, bo numery się nie powtarzają.
+    </p>
+    <p>
+      <strong>Dziś to jeszcze nie boli.</strong> Sprawdziłem korpus: 57 odpowiedzi ma numer
+      podpunktu, ale żadna z nich nie należy do formy z wersją X/Y, więc w matematyce E8 ta
+      gałąź nie zapisała jeszcze złych danych. Ugryzie przy pierwszym przedmiocie, w którym
+      klucz bliźniaczy ma zadania wieloczęściowe — czyli w językach obcych, w G2.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — wywołanie funkcji wprost</div>
+      <div class="ev-b"><pre data-lang="out">jedno zadanie, dwa podpunkty, JEDNA wersja arkusza:
+{'X': [('1.1', 'TAK')], 'Y': [('1.2', 'NIE')]}      ← 1.2 przypisane cudzej wersji
+
+trzy wiersze (jeden zjedzony przez ekstrakcję):
+{'X': [('1.1', 'TAK')], 'Y': [('1.1', 'NIE'), ('1.2', 'PRAWDA')]}</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Grupować po numerze podpunktu, tak jak obiecuje docstring: pierwsze wystąpienie danego
+      numeru należy do pierwszej wersji, drugie — do drugiej. Gdy liczba wystąpień nie zgadza
+      się z liczbą wersji, dopisać ostrzeżenie do <code>k.ostrzezenia</code> zamiast zgadywać.
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">licznik = collections.Counter()
+for l in linie:
+    m = RE_PODPUNKT.match(l)
+    i = licznik[m.group(1)]          # które to wystąpienie tego numeru
+    licznik[m.group(1)] += 1
+    if i &lt; len(wersje):
+        out.setdefault(wersje[i], []).append((m.group(1), m.group(2)))</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="k istot" id="k5">
+    <div class="k-head">
+      <span class="knum">5</span>
+      <h3>Dwie warstwy różnie rozstrzygają, czy kreska jest ułamkowa</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/pdf/reconstruct.py:114 — <code>_pietra()</code>, wywoływana z <code>page_text()</code> i <code>render()</code></p>
+
+    <p>
+      <code>_pietra</code> szuka licznika i mianownika w oknie o wysokości zależnej od rozmiaru
+      pisma. Rozmiar można podać argumentem; gdy się go nie poda, funkcja bierze rozmiar
+      <em>pierwszego znaku w wierszu</em>. <code>page_text</code> podaje go na sztywno
+      (<code>size=11.0</code>), <code>render</code> — nie podaje wcale.
+    </p>
+    <p>
+      Wystarczy, że wiersz zaczyna się od glifu mniejszego niż tekst podstawowy — odnośnik do
+      przypisu, indeks górny — a okno kurczy się z 15,95 pt do 10,15 pt. Wtedy jedna warstwa
+      uznaje kreskę za ułamkową i układa wokół niej wiersz, a druga tę samą kreskę odrzuca
+      i wypisuje cyfry obok siebie. Z <code>7/15</code> robi się <code>175</code> — liczba,
+      która wygląda całkiem poprawnie i nie zapala żadnej lampki.
+    </p>
+    <p>
+      Docstring samej funkcji mówi, po co ona istnieje: <em>„Rozjechanie się ich odpowiedzi
+      kosztowało wcześniej sklejone wiersze"</em>. Rozjazd wrócił bocznymi drzwiami — przez
+      argument domyślny. <strong>Nie znalazłem tego w bieżącym korpusie</strong> (liczby zgadzają
+      się z sondą co do sztuki), więc traktuję to jako pułapkę, nie jako stwierdzoną szkodę.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — ten sam ułamek, dwie odpowiedzi</div>
+      <div class="ev-b"><pre data-lang="out">wiersz: przypis 7 pt na początku, licznik 7, kreska, mianownik 15
+
+page_text (size=11.0): UŁAMEK       ← licznik i mianownik trafiają na wiersz kreski
+render    (bez size) : nie ułamek   ← te same znaki wychodzą jako 175</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Rozmiar bazowy wiersza ma być liczony w jednym miejscu i przekazywany wszystkim
+      wywołaniom — albo, prościej, brany jako <strong>mediana</strong> rozmiarów znaków wiersza
+      zamiast rozmiaru pierwszego znaku. Mediana nie daje się zbić pojedynczym przypisem
+      i obie warstwy dostają wtedy tę samą liczbę bez pamiętania o argumencie.
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">def _rozmiar_bazowy(chars):
+    """Rozmiar pisma wiersza — mediana, nie pierwszy znak.
+
+    Pierwszym znakiem bywa odnośnik do przypisu (7 pt); wtedy okno szukania
+    pięter kurczy się o jedną trzecią i ta sama kreska przestaje być ułamkiem.
+    """
+    return statistics.median([c.size for c in chars]) if chars else 11.0</pre></div>
+      </div>
+      Do tego test regresji: ten sam zestaw znaków przepuszczony przez obie warstwy ma dać
+      ten sam wynik.
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="k istot" id="k6">
+    <div class="k-head">
+      <span class="knum">6</span>
+      <h3>Wszystkie wycinki mają tę samą ścieżkę w blob storage</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/loader.py:380 — <code>asset.path</code></p>
+
+    <p>
+      Ścieżka pliku składa się z kodu arkusza, wersji i numeru zadania:
+      <code>OMAP/X/z16.png</code>. Nie ma w niej ani sesji, ani wariantu, ani numeru kolejnego
+      zasobu. To znaczy, że zadanie 16 z maja 2025 i zadanie 16 z maja 2024 wskazują ten sam
+      plik — podobnie jak wszystkie warianty dostosowane, bo 200, 400, 700 i 800 mają ten sam
+      kod <code>OMAP</code>.
+    </p>
+    <p>
+      Tabela <code>asset</code> nie ma więzu na <code>path</code>, więc wiersze wchodzą bez
+      protestu i kolizja wyjdzie dopiero wtedy, gdy ktoś zacznie te pliki zapisywać — czyli
+      w G2.4. Wtedy każdy kolejny wycinek nadpisze poprzedni. Osobno: <code>BLOB_ROOT</code>
+      z <code>.env</code> nie jest czytany przez żadną linię Pythona, więc dziś każda z tych
+      ścieżek nazywa plik, który nie powstaje. W bazie jest 0 wierszy <code>asset</code>,
+      bo <code>--z-arkuszami</code> nie było jeszcze uruchamiane na pełnym zakresie.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Ścieżka ma zawierać to, co odróżnia jeden wycinek od drugiego — sesję, wariant, wersję,
+      numer zadania i numer zasobu w zadaniu:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">f"{meta['kod']}/{sesja}/{wariant}/{wersja or '0'}/z{z.numer}-{i}.png"
+#  OMAP/2025-05-01/100/X/z16-0.png</pre></div>
+      </div>
+      Przy okazji warto dołożyć <code>UNIQUE (path)</code> w migracji — wtedy następna taka
+      kolizja przestanie być cicha. <code>BLOB_ROOT</code> zostawić w <code>.env</code>, ale
+      opisać w komentarzu, że czytać go będzie dopiero G2.4 — albo usunąć do czasu, aż będzie
+      używany.
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="k istot" id="k7">
+    <div class="k-head">
+      <span class="knum">7</span>
+      <h3>Kryterium odbioru G1.2.3 nie da się uruchomić — nie ma flagi <code>--dry-run</code></h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/mirror/cke_mirror.py:652 — lista argumentów <code>main()</code></p>
+
+    <p>
+      Plan zamyka G1.2.3 zdaniem: <em>„Zrobione, gdy <code>task mirror -- --dry-run</code>
+      przechodzi"</em>. Takiej flagi nie ma. Jest <code>--tylko-spis</code>
+      (buduje spis, nie pobiera PDF-ów) i <code>--tylko-raport</code> (nic nie pobiera, czyta
+      spis z dysku) — obie robią mniej więcej to, o co chodziło, ale pod inną nazwą, więc
+      polecenie z planu kończy się błędem argumentów.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem</div>
+      <div class="ev-b"><pre data-lang="out">$ uv run python -m mirror.cke_mirror --dry-run
+python.exe -m mirror.cke_mirror: error: unrecognized arguments: --dry-run</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Dodać <code>--dry-run</code> jako alias <code>--tylko-raport</code> (to jest prawdziwy
+      przebieg na sucho: korzysta ze spisu na dysku, nie rusza sieci) i dopisać test, który
+      go uruchamia. Test ma sprawdzać, że polecenie kończy się zerem i nie zapisuje ani jednego
+      pliku PDF — inaczej kryterium odbioru zostaje słowem w planie, a nie bramką.
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="k istot" id="k8">
+    <div class="k-head">
+      <span class="knum">8</span>
+      <h3>Cztery z siedmiu testów regresji z planu nie powstały</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/tests/test_pdf_layer.py — cały plik; tabela w <code>docs/plan-A1.md</code>, G1.2.1 krok 3</p>
+
+    <p>
+      Plan wylicza siedem rzeczy, które mają być zamrożone testem. Są trzy: ułamek piętrowy,
+      scalanie serii wykładników, NFKC. Brakuje czterech: <strong>potęga</strong>
+      (<code>P = 5² = 25</code> zamiast <code>P = 52 = 25</code>), <strong>przypis
+      w kryterium</strong> (70 → 8 wystąpień na 75 kluczach), <strong>filtr tabel</strong>
+      (brak ułamków typu <code>' '/'Liczba'</code>) i <strong>zasięg</strong> (3330/4472 kresek,
+      74,5%). Nie ma też testów <code>xfail</code> na znane luki — liczby mieszane i pierwiastki
+      są opisane w <code>ingest/README.md</code>, a plan prosił wprost o test, żeby było widać,
+      kiedy przestanie być czerwony.
+    </p>
+    <p>
+      Osobno: plan chciał utrwalonych wyjść warstwy pozycyjnej (JSON ze znakami, ramkami
+      i kreskami) w <code>ingest/tests/fixtures/</code>, żeby dało się testować
+      <code>reconstruct.py</code> bez jednego PDF-a. Jest tam wyłącznie tekstowy wydruk pomiaru
+      z 24.08.2026, do którego nie sięga żaden test. Skutkiem jest to, że cała warstwa
+      rekonstrukcji chodzi tylko na maszynie z mirrorem.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — to samo repozytorium, dwa środowiska</div>
+      <div class="ev-b"><pre data-lang="out">$ uv run pytest -q                       ← z .env i mirrorem (ta maszyna)
+33 passed in 9.84s
+
+$ env -u DB_HOST -u MIRROR_ROOT ... pytest -q     ← jak w CI: bez bazy i bez mirrora
+6 passed, 27 skipped in 0.21s</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Najpierw utrwalić wejście: dla dwóch–trzech stron zapisać znaki, ramki i kreski do JSON-a
+      w <code>tests/fixtures/</code>. Potem dopisać brakujące cztery testy na tych fixture'ach
+      — wtedy chodzą wszędzie, także w CI. Luki (mieszane, pierwiastki) dopisać jako
+      <code>@pytest.mark.xfail(strict=True)</code>, żeby dzień naprawy sam się zgłosił.
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="k istot" id="k9">
+    <div class="k-head">
+      <span class="knum">9</span>
+      <h3>CI nie istnieje — katalog workflows jest pusty</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">.github/workflows/ — katalog bez plików</p>
+
+    <p>
+      Plan G1.2.2 krok 6 wymaga testu integracyjnego na jednym kluczu
+      (<code>OMAP-100-2505</code>) przeciwko Postgresowi w usłudze GitHub Actions, z konkretnymi
+      liczbami do sprawdzenia. Test istnieje jako <code>ingest/tests/test_corpus_load.py</code>
+      i te liczby sprawdza — ale nic go nie uruchamia automatycznie. <code>ls .github/workflows/</code>
+      pokazuje pusty katalog.
+    </p>
+    <p>
+      Dopóki tak jest, wszystkie bramki tego repozytorium działają wyłącznie na maszynie autora
+      i wyłącznie wtedy, gdy autor o nich pamięta. Zwłaszcza że bez bazy i bez mirrora pakiet
+      testów kurczy się z 33 do 6 (uwaga 8) — czyli CI dopisany bez usługi Postgresa dawałby
+      fałszywy spokój.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Jeden plik <code>.github/workflows/ci.yml</code>: usługa <code>postgres:17-alpine</code>,
+      <code>uv sync</code>, migracje, <code>ruff</code>, <code>pytest -q</code>. Testy oznaczone
+      <code>mirror</code> zostają pominięte (arkuszy CKE nie ma w repo), reszta ma przejść.
+      Warto od razu ustawić, żeby liczba pominiętych testów była widoczna w logu — inaczej
+      „zielone CI" i „CI, które nic nie uruchomiło" wyglądają tak samo.
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="k istot" id="k10">
+    <div class="k-head">
+      <span class="knum">10</span>
+      <h3>Dwie kopie klasyfikatora reguł rozjeżdżają się na tym samym tekście</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/loader.py:438 — <code>_rodzaj_reguly()</code>, wobec parser.py:904</p>
+
+    <p>
+      Docstring w ładowarce mówi: <em>„te same przesłanki co w <code>parser._reguly</code>"</em>.
+      Nie są te same. Parser sprawdza <code>„tylko poprawny końcowy wynik"</code> albo
+      <code>„tylko poprawny wynik"</code>, ładowarka — sam podciąg <code>„tylko poprawny"</code>.
+      Parser sprawdza <code>„dyskalkulią"</code>, ładowarka <code>„dyskalkuli"</code>.
+    </p>
+    <p>
+      Reguły przekrojowe (całego arkusza) idą przez kopię parsera, a „Uwagi" przy pojedynczym
+      zadaniu — przez kopię ładowarki. Ten sam zapis <em>„uznaje się tylko poprawny sposób"</em>
+      dostaje więc raz typ <code>result_only</code>, raz <code>other</code>, zależnie od tego,
+      w którym miejscu klucza stał. Zapytania po typie reguły przestają być wiarygodne, a nikt
+      tego nie zobaczy, bo obie wartości są legalne.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Zostawić jedną kopię. Klasyfikacja jest wiedzą o dokumencie, więc jej miejsce jest
+      w parserze — ładowarka ma ją tylko wywołać:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">from parsers.omap_e8.parser import rodzaj_reguly     # jedna definicja, dwa wywołania</pre></div>
+      </div>
+      Przy okazji: nazwę w parserze wypada wtedy odmyślnikować (<code>_reguly</code> zostaje
+      prywatne, sam klasyfikator staje się publiczny).
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="k istot" id="k11">
+    <div class="k-head">
+      <span class="knum">11</span>
+      <h3>Kolumna „bliźniaków" pokazuje zero dokładnie tam, gdzie ma pokazywać liczbę</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/run.py:309 — <code>blizniaki.get(wariant, 0)</code>, klucz z run.py:253</p>
+
+    <p>
+      Słownik <code>blizniaki</code> jest budowany zapytaniem grupującym po
+      <code>exam_form.variant</code>, więc jego kluczami są pojedyncze warianty:
+      <code>'100'</code>, <code>'200'</code>. Odpytywany jest natomiast surową kolumną
+      <code>warianty</code> ze spisu, która przy kluczach wielowariantowych wygląda tak:
+      <code>'100,200,400,500,660,K00'</code>. Takiego klucza w słowniku nigdy nie ma, więc
+      <code>get</code> zwraca 0.
+    </p>
+    <p>
+      Efekt jest przewrotny: kolumna pokazuje zero właśnie przy tych kluczach, dla których
+      powstał model N:M — tych, gdzie jeden dokument obsługuje wiele form. Przy zwykłych
+      kluczach OMAP wartości się zgadzają, bo tam kolumna zawiera jeden wariant — i dlatego
+      domyślny przebieg <code>--kod OMAP</code> tego nie pokazuje.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Sumować po wariantach, które ten klucz naprawdę obsługuje:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">sum(blizniaki.get(w, 0) for w in (r["warianty"] or "").split(","))</pre></div>
+      </div>
+      Albo — czytelniej — liczyć bliźniaki per dokument, a nie per wariant, skoro wiersz raportu
+      opisuje dokument.
+    </div>
+  </div>
+
+  <!-- 12 -->
+  <div class="k istot" id="k12">
+    <div class="k-head">
+      <span class="knum">12</span>
+      <h3><code>parsuj_wymagania</code> zwraca <code>None</code> tam, gdzie ładowarka iteruje</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/parser.py:937 — <code>return None, []</code>; konsument w loader.py:326</p>
+
+    <p>
+      Adnotacja mówi <code>Tuple[List[dict], List[dict]]</code>, a gałąź dla pustej tabeli
+      zwraca <code>None</code> jako pierwszy element. Ta wartość idzie prosto do
+      <code>Zadanie.ogolne</code>, a ładowarka robi na niej <code>for o in z.ogolne:</code>
+      bez sprawdzenia. Wynik byłby twardy: <code>TypeError</code> i cofnięcie całego klucza.
+    </p>
+    <p>
+      Dziś nie wybucha, bo <code>czytaj_klucz</code> zbiera tylko tabele, w których pierwsze
+      pięć wierszy zawiera słowo „Wymagani" — a tabela bez wierszy takiego słowa nie ma.
+      Ugryzie przy pierwszej zmianie tego filtra albo przy zmianie sposobu parowania tabel
+      z zadaniami. Tuż obok, w <code>_kolumny</code> (parser.py:1023), stoi
+      <code>max()</code> na pustej sekwencji chroniony tym samym założeniem.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Zwracać puste listy zamiast <code>None</code> — typ zgadza się z adnotacją, a konsument
+      nie musi nic wiedzieć o gałęziach:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">if tab is None or not tab.rows:
+    return [], []</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 -->
+  <div class="k istot" id="k13">
+    <div class="k-head">
+      <span class="knum">13</span>
+      <h3>Test „kontrola odwrotna" nie może sam zapalić się na czerwono</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/tests/test_pdf_layer.py:107 — <code>test_licznik_nie_zostaje_na_wlasnej_linii</code></p>
+
+    <p>
+      Asercja brzmi: <code>'15' not in linie or '7/15' in tekst</code>. Test stojący linijkę
+      wyżej sprawdza mocniejszy warunek — że w tekście jest całe
+      <code>7/15-(1/5+1/6)</code> — a z tego wynika drugi człon alternatywy. Znaczy to, że
+      każda regresja, którą miałaby złapać „kontrola odwrotna", zapala najpierw test poprzedni.
+      Ten nigdy nie zaświeci się sam.
+    </p>
+    <p>
+      Root <code>CLAUDE.md</code> stawia sprawę wprost: <em>„Test, który zawsze był zielony,
+      jest nieodróżnialny od testu, który nic nie sprawdza"</em>. Ten test wygląda na drugą
+      parę oczu, a jest ozdobą.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Sprawdzać to, co test obiecuje w nazwie: że żadna linia nie jest samotnym licznikiem ani
+      mianownikiem ułamka, który obok został odtworzony.
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">assert "15" not in linie, "mianownik stoi samotnie w linii — kreska nie została odczytana"
+assert "7" not in linie,  "licznik stoi samotnie w linii"</pre></div>
+      </div>
+      Jeśli takie asercje nie przechodzą na prawdziwym kluczu, to jest odpowiedź: warunek trzeba
+      zawęzić do okolicy zadania 16, a nie osłabić do tautologii.
+    </div>
+  </div>
+
+  <!-- 14 -->
+  <div class="k istot" id="k14">
+    <div class="k-head">
+      <span class="knum">14</span>
+      <h3>Jeden brakujący pakiet wyłącza także testy, które miały chodzić zawsze</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/tests/test_pdf_layer.py:25 — <code>pytest.importorskip("pdfplumber")</code> na poziomie modułu</p>
+
+    <p>
+      Docstring tego pliku dzieli testy na dwie grupy i pisze o pierwszej: <em>„nie potrzebują
+      ani jednego PDF-a i chodzą zawsze, także w CI"</em>. Tymczasem <code>importorskip</code>
+      stoi w ciele modułu, więc bez <code>pdfplumber</code> pomijany jest cały plik — razem
+      z sześcioma testami, które o pdfplumberze nic nie wiedzą.
+    </p>
+    <p>
+      Ani <code>pdf.reconstruct</code>, ani <code>pdf.layout</code> nie importują pdfplumbera
+      na poziomie modułu (robi to dopiero <code>_PlumberDoc.__init__</code>), więc ta blokada
+      niczego nie chroni. Dziś jest nieszkodliwa, bo pdfplumber to twarda zależność; szkodliwa
+      stanie się w dniu, w którym ktoś uruchomi testy w chudszym środowisku i zobaczy „6 passed"
+      zamiast zera.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Usunąć <code>importorskip</code> z poziomu modułu. Dwa testy, które naprawdę potrzebują
+      pdfplumbera, mają już oznaczenie <code>mirror</code> — wystarczy przenieść blokadę do
+      ich fixture'a, obok istniejącego <code>pytest.skip</code> na brak mirrora.
+    </div>
+  </div>
+
+  <!-- 15 -->
+  <div class="k istot" id="k15">
+    <div class="k-head">
+      <span class="knum">15</span>
+      <h3>Wyciszenie wszystkich ostrzeżeń przy imporcie, dla całego procesu</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/run.py:40 — <code>warnings.filterwarnings("ignore")</code>; przy okazji <code>con.close()</code> w run.py:221</p>
+
+    <p>
+      Wywołanie stoi w ciele modułu, bez kategorii i bez wskazania biblioteki, więc wycisza
+      wszystko i na zawsze — nie tylko hałas pdfplumbera o <code>CropBox</code>. Razem z nim
+      giną <code>DeprecationWarning</code> (przydatne przy przechodzeniu na psycopg)
+      i <code>ResourceWarning</code>, czyli ostrzeżenia o niezamkniętych plikach i połączeniach.
+      To ostatnie ma tu praktyczne znaczenie: <code>con.close()</code> jest wywoływane po
+      <code>_raport</code>, poza <code>finally</code>, więc wyjątek w raporcie zostawia otwarte
+      połączenie — i nikt się o tym nie dowie, bo ostrzeżenie jest wyciszone.
+    </p>
+    <p>
+      Dodatkowo: każdy, kto zaimportuje <code>parsers.omap_e8.run</code> — test, przyszły ekran
+      korekty — dostaje wyciszenie w swoim procesie, nie prosząc o nie.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Zawęzić do tego, co faktycznie hałasuje, i wykonać dopiero w <code>main()</code>:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">warnings.filterwarnings("ignore", category=UserWarning, module="pdfplumber")
+warnings.filterwarnings("ignore", category=UserWarning, module="pdfminer")</pre></div>
+      </div>
+      A połączenie zamykać w <code>finally</code> albo przez <code>with</code>.
+    </div>
+  </div>
+
+  <!-- 16 -->
+  <div class="k drob" id="k16">
+    <div class="k-head">
+      <span class="knum">16</span>
+      <h3>Raport przebiegu nie jest nigdzie zapisywany</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/run.py:260 — <code>_raport()</code> tylko drukuje</p>
+
+    <p>
+      Plan G1.2.2 krok 4 mówi: <em>„Zapisać wynik do <code>data/raporty/</code> i porównać
+      z sondą, zanim cokolwiek dalej"</em>. Raport idzie wyłącznie na ekran, więc porównanie
+      z sondą jest czynnością pamięciową, a nie plikiem, do którego można wrócić za miesiąc.
+      Przy okazji nazwy się rozjeżdżają: plan mówi <code>data/raporty/</code>, a
+      <code>.gitignore</code> przewiduje <code>data/reports/</code>.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Dopisać <code>--raport &lt;plik&gt;</code> (domyślnie
+      <code>data/reports/ingest-RRRR-MM-DD.txt</code>) i wypisywać ten sam tekst na ekran
+      i do pliku. Nazwę katalogu ujednolicić z <code>.gitignore</code> — angielska już tam jest,
+      więc taniej poprawić plan.
+    </div>
+  </div>
+
+  <!-- 17 -->
+  <div class="k drob" id="k17">
+    <div class="k-head">
+      <span class="knum">17</span>
+      <h3>Ta sama reguła ścieżki mirrora w trzech kopiach</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/tests/test_corpus_load.py:42, ingest/tests/test_pdf_layer.py:71, ingest/parsers/omap_e8/run.py:53</p>
+
+    <p>
+      Funkcja <code>_mirror_root()</code> stoi co do znaku tak samo w dwóch plikach testowych,
+      a <code>run.py</code> wylicza tę samą regułę trzeci raz, po swojemu. Każda kopia ma
+      wpisaną własną liczbę wywołań <code>os.path.dirname</code>, dobraną do tego, jak głęboko
+      leży plik — więc przeniesienie któregokolwiek z nich psuje wyłącznie tę jedną kopię,
+      po cichu.
+    </p>
+    <p>
+      To repozytorium stosuje gdzie indziej zasadę odwrotną: <code>polaczenie()</code> stoi
+      świadomie <em>„w JEDNYM miejscu, wspólnym dla runnera i dla testów"</em>. Korzeń mirrora
+      należy tam samo.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Przenieść do jednego modułu (np. <code>ingest/sciezki.py</code>) i wołać z trzech miejsc.
+      Korzeń repozytorium wyliczać przez <code>Path(__file__).resolve().parents[1]</code>,
+      raz — zamiast liczyć <code>dirname</code> na palcach w każdym pliku.
+    </div>
+  </div>
+
+  <!-- 18 -->
+  <div class="k drob" id="k18">
+    <div class="k-head">
+      <span class="knum">18</span>
+      <h3>Docstringi pokazują importy i wywołania, których już nie ma</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">layout.py:15, parser.py:25 i :31, reconstruct.py:27 i :111, cke_mirror.py:6–10</p>
+
+    <p>
+      Przykłady w nagłówkach plików zostały z czasów <code>research/</code>:
+      <code>from layout import open_pdf</code> (prawdziwy import brzmi
+      <code>from pdf.layout import ...</code>), <code>from klucz import czytaj_klucz</code>
+      (modułu <code>klucz</code> nie ma), odwołania do <code>ingest.py</code>,
+      <code>probe_load.py</code> i <code>bakeoff.py</code> (żaden nie został awansowany) oraz
+      pięć wywołań <code>python3 cke_mirror.py ...</code> przez ścieżkę.
+    </p>
+    <p>
+      To ostatnie jest o tyle niezręczne, że ten sam commit ustanawia zasadę przeciwną —
+      <code>ingest/README.md</code> i <code>Taskfile.yml</code> tłumaczą, dlaczego moduły
+      uruchamia się przez <code>-m</code>, a nie przez ścieżkę. Kto skopiuje przykład
+      z docstringa, dostanie <code>ImportError</code>.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Przejść po pięciu nagłówkach i podmienić przykłady na te, które działają dzisiaj.
+      Odwołania do nieistniejących plików (<code>bakeoff.py</code>, <code>probe_load.py</code>)
+      zamienić na to, co je zastąpiło: <code>tests/fixtures/bakeoff-2026-08-24.txt</code>
+      i <code>tests/test_corpus_load.py</code>.
+    </div>
+  </div>
+
+  <!-- 19 -->
+  <div class="k drob" id="k19">
+    <div class="k-head">
+      <span class="knum">19</span>
+      <h3>Strona budowana od nowa przy każdym dostępie — pamięć podręczna nie działa</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/pdf/layout.py:167 — <code>_PlumberDoc.__iter__</code> i <code>__getitem__</code>; to samo w <code>_MuDoc</code></p>
+
+    <p>
+      Klasa <code>Page</code> trzyma znaki, ramki i kreski w polach liczonych na żądanie —
+      jej własny komentarz mówi, że <em>„tabele są drogie"</em>, a wykrywanie tabel kosztuje
+      mniej więcej tyle, co cała reszta parsowania razy dwa. Tyle że dokument tworzy
+      <strong>nowy</strong> obiekt strony przy każdym <code>doc[i]</code> i przy każdym
+      przejściu pętli, więc odłożone wyniki umierają razem z nim.
+    </p>
+    <p>
+      Praktycznie: <code>doc[0].chars</code>, a potem <code>doc[0].bars</code> czyta znaki
+      dwa razy i uruchamia wykrywanie tabel od zera. Dwa przejścia pętlą po dokumencie parsują
+      1581 stron dwukrotnie. Nic się przez to nie psuje — po prostu pomiar 159,8 s z bakeoffu
+      ma w sobie pracę, której dało się nie wykonywać.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Trzymać zbudowane strony w słowniku po numerze i oddawać ten sam obiekt:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">def __getitem__(self, i):
+    if i not in self._strony:
+        self._strony[i] = _PlumberPage(i, self._pdf.pages[i])
+    return self._strony[i]
+
+def __iter__(self):
+    return (self[i] for i in range(len(self)))</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 20 -->
+  <div class="k rozw" id="k20">
+    <div class="k-head">
+      <span class="knum">20</span>
+      <h3>Rozjazd treści wymagań wart osobnej sekcji w raporcie</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/run.py:260 — <code>_raport()</code>, obok <code>kolizje_form</code></p>
+
+    <p>
+      To jest ciąg dalszy uwagi 1, ale osobna decyzja. Kolizje form już mają swoje miejsce
+      w raporcie, bo autor uznał, że tego typu rozbieżność trzeba widzieć. Rozjazd treści
+      wymagań jest tej samej natury i — jak pokazał pomiar — zdarza się częściej: 33 ścieżki
+      na 135 przy dwudziestu kluczach.
+    </p>
+    <p>
+      Pytanie brzmi, czy ma to być twarda liczba w sekcji <code>SPÓJNOŚĆ</code>, czy raczej
+      lista ścieżek do obejrzenia ręcznie w G2.3. Odpowiedź należy do autora — ja bym zaczął
+      od liczby, bo bez niej nie wiadomo, czy problem dotyczy trzech ścieżek, czy stu.
+    </p>
+  </div>
+
+  <!-- 21 -->
+  <div class="k rozw" id="k21">
+    <div class="k-head">
+      <span class="knum">21</span>
+      <h3>Drugi i trzeci rysunek w zadaniu wchodzą do bazy, ale nie do wyniku parsera</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/parser.py — <code>czytaj_arkusz()</code>, <code>out.setdefault</code> przy <code>zasoby</code></p>
+
+    <p>
+      Przy każdym trafieniu wyrażenia rozpoznającego zadanie do listy <code>zasoby</code>
+      dopisywany jest wpis, ale sam wpis zadania wchodzi przez <code>setdefault</code>, więc
+      zostaje ten pierwszy. Wygląda to na dwie różne intencje w jednym miejscu: „zadanie bierzemy
+      pierwsze" i „zasoby zbieramy wszystkie".
+    </p>
+    <p>
+      Nie umiem rozstrzygnąć, która jest właściwa, bo w bazie nie ma jeszcze ani jednego wiersza
+      <code>asset</code> (pełny przebieg z <code>--z-arkuszami</code> nie był robiony).
+      Jeśli intencją było „wszystkie rysunki zadania", to trzeba to przypieczętować testem —
+      inaczej pierwsza zmiana w tej pętli cofnie zachowanie i nikt nie zauważy.
+    </p>
+  </div>
+</section>
+
+<!-- ============ ZGODNOŚĆ Z PLANEM ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">03 — ZGODNOŚĆ Z PLANEM</span>
+    <h2>Czy kod robi to, co zapowiadał <code>docs/plan-A1.md</code></h2>
+    <p class="sec-sub">Punkty G1.2.1 – G1.2.3. „Plan nieaktualny" znaczy, że rzeczywistość poprawiła plan i to plan trzeba zmienić.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Punkt planu</th><th>Stan</th><th>Uwaga</th></tr></thead>
+      <tbody>
+        <tr><td class="id">G1.2.1 · przeniesienie bez zmian logiki</td><td><span class="tag st-ok">zrobione</span></td><td>Parser awansował co do znaku; liczby zgadzają się z sondą, więc przeprowadzka jest udowodniona, a nie deklarowana</td></tr>
+        <tr><td class="id">G1.2.1 · zależności w <code>pyproject.toml</code></td><td><span class="tag st-istot">częściowo</span></td><td><code>pdfplumber</code>, <code>pypdf</code>, <code>cryptography</code> są zadeklarowane, ale żaden kod ich nie używa poza pdfplumberem; zaszyfrowany klucz <code>MMAP-R0-100-2605</code> nie ma ani obsługi, ani testu. Dotyczy matury, więc może czekać — ale zapis w planie sugeruje, że to zrobione</td></tr>
+        <tr><td class="id">G1.2.1 · siedem testów regresji</td><td><span class="tag st-kryt">nie</span></td><td>Są trzy z siedmiu — patrz <a href="#k8">uwaga 8</a></td></tr>
+        <tr><td class="id">G1.2.1 · fixture'y offline (JSON warstwy pozycyjnej)</td><td><span class="tag st-kryt">nie</span></td><td>Jest tylko tekstowy wydruk pomiaru, do którego nie sięga żaden test; przez to rekonstrukcja nie ma jak chodzić w CI</td></tr>
+        <tr><td class="id">G1.2.1 · <code>xfail</code> na znane luki</td><td><span class="tag st-kryt">nie</span></td><td>Liczby mieszane i pierwiastki opisane w <code>ingest/README.md</code> prozą zamiast testem — dzień naprawy nie zgłosi się sam</td></tr>
+        <tr><td class="id">G1.2.2 · port sqlite3 → psycopg</td><td><span class="tag st-istot">częściowo</span></td><td>Placeholdery, <code>RETURNING</code>, typy i transakcje przepisane poprawnie; <code>INSERT OR IGNORE</code> → <code>ON CONFLICT</code> nie dotarło do <code>document</code> ani <code>exam_form_document</code> — <a href="#k2">uwaga 2</a></td></tr>
+        <tr><td class="id">G1.2.2 · jeden klucz = jedna transakcja</td><td><span class="tag st-ok">zrobione</span></td><td><code>autocommit=True</code> plus jawne <code>con.transaction()</code> w ładowarce — komentarz w <code>run.py</code> tłumaczy, czemu akurat tak</td></tr>
+        <tr><td class="id">G1.2.2 · przebieg kontrolny na 75 kluczach</td><td><span class="tag st-ok">zrobione</span></td><td>Baza ma 75 dokumentów i 1436 zadań, zgodnie z sondą</td></tr>
+        <tr><td class="id">G1.2.2 · zapis raportu do <code>data/raporty/</code></td><td><span class="tag st-kryt">nie</span></td><td><a href="#k16">uwaga 16</a>; przy okazji plan mówi <code>raporty/</code>, a <code>.gitignore</code> <code>reports/</code></td></tr>
+        <tr><td class="id">G1.2.2 · <code>probe_load.py</code> jako test integracyjny</td><td><span class="tag st-rozw">plan nieaktualny</span></td><td>Zastąpiony przez <code>tests/test_corpus_load.py</code>, i słusznie — ale docstringi parsera wciąż odsyłają do nieistniejącego pliku (<a href="#k18">uwaga 18</a>)</td></tr>
+        <tr><td class="id">G1.2.2 · test integracyjny w GitHub Actions</td><td><span class="tag st-kryt">nie</span></td><td>Katalog workflows pusty — <a href="#k9">uwaga 9</a></td></tr>
+        <tr><td class="id">G1.2.3 · mirror w <code>ingest/mirror/</code> + <code>task mirror</code></td><td><span class="tag st-istot">częściowo</span></td><td>Przeniesiony i wpięty, ale domyślny katalog został po staremu — <a href="#k3">uwaga 3</a></td></tr>
+        <tr><td class="id">G1.2.3 · test <code>--filtr matematyka --dry-run</code></td><td><span class="tag st-kryt">nie</span></td><td>Flagi nie ma, testu też — <a href="#k7">uwaga 7</a></td></tr>
+        <tr><td class="id">G1.2.3 · zasada „mirror raz, potem tylko kopia" w README</td><td><span class="tag st-istot">częściowo</span></td><td>Zdanie stoi w komentarzu <code>run.py</code> i w <code>.env.example</code>, ale nie w <code>ingest/README.md</code>, gdzie miało być</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <p>
+      <strong>Jedno zdanie o całości.</strong> Rzeczy trudne — port na Postgres, transakcje,
+      zgodność liczb z sondą — są zrobione i udowodnione. Nie ma natomiast tego, co plan
+      przewidywał jako <em>siatkę bezpieczeństwa</em>: brakujących testów regresji, fixture'ów
+      offline i CI. Kod jest lepszy niż jego bramki, a to znaczy, że następna zmiana w warstwie
+      pozycyjnej nie ma się o co oprzeć.
+    </p>
+  </div>
+</section>
+
+<!-- ============ CO JEST DOBRE ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">04 — CO JEST DOBRE</span>
+    <h2>Warte utrzymania przy kolejnych zmianach</h2>
+  </div>
+
+  <ul class="plain">
+    <li><b>Liczby zamiast deklaracji.</b> „Przeprowadzka bez zmian logiki" jest tu sprawdzalna:
+      1436 zadań, 2062 punkty, pokrycie 100/100/100. Rozjazd z sondą jest zdefiniowany jako
+      regresja, nie jako ciekawostka — i to jest jedyny sposób, żeby taki awans w ogóle coś znaczył.</li>
+    <li><b>Podział ról w <code>parsers/omap_e8/</code>.</b> Parser nie zna bazy, ładowarka nie zna
+      PDF-a, a tłumaczenie „język dokumentu → język schematu" stoi w słownikach na górze jednego
+      pliku, zamiast być rozsypane po parserze. Dzięki temu widać, gdzie kończy się wierność
+      dokumentowi, a zaczyna interpretacja.</li>
+    <li><b>Komentarze tłumaczące „dlaczego tak, a nie inaczej".</b> Wyjaśnienie, czemu połączenie
+      idzie z <code>autocommit=True</code>, czemu ścieżkę względną liczy się od korzenia repo,
+      czemu w SQL-u stoi pełna lista kolumn w <code>GROUP BY</code> — to są dokładnie te miejsca,
+      w których za pół roku ktoś „uprościłby" kod i złamał zachowanie.</li>
+    <li><b>Znane wyniki opisane jako znane.</b> Sekcja „Znane wyniki, które NIE są błędami"
+      w <code>ingest/README.md</code> — literówka CKE w <code>OMAP-900-2105</code>, rocznik 2019
+      bez kryteriów dla zadań zamkniętych — chroni przed najgorszym rodzajem naprawy: taką,
+      która usuwa dowód zamiast błędu.</li>
+    <li><b>Uruchamianie modułami zamiast ścieżkami.</b> Zasada opisana i w README, i w Taskfile,
+      i wyegzekwowana w każdym zadaniu. Jedyne, co jej przeczy, to stare docstringi
+      (<a href="#k18">uwaga 18</a>).</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Przegląd wykonany wg <code>.claude/skills/code-review</code>. Zakres:
+    <code>git diff main...HEAD</code> na <code>feat/g1.2-ingest</code> — commit
+    <code>f9ec136</code>, 26 plików, +4293 linie.</p>
+  <p>Sprawdzone uruchomieniem: <code>ruff check .</code> (czysto) · <code>pytest -q</code>
+    (33 passed z bazą i mirrorem, 6 passed / 27 skipped bez nich) · powtórzone wstawienie
+    dokumentu do Postgresa · rozjazd treści wymagań na 20 kluczach · rozbieżność
+    <code>_pietra</code> na spreparowanym wierszu · <code>_rozdziel_kolumny</code> wywołana
+    wprost · <code>--dry-run</code> w mirrorze · ścieżki mirrora i ingestu · stan korpusu
+    w bazie (75 dokumentów, 1436 zadań, 0 zasobów).</p>
+  <p>Poza zakresem: pełny przebieg <code>task ingest -- --z-arkuszami</code> (nie był
+    uruchamiany, stąd 0 wierszy <code>asset</code>) · zachowanie na macOS (sprawdzane tylko
+    na Windows) · <code>uv.lock</code> (507 linii, nieczytane wiersz po wierszu) ·
+    zaszyfrowany klucz matury <code>MMAP-R0-100-2605</code>, bo leży poza zakresem E8.</p>
+</footer>
+
+</div>
+<script>
+/* Kolorowanie składni bez żadnej biblioteki — dokument ma zostać samodzielny.
+ *
+ * Użycie:  <pre data-lang="python">…</pre>
+ * Języki:  python · yaml · sql · bash · conf · out (wydruk z konsoli)
+ *
+ * Jak działa: reguły każdego języka sklejane są w JEDEN regex z grupami
+ * nazwanymi, więc tekst jest przechodzony raz, a pierwsza pasująca reguła
+ * wygrywa. Dlatego komentarze i napisy stoją na początku listy — inaczej
+ * słowo kluczowe wewnątrz napisu zostałoby pokolorowane osobno.
+ *
+ * Bez skryptu (albo przy jego błędzie) blok zostaje zwykłym tekstem —
+ * czytelnym, tylko czarno-białym.
+ */
+(function () {
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+  function esc(s) { return s.replace(/[&<>]/g, function (c) { return ESC[c]; }); }
+
+  // UWAGA: wewnątrz reguł tylko grupy nieprzechwytujące (?:...) —
+  // zwykły nawias rozjechałby numerację grup w sklejonym wyrażeniu.
+  var RULES = {
+    python: [
+      ['com',  /#[^\n]*/],
+      ['str',  /(?:[rbfu]{0,2})(?:"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/],
+      ['kw',   /\b(?:def|class|return|if|elif|else|for|while|with|as|import|from|try|except|finally|raise|yield|lambda|not|and|or|in|is|None|True|False|pass|assert|del|async|await|global|nonlocal)\b/],
+      ['fn',   /@[A-Za-z_][\w.]*|\b[A-Za-z_]\w*(?=\()/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    yaml: [
+      ['com',  /#[^\n]*/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['fn',   /^[ \t]*(?:-[ \t]+)?[A-Za-z_][\w.\/-]*(?=[ \t]*:)/],
+      ['kw',   /\b(?:true|false|null|yes|no)\b/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    sql: [
+      ['com',  /--[^\n]*/],
+      ['str',  /'(?:[^']|'')*'/],
+      ['kw',   /\b(?:CREATE|TABLE|INDEX|VIEW|COLLATION|SELECT|FROM|WHERE|JOIN|LEFT|INNER|ON|GROUP|ORDER|BY|HAVING|INSERT|INTO|VALUES|UPDATE|DELETE|SET|RETURNING|CONFLICT|DO|NOTHING|NOT|NULL|PRIMARY|FOREIGN|KEY|REFERENCES|UNIQUE|CHECK|DEFAULT|CONSTRAINT|CASCADE|AND|OR|IN|AS|IF|EXISTS|BETWEEN|PROVIDER|LOCALE|COLLATE|BEGIN|COMMIT|DISTINCT|COUNT|SUM|ARRAY_AGG|LIMIT)\b/i],
+      ['type', /\b(?:text|integer|smallint|bigint|serial|smallserial|boolean|date|timestamptz|numeric|jsonb|char|varchar)\b/i],
+      ['num',  /\b\d+\b/]
+    ],
+    bash: [
+      ['com',  /#[^\n]*/],
+      ['ann',  /^\$/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['kw',   /\b(?:if|then|elif|else|fi|for|in|do|done|while|case|esac|function|return|exit|test|echo|cd|export|local)\b/],
+      ['num',  /(?:^|[ \t])-{1,2}[A-Za-z][\w-]*|\b\d+\b/]
+    ],
+    conf: [
+      ['com',  /#[^\n]*/],
+      ['kw',   /^!/],
+      ['fn',   /^[A-Za-z_][A-Za-z0-9_]*(?==)/],
+      ['str',  /(?<==)[^\n]+/]
+    ],
+    out: [
+      ['ann',  /←[^\n]*|^\$/],
+      ['str',  /"[^"]*"|'[^']*'/],
+      ['num',  /\b\d+\b/]
+    ]
+  };
+
+  function podswietl(kod, jezyk) {
+    var reguly = RULES[jezyk];
+    if (!reguly) { return esc(kod); }
+    var wzor = reguly.map(function (r, i) {
+      return '(?<g' + i + '>' + r[1].source + ')';
+    }).join('|');
+    var re;
+    try {
+      re = new RegExp(wzor, 'gm');
+    } catch (e) {
+      return esc(kod);           // starsza przeglądarka — zostaje zwykły tekst
+    }
+    var wynik = '', koniec = 0, m;
+    while ((m = re.exec(kod)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      wynik += esc(kod.slice(koniec, m.index));
+      var klasa = null;
+      for (var i = 0; i < reguly.length; i++) {
+        if (m.groups['g' + i] !== undefined) { klasa = reguly[i][0]; break; }
+      }
+      wynik += '<span class="t-' + klasa + '">' + esc(m[0]) + '</span>';
+      koniec = m.index + m[0].length;
+    }
+    return wynik + esc(kod.slice(koniec));
+  }
+
+  var bloki = document.querySelectorAll('pre[data-lang]');
+  for (var i = 0; i < bloki.length; i++) {
+    try {
+      bloki[i].innerHTML = podswietl(bloki[i].textContent, bloki[i].dataset.lang);
+    } catch (e) { /* blok zostaje zwykłym tekstem — lepsze niż pusty */ }
+  }
+})();
+</script>

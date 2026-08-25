@@ -388,7 +388,9 @@ Cel: ten sam przebieg co w sondzie, ale zapisujący do Postgresa z Dockera.
 
 **Kroki**
 
-1. Przenieść parser i ładowarkę; `probe_load.py` zostaje jako test integracyjny.
+1. Przenieść parser i ładowarkę; sprawdzian modelu z `probe_load.py` zostaje jako
+   test integracyjny — po awansie nazywa się `ingest/tests/test_corpus_load.py`
+   i chodzi pod pytestem, zamiast być osobnym skryptem.
 2. **Port sqlite3 → psycopg.** Lista różnic, na których to się wywróci:
 
    | sqlite3 | psycopg / PostgreSQL |
@@ -416,13 +418,17 @@ Cel: ten sam przebieg co w sondzie, ale zapisujący do Postgresa z Dockera.
    ```
 
    **Rozbieżność w tych liczbach = regresja przeprowadzki, nie ciekawostka.** Zapisać
-   wynik do `data/raporty/` i porównać z sondą, zanim cokolwiek dalej.
+   wynik do `data/reports/` i porównać z sondą, zanim cokolwiek dalej. (Katalog po
+   angielsku — `.gitignore` i mirror używają `data/reports/`, nazwy plików i katalogów
+   są w tym repozytorium po angielsku.) Robi to `run.py` sam: raport idzie na ekran
+   i do `data/reports/ingest-RRRR-MM-DD.txt`.
 5. Sekcja `SPÓJNOŚĆ` z `ingest.py` zostaje bez zmian — pyta o rzeczy, o które CHECK
    zapytać nie może. Znane, wytłumaczone wyniki (nie naprawiać w A1):
    - 1 próg ponad pulą — literówka CKE w `OMAP-900-2105`, parser oddaje dokument wiernie
    - 90 zadań bez progu 0 pkt — rocznik 2019 nie ma sekcji kryteriów dla zamkniętych
-6. Test integracyjny w CI: `probe_load.py` na **jednym** kluczu (`OMAP-100-2505`)
-   przeciwko Postgresowi w usłudze GitHub Actions. Sześć testów modelu ma przejść,
+6. Test integracyjny w CI: `tests/test_corpus_load.py` na **jednym** kluczu
+   (`OMAP-100-2505`) przeciwko Postgresowi w usłudze GitHub Actions
+   (`.github/workflows/ci.yml`). Sześć testów modelu ma przejść,
    a liczby zgodzić się z sondą:
    `form=7 zadan=21 wersji=42 wymagan=58 kryteriow=51 warunkow=73 zapisow=14 odpowiedzi=30 rozwiazan=20 regul=17 zasobow=14`
 
@@ -441,7 +447,8 @@ przy pokryciu 100/100/100, a test integracyjny na jednym kluczu jedzie w CI.
 **Kroki**
 
 1. Przenieść, wpiąć w Taskfile jako `task mirror`.
-2. Test uruchomienia: `--filtr matematyka --dry-run` wypisuje plan bez pobierania.
+2. Test uruchomienia: `--filtr matematyka --dry-run` wypisuje plan bez pobierania
+   (flaga jest aliasem `--tylko-raport`; pilnuje jej `tests/test_mirror.py`).
 3. Udokumentować w README zasadę **„mirror raz, potem tylko kopia"** — parser iteruje
    na lokalnych plikach, nigdy nie odpytuje cke.gov.pl w pętli.
 

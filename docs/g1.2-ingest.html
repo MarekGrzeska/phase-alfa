@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>G1.2 — ingest: co powstało i co to daje</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+  /* kolory składni — osobne od semantycznych, żeby zmiana jednych nie ruszała drugich */
+  --t-kw:#8B3E8F; --t-str:#2C7355; --t-com:#6B7C79;
+  --t-num:#B0651A; --t-fn:#2B5C86; --t-type:#0E5B4F; --t-ann:#9E2E2E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+    --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+    --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+  --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+h1,h2,h3,h4,.tag,th,.step-n{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:1.9rem 0 .35rem;text-wrap:balance}
+h4{font-size:.87rem;font-weight:600;margin:1.5rem 0 .35rem;color:var(--ink-2);
+  letter-spacing:.01em}
+p{margin:0 0 1.05em;max-width:68ch}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:44px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-ok{color:var(--ok)} .n-info{color:var(--info)} .n-acc{color:var(--accent)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+.st-warn{background:var(--warn-soft);color:var(--warn)}
+.st-info{background:var(--info-soft);color:var(--info)}
+.st-crit{background:var(--crit-soft);color:var(--crit)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0 1.4rem;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+/* kolorowanie składni — klasy nadaje skrypt na dole dokumentu */
+.t-kw{color:var(--t-kw);font-weight:600}
+.t-str{color:var(--t-str)}
+.t-com{color:var(--t-com);font-style:italic}
+.t-num{color:var(--t-num)}
+.t-fn{color:var(--t-fn)}
+.t-type{color:var(--t-type)}
+.t-ann{color:var(--t-ann);font-weight:600}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem;max-width:68ch}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);max-width:72ch}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+.callout.warn{border-left-color:var(--warn)}
+.callout.crit{border-left-color:var(--crit)}
+.callout.info{border-left-color:var(--info)}
+
+.step{display:grid;grid-template-columns:2.1rem 1fr;gap:0 .95rem;margin:0 0 1.35rem;max-width:72ch}
+.step-n{width:2.1rem;height:2.1rem;border-radius:50%;
+  background:var(--accent-soft);color:var(--accent);font-size:.82rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;margin-top:.1rem}
+.step-b h4{margin:.25rem 0 .3rem;font-size:.99rem;color:var(--ink);font-weight:600}
+.step-b p{margin:0 0 .5em;font-size:.95rem;color:var(--ink-2)}
+.step-b p:last-child{margin-bottom:0}
+.step-b .ev{margin:.7rem 0 .2rem}
+
+.flow{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:18px 20px;margin:0 0 1.4rem;overflow-x:auto;box-shadow:var(--shadow)}
+.flow pre{font-size:.76rem;color:var(--ink-2)}
+
+.toc{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:18px 22px;margin:0 0 52px;box-shadow:var(--shadow)}
+.toc ol{margin:0;padding-left:1.4rem;columns:2;column-gap:2.4rem}
+.toc li{font-size:.93rem;padding:.18rem 0;break-inside:avoid}
+@media (max-width:640px){.toc ol{columns:1}}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">G1.2 · zamknięte 25.08.2026 · commit f9ec136</span>
+  <h1>1.2 — ingest</h1>
+  <p class="lede">
+    Kod, który w <code>research/</code> dowodził tezy na jednym pliku i ładował do SQLite,
+    stał się warstwą produktu: <strong>75 kluczy matematyki E8 z lat 2019–2026 wchodzi do
+    PostgreSQL z włączonymi więzami, przy pokryciu 100 / 100 / 100</strong>. Ten dokument mówi,
+    z czego to się składa, jak działa i co dzięki temu da się zapytać — a na końcu, jak podłączyć
+    się do tej bazy DBeaverem.
+  </p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n">75</span><span class="metric-l">kluczy CKE w bazie</span></div>
+    <div class="metric"><span class="metric-n">1436</span><span class="metric-l">zadań · 2062 punkty</span></div>
+    <div class="metric"><span class="metric-n n-ok">100%</span><span class="metric-l">pokrycie wymagań, odpowiedzi i kryteriów</span></div>
+    <div class="metric"><span class="metric-n n-info">33</span><span class="metric-l">testy · wszystkie zielone</span></div>
+    <div class="metric"><span class="metric-n n-acc">4524</span><span class="metric-l">linie w <code>ingest/</code></span></div>
+  </div>
+</header>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#s1">Co to jest i po co</a></li>
+    <li><a href="#s2">Warstwa pozycyjna — G1.2.1</a></li>
+    <li><a href="#s3">Parser kluczy — słownik dialektów</a></li>
+    <li><a href="#s4">Ładowarka: sqlite3 → psycopg</a></li>
+    <li><a href="#s5">Schemat jako kontrakt</a></li>
+    <li><a href="#s6">Mirror — G1.2.3</a></li>
+    <li><a href="#s7">Co to osiąga</a></li>
+    <li><a href="#s8">Czego nie robi</a></li>
+    <li><a href="#s9"><strong>Podłączenie DBeaverem</strong></a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================== 01 -->
+<section id="s1">
+  <div class="sec-head">
+    <span class="num">01 — CO TO JEST</span>
+    <h2>Offline ETL: PDF-y CKE → rekordy w bazie</h2>
+    <p class="sec-sub">Warstwa <code>ingest/</code> nie obsługuje żadnego ruchu użytkownika. Uruchamia się ją ręcznie, a jej wynikiem są dane. C# czyta gotową strukturę i nigdy nie otwiera PDF-a.</p>
+  </div>
+
+  <p>
+    Punktem wyjścia był <code>research/</code> — sonda, która na jednym kluczu udowodniła, że
+    z arkuszy CKE da się wydobyć strukturę, a nie tylko płaski tekst. Sonda mieszkała jednak poza
+    produktem i ładowała do SQLite. <strong>G1.2 to trzy rzeczy naraz: przeprowadzka, testy regresji
+    i przepięcie na PostgreSQL</strong> — przy czym przeprowadzka ma być <em>tylko</em> przeprowadzką.
+    Zmiana logiki i zmiana lokalizacji w jednym commicie to gwarancja, że nie da się odróżnić
+    regresji od przenosin.
+  </p>
+
+  <div class="flow">
+<pre>  cke.gov.pl                 mirror/cke_mirror.py
+      │                            │  2508 plików · 43 101 stron · ~2,6 GiB
+      ▼                            ▼  idempotentny: „mirror raz, potem tylko kopia”
+  data/raw/*.pdf  ─────────►  data/index/urls.tsv   (spis: kod, wariant, sesja, typ)
+                                   │
+                                   ▼
+                          pdf/layout.py      ── znaki z ramkami, kreski, tabele
+                                   │             (pdfplumber MIT · PyMuPDF opcjonalnie)
+                                   ▼
+                          pdf/reconstruct.py ── ułamki, potęgi, NFKC, przypisy
+                                   │
+                                   ▼
+                   parsers/omap_e8/parser.py ── dialekt → formy, zadania, kryteria,
+                                   │             odpowiedzi, reguły  (ZERO dostępu do bazy)
+                                   ▼
+                   parsers/omap_e8/loader.py ── tłumacz słownika + INSERT-y
+                                   │             jeden klucz = jedna transakcja
+                                   ▼
+                            PostgreSQL 17     ── 16 tabel + 2 widoki, więzy WŁĄCZONE
+                                   ▲
+                          schema/migrate.py  ── 3 migracje SQL, suma SHA-256</pre>
+  </div>
+
+  <h3>Podział ról — dlaczego akurat taki</h3>
+  <ul class="plain">
+    <li><b><code>pdf/</code></b> — warstwa pozycyjna. Wie o znakach, ramkach i kreskach; nie wie nic o egzaminach.</li>
+    <li><b><code>parsers/omap_e8/parser.py</code></b> — czyta PDF i zwraca obiekty <code>Klucz</code>. <b>Ani jednego <code>INSERT</code>.</b> Awansował z <code>research/</code> bez zmian logiki — bo tylko wtedy liczby z sondy cokolwiek dowodzą.</li>
+    <li><b><code>loader.py</code></b> — zamienia obiekty na wiersze i jest zarazem <b>tłumaczem słownika</b>: parser mówi językiem dokumentu (<code>zamkniete</code>, <code>zasady_oceniania</code>), bo czyta polskie klucze CKE, a schemat mówi po angielsku (<code>closed</code>, <code>marking_scheme</code>). Przekład stoi w jednym miejscu, w słownikach na górze pliku — dzięki temu parser mógł przejść nietknięty.</li>
+    <li><b><code>run.py</code></b> — punkt wejścia. Drukuje raport pokrycia i <b>zwraca kod 1</b>, gdy którykolwiek klucz spadnie poniżej progów. To jest test regresji, nie tylko raport.</li>
+  </ul>
+
+  <div class="callout">
+    <p>
+      <strong>Moduły, nie ścieżki.</strong> Korzeniem pakietu jest <code>ingest/</code>, więc
+      <code>uv run python -m parsers.omap_e8.run</code>, a nie <code>python parsers/omap_e8/run.py</code>.
+      Uruchomienie przez ścieżkę ustawia <code>sys.path</code> na katalog pliku i importy między
+      pakietami się sypią.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== 02 -->
+<section id="s2">
+  <div class="sec-head">
+    <span class="num">02 — G1.2.1</span>
+    <h2>Warstwa pozycyjna: cztery pułapki płaskiej ekstrakcji</h2>
+    <p class="sec-sub"><code>extract_text()</code> zwraca strumień znaków w kolejności zapisu. Arkusze CKE kodują znaczenie <em>układem dwuwymiarowym</em> — licznik nad kreską, potęga nad linią bazową, wersja X w lewej kolumnie tabeli.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Pułapka</th><th>Co robi płaska ekstrakcja</th><th>Co rozstrzyga</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Ułamek piętrowy</b></td>
+          <td><code>7/15 − (1/5 + 1/6)</code> rozpada się na sześć osobnych linii</td>
+          <td>Kreska ułamkowa jest w tych PDF-ach obiektem wektorowym o znanych współrzędnych — znaki nad nią w jej przedziale <code>x</code> to licznik, pod nią mianownik. Deterministycznie, nie heurystycznie.</td>
+        </tr>
+        <tr>
+          <td><b>Potęga</b></td>
+          <td><code>P = 5² = 25 (cm²)</code> czyta się jako <code>P = 52 = 25 (cm)</code> — <b>błąd cichy</b>, wynik dalej wygląda na poprawną liczbę</td>
+          <td>Glif indeksu ma 7,0 pkt przy bazie 11,0 i podniesioną linię bazową.</td>
+        </tr>
+        <tr>
+          <td><b>Kursywa matematyczna</b></td>
+          <td><code>𝑥</code> to U+1D465, nie <code>x</code> — porównanie stringów mija się z celem</td>
+          <td>NFKC, ale wyłącznie na bloku matematycznym U+1D400–U+1D7FF. Polskie diakrytyki zostają nietknięte (jest na to osobny test).</td>
+        </tr>
+        <tr>
+          <td><b>Przypis ze stopki</b></td>
+          <td>Nie powtarza się jak żywa pagina, więc nie ma go czym dopasować — wchodzi w <em>środek</em> kryterium</td>
+          <td>Rozmiar fontu (9,0 przy bazie 11,0) i pozycja na samym dole strony. Cięcie po wzorcu treści miało 186 trafień, z czego kilkadziesiąt to piętra ułamków — lek gorszy od choroby.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Test rozstrzygający i zasięg</h3>
+  <p>
+    Punktem odniesienia jest pomiar z 24.08.2026, zamrożony w repozytorium jako
+    <code>ingest/tests/fixtures/bakeoff-2026-08-24.txt</code>. Testy regresji nie sprawdzają,
+    że kod „działa" — sprawdzają, że daje <b>ten sam wynik</b> co przed przeprowadzką.
+  </p>
+
+  <div class="ev">
+    <div class="ev-h">ingest/tests/fixtures/bakeoff-2026-08-24.txt — wyciąg</div>
+    <div class="ev-b"><pre data-lang="out">zadanie 16, OMAP-100-2505-zasady.pdf
+  7/15-(1/5+1/6)=14/30-11/30=3/30=1/10                    OK
+
+ZASIĘG — 75 kluczy matematyki E8, silnik pdfplumber
+  stron 1581 · 159,8 s (9,9 stron/s)
+  kresek kandydujących:   4472
+  przyjętych jako ułamek: 3330 (74,5%)
+  z tego liczba/liczba:   2539 (76,2%)
+  kursywy matematycznej na wejściu: 22102 znaki (po normalizacji: 0)</pre></div>
+  </div>
+
+  <h3>Dwa silniki za jednym API — i dlaczego domyślny jest wolniejszy</h3>
+  <p>
+    PyMuPDF jest ~2,5× szybszy (63,4 s zamiast 159,8 s na tym samym zakresie) i daje identyczny
+    wynik na teście rozstrzygającym. Mimo to <b>domyślnym silnikiem jest pdfplumber</b>: PyMuPDF
+    jest dwulicencyjny (AGPL-3.0 albo komercyjna Artifex), a AGPL uruchamia obowiązek udostępnienia
+    źródeł przy korzystaniu przez sieć — czyli do produktu SaaS nie wchodzi. Zostaje jako opcja
+    badawcza, przełączana jednym argumentem: <code>--silnik pymupdf</code>.
+  </p>
+
+  <h3>Ślepe uliczki, których nie widać w kodzie działającym</h3>
+  <ul class="plain">
+    <li><b>Odstęp nad i pod linią nie odróżnia kreski ułamkowej od krawędzi komórki.</b> Rozkłady obu, mierzone na 30 kluczach, nakładają się (mediana 0,8 vs −0,5 pt). Rozstrzyga struktura: linia wewnątrz wykrytej tabeli należy do tabeli. <b>Detektor tabel jest więc <em>też</em> filtrem ułamków.</b></li>
+    <li><b>Filtr „piętro to nie słowo".</b> Podkreślenie pod nagłówkiem „Uwagi" przechodzi wszystkie testy geometryczne i daje ułamek <code>Uwagi/1</code>, którego nikt nie zauważy przed wejściem do korpusu.</li>
+    <li><b>Rynna między kolumnami.</b> Grupowanie samym <code>y</code> sklejało dwukolumnową tabelę wymagań w <code>IV. Rozumowanie i argumentacja. KLASY IV-VI</code>, a nagłówek z akapitem obok w <code>1U. waJgei</code>.</li>
+    <li><b>Scalanie serii indeksów.</b> <code>k^-^1^0</code> → <code>k^(-10)</code>: wykładnik −10 to jedna wartość, nie trzy jednoznakowe potęgi. Bez tego konwerter na MathJSON (G2.6) dostałby <code>k^- · 1 · 0</code>.</li>
+  </ul>
+</section>
+
+<!-- ============================================================== 03 -->
+<section id="s3">
+  <div class="sec-head">
+    <span class="num">03 — PARSER</span>
+    <h2>Słownik dialektów zamiast jednego regexu</h2>
+    <p class="sec-sub">Sonda dowiodła tezy jednym zestawem wzorców, dopasowanym do klucza z 2025 r. Na pełnym zakresie ten zestaw się rozsypuje, bo CKE przebudowała dokument cztery razy.</p>
+  </div>
+
+  <div class="ev">
+    <div class="ev-h">zmierzone na 75 kluczach E8 i 19 maturalnych</div>
+    <div class="ev-b"><pre data-lang="out">Zadanie 1. (0–1)              93 pliki    nagłówek z pulą punktów
+Zadanie 1. (2 pkt)             1 plik     OMAP-Q00-1904 — pula w innej formie
+2 punkty – pełne rozwiązanie  75 kluczy   próg nagłówkiem (E8)
+Zdający otrzymuje …… 2 pkt     4 klucze   próg z punktacją na końcu linii
+„lub" samotne w linii          8 plików   rocznik 2019
+„LUB" samotne w linii         67 plików   roczniki 2020+
+„ALBO"                        19 kluczy   cała matematyka maturalna
+Rozwiązanie – wersja X | Y    25 plików   bliźniaki E8
+Rozwiązanie / Wersja A | B    15 kluczy   bliźniaki matury od 2023 r.</pre></div>
+  </div>
+
+  <p>
+    Stąd <code>SLOWNIK</code>: nazwy sekcji i separatory wiszą przy <b>dialekcie</b>, a nie w ciele
+    parsera. Cztery dialekty — <code>e8-2019</code>, <code>e8-2020</code>, <code>matura</code>,
+    <code>matura-2015</code> — różnią się kilkunastoma polami: wzorcami progów, separatorem
+    alternatywy, nagłówkiem sekcji rozwiązań, markerem końca części zadaniowej, żywą paginą
+    i sposobem zapisu ścieżki wymagania szczegółowego.
+  </p>
+
+  <div class="callout info">
+    <p>
+      <strong>Dialekt mierzy się na tekście, nie zgaduje z nazwy pliku.</strong> Nazwa mówi tylko,
+      czym plik miał być. OMAP-800 i OMAP-100 z tej samej sesji mają inny zestaw sekcji, a rocznik
+      2019 różni się od 2020 bardziej niż 2020 od 2026.
+    </p>
+  </div>
+
+  <h3>Trzy rzeczy, które parser wydobywa, a płaski tekst gubi bez śladu</h3>
+  <ul class="plain">
+    <li><b>Trzy poziomy dysjunkcji w kryteriach.</b> Próg → warunek (rozdzielony „LUB") → zapis równoważny (rozdzielony „albo"). Próg jest osiągnięty, gdy spełniony jest <em>dowolny</em> warunek, a warunek — gdy uczeń zapisał <em>dowolny</em> z równoważnych zapisów. Spłaszczenie tego do jednego pola oznacza, że silnik dostanie akapit prozy zamiast listy sprawdzalnych alternatyw — a to jest cała teza produktu.</li>
+    <li><b>Odpowiedzi per wersja arkusza.</b> W kluczu stoją jako dwie kolumny tabeli (<code>wersja X | wersja Y</code>, <code>BD | AC</code>). Płaska ekstrakcja skleja to w „BD AC" i traci przypisanie do kolumny; odzyskuje je dopiero <code>extract_tables()</code>.</li>
+    <li><b>Reguły przekrojowe.</b> Sekcja „Uwagi ogólne" to nie kryteria zadania, tylko reguły całego arkusza — działają <em>po</em> ocenie wszystkich kryteriów naraz, czyli w kroku <em>Compose</em>. Część obowiązuje tylko na wycinku arkusza, stąd kolumny <code>tasks_from</code> / <code>tasks_to</code>.</li>
+  </ul>
+</section>
+
+<!-- ============================================================== 04 -->
+<section id="s4">
+  <div class="sec-head">
+    <span class="num">04 — ŁADOWARKA</span>
+    <h2>sqlite3 → psycopg: siedem miejsc, na których to się wywraca</h2>
+    <p class="sec-sub"><code>korpus.py</code> z sondy nie został przeniesiony — został <b>przepisany</b>. To jedyny plik w G1.2, w którym zmiana logiki była zamierzona.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>sqlite3 (sonda)</th><th>psycopg / PostgreSQL</th></tr></thead>
+      <tbody>
+        <tr><td><code>?</code> jako placeholder</td><td><code>%s</code></td></tr>
+        <tr><td><code>cursor.lastrowid</code></td><td><code>INSERT … RETURNING id</code></td></tr>
+        <tr><td><code>INSERT OR IGNORE</code></td><td><code>INSERT … ON CONFLICT DO NOTHING</code></td></tr>
+        <tr><td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td><td><code>serial</code> / <code>GENERATED … AS IDENTITY</code></td></tr>
+        <tr><td>boolean jako 0/1</td><td>prawdziwy <code>boolean</code></td></tr>
+        <tr><td>text affinity — wszystko wchodzi</td><td>typy egzekwowane; <code>NULL</code> vs <code>''</code> boli</td></tr>
+        <tr><td>autocommit domyślnie</td><td>transakcja jawna — <b>jeden klucz = jedna transakcja</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Jeden klucz w jednej transakcji</h3>
+  <p>
+    Klucz, który wywalił się w połowie, nie może zostawić połowy zadań w bazie — inaczej raport
+    pokrycia kłamie, a to on jest tu jedynym sygnałem, że coś jest nie tak. Połączenie idzie
+    z <code>autocommit=True</code>, żeby <code>con.transaction()</code> w ładowarce zakładało
+    <em>prawdziwą</em> transakcję na każdy klucz, a nie punkt przywracania wewnątrz jednej wielkiej;
+    przy tym drugim błąd ostatniego klucza cofałby cały przebieg.
+  </p>
+
+  <h3>Wpadka, którą sonda maskowała: NULL nie równa się NULL</h3>
+  <div class="callout warn">
+    <p>
+      <span class="tag st-warn">migracja 0003</span> &nbsp;W PostgreSQL <code>NULL &lt;&gt; NULL</code>,
+      więc <code>UNIQUE</code> <b>nie pilnuje</b> duplikatów tam, gdzie NULL jest normalną wartością:
+      wymaganie ogólne nie ma etapu edukacyjnego, forma bez bliźniaka nie ma wersji, zadanie
+      jednoczęściowe nie ma podpunktu w odpowiedzi.
+    </p>
+    <p>
+      W sondzie problem był <em>niewidoczny</em>, bo ładowarka trzymała słowniki reżimów, wymagań
+      i form w pamięci procesu i sama nie dopuszczała powtórzeń. To działa dokładnie tak długo,
+      jak długo trwa jeden przebieg. Przy drugim ingeście na tej samej bazie korpus zaczyna się
+      dublować, a mapa braków — sumująca po ścieżce podstawy — cicho podwaja liczby.
+      <b>Zmierzone przed naprawą: 2 wiersze zamiast 1.</b> Naprawa to
+      <code>UNIQUE NULLS NOT DISTINCT</code> (PostgreSQL 15+) na trzech tabelach.
+    </p>
+  </div>
+
+  <p>
+    Po tej zmianie get-or-create idzie przez <code>ON CONFLICT … DO UPDATE … RETURNING id</code>,
+    a nie przez pamięć procesu. Słowniki w polach <code>_rezimy</code>, <code>_formy</code>
+    i <code>_wymagania</code> zostają wyłącznie jako oszczędność zapytań — i są czyszczone po każdej
+    wycofanej transakcji, bo identyfikatory z niej wskazują na wiersze, których już nie ma.
+  </p>
+</section>
+
+<!-- ============================================================== 05 -->
+<section id="s5">
+  <div class="sec-head">
+    <span class="num">05 — SCHEMAT</span>
+    <h2>Schemat bazy jest kontraktem, nie szczegółem implementacji</h2>
+    <p class="sec-sub">Plain SQL, nie ORM. Żadnej Alembiki, żadnego EF Migrations. C# ten schemat <b>wyłącznie czyta</b> i nigdy go nie zmienia.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Migracja</th><th class="n">linii</th><th>Co wnosi</th></tr></thead>
+      <tbody>
+        <tr><td class="id">0001_corpus.sql</td><td class="n">355</td><td>kolacja <code>pl_icu</code>, 16 tabel, 2 widoki — model korpusu N:M</td></tr>
+        <tr><td class="id">0002_indexes.sql</td><td class="n">41</td><td>15 indeksów na kluczach obcych (PostgreSQL nie zakłada ich sam)</td></tr>
+        <tr><td class="id">0003_nulls_not_distinct.sql</td><td class="n">42</td><td><code>UNIQUE NULLS NOT DISTINCT</code> na <code>requirement</code>, <code>exam_form</code>, <code>model_answer</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Runner: 194 linie, cztery zasady</h3>
+  <ul class="plain">
+    <li><b>Jeden plik = jeden krok</b>, wykonywany w jednej transakcji <em>razem</em> z wpisem do <code>schema_migrations</code>. Migracja przerwana w połowie nie zostawia bazy w stanie, którego nie da się nazwać.</li>
+    <li><b>Zastosowanej migracji się nie edytuje.</b> Suma SHA-256 jest sprawdzana przy każdym uruchomieniu; rozjazd przerywa pracę. Dwie maszyny z tą samą wersją schematu muszą mieć tę samą bazę.</li>
+    <li><b>Suma reaguje na treść, nie na zapis.</b> BOM i CRLF są normalizowane przed liczeniem — PowerShell na Windows dopisuje BOM przy <code>Set-Content -Encoding utf8</code>. Czego runner <em>nie</em> normalizuje: samych znaków. Plik przepuszczony przez złe kodowanie (<code>·</code> → <code>Â·</code>) ma zerwać sumę, bo to uszkodzona migracja, nie kosmetyka.</li>
+    <li><b>Idempotencja.</b> Uruchomienie na aktualnej bazie nie robi nic.</li>
+  </ul>
+
+  <h3>Więzy nie są dekoracją</h3>
+  <div class="callout">
+    <p>
+      <code>UNIQUE (task_id, points)</code> w tabeli <code>criterion</code> złapał prawdziwy błąd
+      przy pierwszym ładowaniu w sondzie: sekcja reguł przekrojowych stoi <em>między</em> zadaniami,
+      więc podział tekstu po nagłówkach <code>Zadanie N.</code> doklejał ją do zadania poprzedzającego,
+      a jej zdanie „…to otrzymuje 0 punktów" udawało drugi próg 0 pkt.
+      <b>Bez tego więzu błąd wszedłby do korpusu po cichu.</b>
+    </p>
+    <p>
+      Dlatego <code>tests/test_schema.py</code> nie sprawdza, czy więzy <em>istnieją</em> — sprawdza,
+      czy <b>odrzucają złe dane</b>. Test, który tylko wylicza tabele, przechodzi zawsze i nie mówi
+      nic. Gdy parser zaczyna łamać więz: naprawia się parser albo poprawia rekord w ekranie korekty
+      (A2). Nigdy nie luzuje się więzu.
+    </p>
+  </div>
+
+  <h3>Model: dlaczego relacja klucz → arkusz jest N:M</h3>
+  <p>
+    Plan „trzy pliki na egzamin" (arkusz + karta + zasady) nie ma tu gdzie stanąć. Klucz
+    <code>OMAP-100-2505-zasady.pdf</code> deklaruje w nagłówku <b>sześć form arkusza</b>, a forma 100
+    ma <b>dwa zeszyty zadań</b> (wersje X i Y). Jeden plik z angielskiego nazywa się
+    <code>OJAP-100-200-400-500-660-K00-2505-zasady.pdf</code> — sześć wariantów w samej nazwie.
+  </p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Oś</th><th>Wartości</th><th>Co znaczy</th><th>Skutek w modelu</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>variant</code></td>
+          <td>100, 200, 400, 500, 700, 800, C00, K00, Q00</td>
+          <td>dostosowanie — 700 i 800 mają <b>inne, łatwiejsze zadania</b> na to samo wymaganie</td>
+          <td>osobne rekordy <code>task</code>, spięte przez <code>requirement</code></td>
+        </tr>
+        <tr>
+          <td><code>version</code></td>
+          <td>X, Y (E8) · A, B (matura)</td>
+          <td>bliźniaki — inna treść i inna odpowiedź, <b>te same kryteria</b></td>
+          <td><code>criterion</code> wisi na <code>task</code>, <code>model_answer</code> na <code>task_version</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    To rozróżnienie jest zmierzone, nie wymyślone: zadania 1–15 w <code>OMAP-100-2505</code> mają
+    nagłówek „Rozwiązanie – wersja X | wersja Y" z <em>różnymi</em> odpowiedziami, a zadania 16–21
+    nie mają go wcale — ich treść i kryteria są w obu wersjach identyczne.
+  </p>
+</section>
+
+<!-- ============================================================== 06 -->
+<section id="s6">
+  <div class="sec-head">
+    <span class="num">06 — G1.2.3</span>
+    <h2>Mirror — zwózka, która nie odpytuje CKE w pętli</h2>
+    <p class="sec-sub"><code>cke_mirror.py</code> przeszedł kopiuj-wklej: kod był gotowy i idempotentny.</p>
+  </div>
+
+  <ul class="plain">
+    <li><b>Zakres</b> = rdzeń Klucza: E8 2019–2026, matura Formuła 2023 (2023–2026), matura Formuła 2015 (2015–2023). Poza rdzeniem świadomie zostaje egzamin zawodowy, eksternistyczny, gimnazjalny i sprawdzian.</li>
+    <li><b>Wynik na dysku:</b> 2508 plików, 43 101 stron, ~2,6 GiB — plus <code>data/index/urls.tsv</code>, spis rozłożony na kolumny <code>segment / rocznik / kod / warianty / sesja / typ</code>. Parser czyta spis, a nie nazwy plików: konwencja nazewnicza zmieniała się trzy razy.</li>
+    <li><b>Idempotentny.</b> Plik już obecny w mirrorze jest pomijany, więc to samo wywołanie służy do pierwszego zrzutu i do dosypywania plików nowej sesji.</li>
+    <li><b>Zasada „mirror raz, potem tylko kopia".</b> Parser iteruje po plikach lokalnych i nigdy nie odpytuje cke.gov.pl w pętli. Ścieżkę wskazuje <code>MIRROR_ROOT</code> w <code>.env</code>, liczony od korzenia repozytorium — bo Taskfile woła moduły z <code>ingest/</code> i ścieżka względna wskazywałaby wtedy w złe miejsce.</li>
+    <li><b>Bez zależności zewnętrznych</b> — sama biblioteka standardowa. <code>robots.txt</code> na cke.gov.pl przepuszcza wyłącznie <code>User-agent: Scrapy</code>, więc tak się skrypt przedstawia.</li>
+  </ul>
+</section>
+
+<!-- ============================================================== 07 -->
+<section id="s7">
+  <div class="sec-head">
+    <span class="num">07 — WYNIK</span>
+    <h2>Co to osiąga</h2>
+    <p class="sec-sub">Liczby poniżej pochodzą z bazy <code>klucz</code> odpytanej 25.08.2026 — nie z raportu przebiegu. Są identyczne z sondą z tego samego dnia; <b>rozjazd znaczyłby regresję, nie „inny wynik"</b>.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Tabela</th><th class="n">wierszy</th><th>Co w niej stoi</th></tr></thead>
+      <tbody>
+        <tr><td class="id">document</td><td class="n">75</td><td>klucze odpowiedzi, roczniki 2019–2026</td></tr>
+        <tr><td class="id">exam_form</td><td class="n">88</td><td>forma = wariant + wersja + sesja</td></tr>
+        <tr><td class="id">requirement_regime</td><td class="n">8</td><td>od <code>pp2012</code> po <code>pp2024</code>, rozpoznane z podpisu tabeli wymagań</td></tr>
+        <tr><td class="id">requirement</td><td class="n">383</td><td>drzewo wymagań podstawy programowej</td></tr>
+        <tr><td class="id">task</td><td class="n">1436</td><td>2062 punkty · 1087 zamkniętych, 175 otwartych krótkich, 174 rozszerzone</td></tr>
+        <tr><td class="id">task_version</td><td class="n">1574</td><td>treść i odpowiedź per forma; 138 zadań ma bliźniaka</td></tr>
+        <tr><td class="id">task_requirement</td><td class="n">3809</td><td>mapowanie zadanie ↔ wymaganie (N:M)</td></tr>
+        <tr><td class="id">criterion</td><td class="n">3315</td><td>progi punktowe</td></tr>
+        <tr><td class="id">criterion_condition</td><td class="n">4379</td><td>warunki wewnątrz progu (dysjunkcja „LUB")</td></tr>
+        <tr><td class="id">condition_expression</td><td class="n">514</td><td>zapisy równoważne wewnątrz warunku („albo")</td></tr>
+        <tr><td class="id">example_solution</td><td class="n">1227</td><td>przykładowe rozwiązania — gotowy materiał few-shot autorstwa CKE</td></tr>
+        <tr><td class="id">model_answer</td><td class="n">1221</td><td>odpowiedzi wzorcowe zadań zamkniętych</td></tr>
+        <tr><td class="id">rule</td><td class="n">772</td><td>reguły przekrojowe i „Uwagi" pod zadaniem</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="n">rocznik</th><th class="n">kluczy</th><th class="n">zadań</th><th class="n">punktów</th><th>reżim wymagań</th></tr></thead>
+      <tbody>
+        <tr><td class="n">2019</td><td class="n">8</td><td class="n">162</td><td class="n">240</td><td>Podstawa programowa 2012 <span class="dim">— dialekt <code>e8-2019</code></span></td></tr>
+        <tr><td class="n">2020</td><td class="n">8</td><td class="n">162</td><td class="n">240</td><td>Podstawa programowa 2017</td></tr>
+        <tr><td class="n">2021</td><td class="n">9</td><td class="n">165</td><td class="n">227</td><td>Wymagania egzaminacyjne 2021 <span class="dim">— zakres pandemiczny</span></td></tr>
+        <tr><td class="n">2022</td><td class="n">9</td><td class="n">165</td><td class="n">225</td><td>Wymagania egzaminacyjne 2022</td></tr>
+        <tr><td class="n">2023</td><td class="n">9</td><td class="n">165</td><td class="n">225</td><td>Wymagania egzaminacyjne 2023</td></tr>
+        <tr><td class="n">2024</td><td class="n">11</td><td class="n">201</td><td class="n">275</td><td>Wymagania egzaminacyjne 2024</td></tr>
+        <tr><td class="n">2025</td><td class="n">11</td><td class="n">222</td><td class="n">330</td><td>Podstawa programowa 2024</td></tr>
+        <tr><td class="n">2026</td><td class="n">10</td><td class="n">194</td><td class="n">300</td><td>Podstawa programowa 2024</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Osiem rozpoznanych reżimów wymagań w ośmiu rocznikach to nie ciekawostka — <b>zadań z lat
+    2021–2024 nie wolno mieszać z resztą bez oznaczenia</b>, bo sprawdzały okrojony zakres
+    pandemiczny. Reżim wisi na sesji egzaminacyjnej, nie na roku publikacji pliku.
+  </p>
+
+  <h3>Funkcje, które wypadły z parsera za darmo</h3>
+  <ul class="plain">
+    <li><b>Mapa braków.</b> Plan wpisywał ją jako osobną pracę. Klucze CKE podają przy <em>każdym</em> zadaniu wymaganie ogólne i co najmniej jedno szczegółowe, razem z etapem edukacyjnym — 100% kluczy to niesie. Widok <code>tasks_per_requirement</code> liczy to jednym zapytaniem, bez zgadywania: <code>XI.3</code> z klas IV–VI jest sprawdzane przez <b>40 zadań na 101 punktów</b>.</li>
+    <li><b>138 zadań-bliźniaków</b> — to samo wymaganie, te same kryteria, inna treść i inne liczby. Bez podziału <code>task</code> / <code>task_version</code> nie dałoby się ich w ogóle zapytać. Widok <code>twins</code>.</li>
+    <li><b>1227 przykładowych rozwiązań</b> napisanych przez samą komisję — materiał few-shot, za który normalnie płaci się autorom.</li>
+    <li><b>772 reguły przekrojowe</b> z zakresem obowiązywania. W pipelinie „Normalize → MatchCriteria → EvaluateClosed → EvaluateOpen → Compose" nie miały gdzie stanąć; działają w kroku <em>Compose</em>, po ocenie wszystkich kryteriów naraz.</li>
+  </ul>
+
+  <h3>Raport pokrycia jest testem, nie ozdobą</h3>
+  <p>
+    <code>run.py</code> mierzy dla każdego klucza trzy udziały i porównuje je z progami:
+    wymagania ≥ 95%, odpowiedzi zadań zamkniętych ≥ 95%, kryteria zadań otwartych ≥ 90%,
+    minimum 10 zadań, ciągła numeracja. Progi nie są ambicją — to linia, poniżej której wynik
+    znaczy „parser się rozjechał", a nie „klucz jest ubogi". <b>Klucz poniżej progu daje kod wyjścia 1.</b>
+    Klucz, z którego wyszło 12 zadań zamiast 21, nie łamie żadnego więzu — po prostu po cichu wnosi
+    do korpusu dziurę.
+  </p>
+
+  <div class="ev">
+    <div class="ev-h">task ingest -- --wyczysc &nbsp;·&nbsp; podsumowanie przebiegu</div>
+    <div class="ev-b"><pre data-lang="out">kluczy sparsowanych : 75 w ~150 s (2,0 s/klucz)
+zadań               : 1436 (2062 punktów)
+pokrycie wymagań    : 100,0%
+pokrycie odpowiedzi : 100,0%
+pokrycie kryteriów  : 100,0%
+
+wszystkie klucze powyżej progów pokrycia</pre></div>
+  </div>
+
+  <p>
+    Przebieg trwa dłużej niż 114 s z sondy — bo baza stoi w kontenerze i chodzi po TCP, zamiast
+    siedzieć w pamięci procesu jak SQLite. To świadomy koszt: w zamian korpus jest <b>trwały</b>
+    i widoczny z zewnątrz, czym zajmuje się ostatnia sekcja tego dokumentu.
+  </p>
+
+  <h3>Czym to jest sprawdzone</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Plik</th><th class="n">testów</th><th>Czego pilnuje</th></tr></thead>
+      <tbody>
+        <tr><td class="id">test_pdf_layer.py</td><td class="n">8</td><td>cztery pułapki warstwy pozycyjnej; część bez ani jednego PDF-a, część na prawdziwym kluczu (marker <code>mirror</code>)</td></tr>
+        <tr><td class="id">test_schema.py</td><td class="n">8</td><td>czy więzy <b>odrzucają</b> złe dane; kolacja <code>pl_icu</code> stawia <code>ł</code> między <code>l</code> a <code>m</code></td></tr>
+        <tr><td class="id">test_migrate.py</td><td class="n">5</td><td>padnięta migracja nie cofa poprzedniej; podmiana zastosowanej przerywa; BOM i CRLF nie liczą się jako podmiana</td></tr>
+        <tr><td class="id">test_corpus_load.py</td><td class="n">12</td><td>sprawdzian <b>modelu</b> na jednym kluczu, w osobnej bazie tymczasowej — liczby zgodne z sondą co do wiersza</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================== 08 -->
+<section id="s8">
+  <div class="sec-head">
+    <span class="num">08 — GRANICE</span>
+    <h2>Czego to nie robi</h2>
+    <p class="sec-sub">Rozdzielone celowo na dwie listy: rzeczy do naprawy i rzeczy, które <em>wyglądają</em> jak błąd, a nim nie są.</p>
+  </div>
+
+  <h3>Ograniczenia, które zostają po G1.2</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Luka</th><th>Objaw</th><th>Kiedy</th></tr></thead>
+      <tbody>
+        <tr><td>Liczby mieszane</td><td><code>1⅔ km</code> wychodzi jako <code>12/3</code></td><td>decyzja „naprawa w kodzie czy ręczna korekta" → G2.3.2</td></tr>
+        <tr><td>Pierwiastki</td><td>znak jest glifem, ale „daszek" bywa linią; zasięg nie jest odtwarzany</td><td>G2.3.2</td></tr>
+        <tr><td><code>asset.bbox</code></td><td>to <b>cała strona</b>, nie wycinek wokół rysunku</td><td>wykrywanie regionu grafiki → G2.4</td></tr>
+        <tr><td><code>condition_expression.mathjson</code></td><td>puste — porównanie idzie po stringach, nie po wyrażeniach</td><td>konwerter → G2.6</td></tr>
+        <tr><td>Fixture'y PDF w repo</td><td>testy oznaczone <code>mirror</code> pomijają się bez mirrora</td><td>arkusze wejdą najwcześniej po odpowiedzi CKE o komercyjne użycie → G0.1</td></tr>
+        <tr><td>CI</td><td><code>.github/workflows/</code> jest pusty — testy chodzą lokalnie przez <code>task test:python</code></td><td>G1.5</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Znane wyniki, które NIE są błędami</h3>
+  <p>
+    Sekcja <code>SPÓJNOŚĆ</code> w raporcie zadaje pytania, których <code>CHECK</code> zadać nie może,
+    bo dotyczą relacji między tabelami. Dwa niezerowe wyniki mają wytłumaczenie w dokumentach,
+    nie w parserze.
+  </p>
+  <div class="callout">
+    <p>
+      <b>1 próg ponad pulą zadania.</b> Literówka CKE w <code>OMAP-900-2105</code>: nagłówek mówi
+      <code>(0–2)</code>, a kryterium jest za 3 punkty. Parser oddaje dokument wiernie — gdyby to
+      naprawiał, błąd zniknąłby z pola widzenia.
+    </p>
+    <p>
+      <b>90 zadań bez progu 0 pkt.</b> Rocznik 2019 (6 kluczy × 15 zadań zamkniętych). Ten układ
+      dokumentu nie ma dla zadań zamkniętych sekcji kryteriów w ogóle.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== 09 -->
+<section id="s9">
+  <div class="sec-head">
+    <span class="num">09 — DBEAVER</span>
+    <h2>Jak podłączyć się do bazy PostgreSQL</h2>
+    <p class="sec-sub">Baza stoi w kontenerze Dockera i wystawia port na <code>localhost</code>. DBeaver łączy się z nią jak z każdym innym Postgresem — cała sztuka polega na wzięciu parametrów z właściwego pliku.</p>
+  </div>
+
+  <h3>Zanim zaczniesz</h3>
+  <p>
+    Kontener musi stać. Jeżeli nie masz pewności, sprawdź to w katalogu <code>phase-alfa/</code>:
+  </p>
+
+  <div class="ev">
+    <div class="ev-h">terminal · katalog phase-alfa</div>
+    <div class="ev-b"><pre data-lang="bash">docker ps
+# klucz-db   0.0.0.0:55434->5432/tcp   Up (healthy)
+
+# jeśli kontenera nie ma na liście:
+task up                # podnosi Postgresa i stosuje brakujące migracje
+task migrate:status    # sprawdzenie, że schemat jest kompletny (3/3)</pre></div>
+  </div>
+
+  <h3>Parametry połączenia</h3>
+  <p>
+    Wszystkie stoją w pliku <code>.env</code> w korzeniu <code>phase-alfa/</code>. <b>To jest jedyne
+    źródło prawdy</b> — ten sam plik czyta docker-compose i kod Pythona. Jeżeli kiedykolwiek zmienisz
+    w nim <code>DB_PORT</code>, trzeba poprawić także połączenie w DBeaverze.
+  </p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Pole w DBeaverze</th><th>Wartość</th><th>Skąd</th></tr></thead>
+      <tbody>
+        <tr><td>Host</td><td class="id">localhost</td><td><code>DB_HOST</code></td></tr>
+        <tr><td>Port</td><td class="id">55434</td><td><code>DB_PORT</code> — <b>sprawdź w swoim <code>.env</code></b>, patrz ostrzeżenie niżej</td></tr>
+        <tr><td>Database</td><td class="id">klucz</td><td><code>DB_NAME</code></td></tr>
+        <tr><td>Username</td><td class="id">klucz</td><td><code>DB_USER</code></td></tr>
+        <tr><td>Password</td><td class="id">klucz_dev</td><td><code>DB_PASSWORD</code> — hasło deweloperskie, stoi jawnie w <code>docker-compose.yml</code></td></tr>
+        <tr><td>Driver</td><td>PostgreSQL</td><td>obraz <code>postgres:17-alpine</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout crit">
+    <p>
+      <span class="tag st-crit">uwaga na port</span> &nbsp;<code>55434</code> jest wartością
+      <em>domyślną</em>, nie uniwersalną. Wysoki numer portu <b>nie gwarantuje</b>, że jest wolny —
+      na tej maszynie stoją równolegle inne Postgresy w kontenerach, na <code>55432</code>
+      i <code>55433</code>.
+    </p>
+    <p>
+      Konsekwencja dla DBeavera jest gorsza niż błąd połączenia: przy złym porcie
+      <b>połączysz się z cudzą bazą i zobaczysz albo pustkę, albo nie te tabele</b> — a żaden
+      komunikat błędu nie padnie. Pierwszy test poprawności to obecność tabeli <code>task</code>
+      z 1436 wierszami.
+    </p>
+  </div>
+
+  <h3>Krok po kroku</h3>
+
+  <div class="step">
+    <span class="step-n">1</span>
+    <div class="step-b">
+      <h4>Nowe połączenie</h4>
+      <p>W DBeaverze: <b>Database → New Database Connection</b> (albo ikona wtyczki w lewym górnym
+      rogu). Z listy wybierz <b>PostgreSQL</b> i kliknij <b>Next</b>.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-n">2</span>
+    <div class="step-b">
+      <h4>Sterownik — tylko za pierwszym razem</h4>
+      <p>Przy pierwszym połączeniu z Postgresem DBeaver zaproponuje pobranie sterownika JDBC
+      (<b>Download driver files</b>). Zgódź się — to jednorazowe, kilkanaście megabajtów.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-n">3</span>
+    <div class="step-b">
+      <h4>Zakładka <em>Main</em> — parametry z tabeli powyżej</h4>
+      <p>Host <code>localhost</code>, Port <code>55434</code>, Database <code>klucz</code>,
+      Username <code>klucz</code>, Password <code>klucz_dev</code>. Zaznacz <b>Save password</b>,
+      żeby nie wpisywać go przy każdym otwarciu.</p>
+      <p>Zaznacz też <b>Show all databases</b>. Bez tego zobaczysz wyłącznie bazę <code>klucz</code>;
+      z tym — także bazę tymczasową <code>klucz_test_corpus</code>, którą testy integracyjne tworzą
+      i kasują w trakcie przebiegu.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-n">4</span>
+    <div class="step-b">
+      <h4>Zakładka <em>General</em> — nazwa i tryb tylko do odczytu</h4>
+      <p>Nadaj połączeniu nazwę, która coś znaczy — np. <code>klucz-dev (docker 55434)</code>.
+      Przy kilku Postgresach na jednym <code>localhost</code> nazwa „postgres" jest proszeniem się
+      o pomyłkę.</p>
+      <p>Jeżeli zamierzasz tylko oglądać korpus, zaznacz <b>Read-only connection</b>. DBeaver
+      zablokuje wtedy edycję komórek w siatce wyników i wykonanie <code>UPDATE</code> /
+      <code>DELETE</code>.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-n">5</span>
+    <div class="step-b">
+      <h4>Test Connection → Finish</h4>
+      <p>Przycisk <b>Test Connection…</b> na dole okna powinien zwrócić wersję serwera
+      (PostgreSQL 17.x). Dopiero potem <b>Finish</b>.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-n">6</span>
+    <div class="step-b">
+      <h4>Gdzie są tabele</h4>
+      <p>W drzewie po lewej: <code>klucz</code> → <b>Schemas</b> → <b>public</b> → <b>Tables</b>.
+      Powinno tam stać <b>16 tabel korpusu</b> plus <code>schema_migrations</code> — razem 17, a w gałęzi
+      <b>Views</b> dwa widoki: <code>tasks_per_requirement</code> i <code>twins</code>.</p>
+      <p>Podwójne kliknięcie tabeli otwiera zakładki <em>Properties</em> (kolumny, więzy, indeksy)
+      i <em>Data</em> (zawartość). Zakładka <em>ER Diagram</em> na poziomie schematu rysuje model
+      korpusu — najszybszy sposób, żeby zobaczyć relację N:M między <code>exam_form</code>
+      a <code>document</code>.</p>
+    </div>
+  </div>
+
+  <h3>Sprawdzenie, że to na pewno ta baza</h3>
+  <p>
+    Otwórz edytor SQL (<b>SQL Editor → New SQL script</b>) i uruchom:
+  </p>
+
+  <div class="ev">
+    <div class="ev-h">SQL Editor — pierwsze zapytanie kontrolne</div>
+    <div class="ev-b"><pre data-lang="sql">SELECT current_database(), version();
+
+SELECT 'task' AS tabela, count(*) FROM task
+UNION ALL SELECT 'criterion',    count(*) FROM criterion
+UNION ALL SELECT 'model_answer', count(*) FROM model_answer;
+-- oczekiwane: task 1436 · criterion 3315 · model_answer 1221</pre></div>
+  </div>
+
+  <h3>Zapytania, od których warto zacząć</h3>
+
+  <h4>Pełne drzewo kryteriów jednego zadania</h4>
+  <p>
+    Zadanie 20 z <code>OMAP-100-2505</code> — to na nim zmierzono trzy poziomy dysjunkcji opisane
+    w sekcji 05. Wynik pokazuje, dlaczego spłaszczenie kryteriów do jednego pola tekstowego
+    zabija sens produktu: próg za 1 punkt ma sześć niezależnych warunków.
+  </p>
+  <div class="ev">
+    <div class="ev-h">próg → warunek → zapis równoważny</div>
+    <div class="ev-b"><pre data-lang="sql">SELECT t.number, c.points, cc.position AS warunek, left(cc.description, 70) AS tresc
+FROM task t
+JOIN document d             ON d.id = t.marking_scheme_id
+JOIN criterion c            ON c.task_id = t.id
+JOIN criterion_condition cc ON cc.criterion_id = c.id
+WHERE d.path LIKE '%OMAP-100-2505%' AND t.number = '20'
+ORDER BY c.points DESC, cc.position;</pre></div>
+  </div>
+
+  <h4>Mapa braków — najczęściej sprawdzane punkty podstawy programowej</h4>
+  <div class="ev">
+    <div class="ev-h">widok tasks_per_requirement</div>
+    <div class="ev-b"><pre data-lang="sql">SELECT stage, path, tasks, points, forms
+FROM tasks_per_requirement
+ORDER BY tasks DESC
+LIMIT 15;
+-- XI.3 (klasy IV-VI): 40 zadan, 101 punktow</pre></div>
+  </div>
+
+  <h4>Zadania-bliźniaki</h4>
+  <div class="ev">
+    <div class="ev-h">widok twins — 138 zadań w dwóch wersjach</div>
+    <div class="ev-b"><pre data-lang="sql">SELECT number, variant, session, versions, version_list
+FROM twins
+ORDER BY session DESC, number;</pre></div>
+  </div>
+
+  <h4>Polskie sortowanie</h4>
+  <p>
+    Cluster stoi w <code>C.UTF-8</code> (obraz alpine opiera się na musl, które nie ma
+    <code>pl_PL.UTF-8</code>), więc domyślne <code>ORDER BY</code> stawia <code>ł</code> na końcu
+    alfabetu. Polskie porządkowanie wchodzi jawnie, przez kolację ICU z migracji 0001:
+  </p>
+  <div class="ev">
+    <div class="ev-h">kolacja pl_icu</div>
+    <div class="ev-b"><pre data-lang="sql">SELECT content FROM requirement ORDER BY content COLLATE pl_icu;</pre></div>
+  </div>
+
+  <h3>Kiedy coś nie działa</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Objaw</th><th>Przyczyna</th><th>Co zrobić</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>Connection refused</code> / <code>connection attempt failed</code></td>
+          <td>kontener nie stoi albo zły port</td>
+          <td><code>docker ps</code>; jeśli pusto — <code>task up</code>. Port porównaj z <code>DB_PORT</code> w <code>.env</code>.</td>
+        </tr>
+        <tr>
+          <td>Połączenie działa, ale <b>nie ma tabel</b></td>
+          <td>trafiłeś w cudzego Postgresa na sąsiednim porcie albo wybrałeś bazę <code>postgres</code> zamiast <code>klucz</code></td>
+          <td><code>SELECT current_database();</code> — musi zwrócić <code>klucz</code>. Potem sprawdź port.</td>
+        </tr>
+        <tr>
+          <td>Tabele są, ale <b>puste</b></td>
+          <td>migracje weszły, ale korpus nigdy nie został załadowany</td>
+          <td><code>task ingest</code> — wymaga mirrora wskazanego przez <code>MIRROR_ROOT</code></td>
+        </tr>
+        <tr>
+          <td><code>password authentication failed</code></td>
+          <td>użyto konta systemowego zamiast konta z kontenera</td>
+          <td>użytkownik <code>klucz</code>, hasło <code>klucz_dev</code> — nie <code>postgres</code></td>
+        </tr>
+        <tr>
+          <td>Polskie znaki wyglądają na rozjechane</td>
+          <td>ustawienia klienta, nie bazy — baza jest w UTF-8</td>
+          <td>w DBeaverze: <b>Window → Preferences → User Interface</b>, czcionka siatki wyników na taką z pełnym pokryciem</td>
+        </tr>
+        <tr>
+          <td>Baza <code>klucz_test_corpus</code> raz jest, raz jej nie ma</td>
+          <td>tak ma być — testy integracyjne tworzą ją i kasują w <code>finally</code></td>
+          <td>nic; nie podłączaj się do niej na stałe</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <p>
+      <span class="tag st-warn">zanim coś zmienisz</span> &nbsp;<b>Ręczne poprawki w DBeaverze nie
+      przeżyją następnego przebiegu.</b> <code>task ingest -- --wyczysc</code> wykonuje
+      <code>TRUNCATE … RESTART IDENTITY CASCADE</code> na piętnastu tabelach korpusu, które wypełnia parser,
+      a <code>task db:reset</code> kasuje cały wolumen Dockera razem z danymi.
+    </p>
+    <p>
+      Baza deweloperska jest odtwarzalna z mirrora, więc utrata danych nie jest katastrofą — ale
+      poprawka wpisana ręcznie i uznana za trwałą już nią bywa. Od poprawiania rekordów będzie
+      ekran korekty (A2); do czasu jego powstania traktuj to połączenie jako podgląd i zostaw
+      włączone <b>Read-only connection</b>.
+    </p>
+  </div>
+
+  <h3>Bez DBeavera</h3>
+  <p>
+    Ta sama baza, konsola SQL wewnątrz kontenera — przydatne, gdy chodzi o jedno zapytanie
+    i nie chce się przełączać okien:
+  </p>
+  <div class="ev">
+    <div class="ev-h">terminal</div>
+    <div class="ev-b"><pre data-lang="bash">task db:psql            # psql -U klucz -d klucz w kontenerze
+# \dt        lista tabel
+# \d task    struktura tabeli
+# \q         wyjscie</pre></div>
+  </div>
+</section>
+
+<footer>
+  <p><strong>Projekt Klucz · faza alfa</strong> — G1.2 zamknięte 25.08.2026, commit <code>f9ec136</code>.</p>
+  <p>
+    Plan: <a href="plan-A1.md">docs/plan-A1.md</a> ·
+    przeglądy kodu: <a href="review/">docs/review/</a> ·
+    warstwa: <a href="../ingest/README.md">ingest/README.md</a>,
+    <a href="../ingest/schema/README.md">ingest/schema/README.md</a>
+  </p>
+  <p class="dim">Liczby w sekcjach 07 i 09 odpytane z bazy <code>klucz</code> 25.08.2026 i zgodne z sondą z tego samego dnia.</p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+  function esc(s) { return s.replace(/[&<>]/g, function (c) { return ESC[c]; }); }
+
+  // UWAGA: wewnątrz reguł tylko grupy nieprzechwytujące (?:...) —
+  // zwykły nawias rozjechałby numerację grup w sklejonym wyrażeniu.
+  var RULES = {
+    sql: [
+      ['com',  /--[^\n]*/],
+      ['str',  /'(?:[^']|'')*'/],
+      ['kw',   /\b(?:SELECT|FROM|WHERE|JOIN|LEFT|INNER|ON|GROUP|ORDER|BY|HAVING|UNION|ALL|AS|AND|OR|IN|NOT|NULL|LIKE|LIMIT|DISTINCT|COLLATE|CREATE|TABLE|VIEW|INSERT|INTO|VALUES|UPDATE|DELETE|SET)\b/i],
+      ['fn',   /\b(?:count|sum|left|version|current_database|array_agg)(?=\()/i],
+      ['num',  /\b\d+\b/]
+    ],
+    bash: [
+      ['com',  /#[^\n]*/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['kw',   /\b(?:task|docker|uv|psql|python)\b/],
+      ['num',  /(?:^|[ \t])-{1,2}[A-Za-z][\w:-]*|\b\d+\b/]
+    ],
+    out: [
+      ['num',  /\b\d+(?:[,.]\d+)?%?\b/]
+    ]
+  };
+
+  function podswietl(kod, jezyk) {
+    var reguly = RULES[jezyk];
+    if (!reguly) { return esc(kod); }
+    var wzor = reguly.map(function (r, i) {
+      return '(?<g' + i + '>' + r[1].source + ')';
+    }).join('|');
+    var re;
+    try {
+      re = new RegExp(wzor, 'gm');
+    } catch (e) {
+      return esc(kod);           // starsza przeglądarka — zostaje zwykły tekst
+    }
+    var wynik = '', koniec = 0, m;
+    while ((m = re.exec(kod)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      wynik += esc(kod.slice(koniec, m.index));
+      var klasa = null;
+      for (var i = 0; i < reguly.length; i++) {
+        if (m.groups['g' + i] !== undefined) { klasa = reguly[i][0]; break; }
+      }
+      wynik += '<span class="t-' + klasa + '">' + esc(m[0]) + '</span>';
+      koniec = m.index + m[0].length;
+    }
+    return wynik + esc(kod.slice(koniec));
+  }
+
+  var bloki = document.querySelectorAll('pre[data-lang]');
+  for (var i = 0; i < bloki.length; i++) {
+    try {
+      bloki[i].innerHTML = podswietl(bloki[i].textContent, bloki[i].dataset.lang);
+    } catch (e) { /* blok zostaje zwykłym tekstem — lepsze niż pusty */ }
+  }
+})();
+</script>
+</body>
+</html>
