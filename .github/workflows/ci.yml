@@ -70,14 +70,16 @@ jobs:
       PYTHONIOENCODING: utf-8
 
     steps:
-      # `@v5`, nie `@v4`: tamte deklaruja Node 20, ktory GitHub juz uznal za przestarzaly
-      # i uruchamia je na Node 24 wbrew deklaracji. Dzis to samo ostrzezenie w logu;
-      # w dniu, w ktorym podkladka zniknie, zadania stana na kroku `checkout` — czyli
-      # pierwszym, bez zwiazku ze zmiana, ktora akurat bedzie w PR-ze.
+      # Najnowsze majory WSZYSTKICH akcji, bo starsze deklaruja Node 20, ktory GitHub
+      # juz uznal za przestarzaly i uruchamia je na Node 24 wbrew deklaracji. Dzis to
+      # samo ostrzezenie w logu; w dniu, w ktorym podkladka zniknie, zadania stana na
+      # pierwszym kroku, bez zwiazku ze zmiana, ktora akurat bedzie w PR-ze.
+      #
+      # `setup-uv` przeskakuje z v5 od razu na v7: v6 dalej deklaruje `node20`.
       - uses: actions/checkout@v5
 
       - name: uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
@@ -182,11 +184,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      # Wersja pnpm z `packageManager` w `web/package.json`, a nie wpisana tutaj:
+      # `version: 11` i `pnpm@11.8.0` w manifescie to byly dwa zrodla prawdy, ktore
+      # rozjezdzaja sie przy pierwszej aktualizacji jednego z nich.
+      - uses: pnpm/action-setup@v5
         with:
-          version: 11
+          package_json_file: web/package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -222,11 +227,14 @@ jobs:
           cache: true
           cache-dependency-path: backend/**/packages.lock.json
 
-      - uses: pnpm/action-setup@v4
+      # Wersja pnpm z `packageManager` w `web/package.json`, a nie wpisana tutaj:
+      # `version: 11` i `pnpm@11.8.0` w manifescie to byly dwa zrodla prawdy, ktore
+      # rozjezdzaja sie przy pierwszej aktualizacji jednego z nich.
+      - uses: pnpm/action-setup@v5
         with:
-          version: 11
+          package_json_file: web/package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
