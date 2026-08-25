@@ -120,6 +120,54 @@ się odróżnić regresji od zmiany nazwy.
 
 ---
 
+## Komentarze: dobry kod mówi sam, co robi
+
+Rozstrzygnięcie z 25.08.2026. Warstwa komentarzy w tym repozytorium urosła ponad
+kod, który opisuje — i to jest błąd, nie staranność.
+
+**Zasada:** komentarz nie powtarza kodu. Jeśli komentarz mówi to samo co nazwa
+i ciało funkcji, jest do skasowania. Nieczytelny fragment naprawia się nazwą,
+podziałem na funkcje albo prostszą konstrukcją — nie akapitem obok.
+
+Komentarz wolno zostawić tylko wtedy, gdy niesie coś, czego z kodu **nie da się
+odczytać**:
+
+- **dlaczego tak, a nie inaczej** — gdy oczywiste rozwiązanie jest złe i ktoś
+  za pół roku spróbuje je „poprawić";
+- **pułapka narzędzia albo platformy** — zachowanie biblioteki, systemu, kolejność,
+  która ma znaczenie;
+- **decyzja projektowa** — link do `DECYZJE.md` albo jedno zdanie, skąd się wzięła.
+
+Komentarz do zostawienia jest **krótki**: jedna, najwyżej dwie linijki. Trzy akapity
+w `<remarks>` to nie komentarz, tylko dokument, który trafił nie tam gdzie trzeba —
+takie rzeczy idą do `docs/` albo do komunikatu commita.
+
+```csharp
+// źle — komentarz przepisuje kod
+// Rejestrujemy sondę bazy jako singleton w kontenerze DI.
+services.AddSingleton<IDatabaseProbe, PostgresDatabaseProbe>();
+
+// dobrze — kolejność ma znaczenie i kod tego nie mówi
+// BLOB_ROOT przed Blob:Root: to drugie jest w appsettings, więc zawsze coś zwraca.
+var blobRoot = settings["BLOB_ROOT"] ?? settings["Blob:Root"] ?? "data/blob";
+```
+
+Dotyczy tak samo docstringów w Pythonie i `<summary>`/`<remarks>` w C#. Docstring
+publicznej funkcji zostaje, ale opisuje kontrakt w jednym–dwóch zdaniach, a nie
+historię jego powstania. Docstring, który powtarza nazwę funkcji (`_tnij_zadania`
+→ „Tnie zadania"), jest do skasowania.
+
+Historia zmian, opis błędu, który to naprawiało, i „stało tu wcześniej X" — należą
+do gita, nie do pliku źródłowego.
+
+**Wyjątek — zastosowane migracje.** Plików w `ingest/schema/migrations/` nie rusza się
+**wcale**, komentarzy też: runner liczy z nich sumę SHA-256 i zmiana choćby komentarza
+to dla niego podmiana zastosowanej migracji. Odchudzenie komentarzy w schemacie jest
+możliwe wyłącznie razem z `task db:reset` na każdej maszynie, więc robi się to osobną
+decyzją, a nie przy okazji.
+
+---
+
 ## Granica warstw — najważniejsza reguła projektu
 
 ```
