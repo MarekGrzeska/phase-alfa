@@ -12,7 +12,7 @@ namespace Klucz.Corpus.Infrastructure;
 /// Adres jest rozwiązywany LENIWIE, przy pierwszym pytaniu — nie przy rejestracji usług.
 /// Powód jest konkretny: dokument OpenAPI powstaje przy buildzie, a generator startuje
 /// w tym celu całą aplikację. Sprawdzanie zmiennych środowiskowych w
-/// <c>AddCorpus</c> znaczyłoby, że `dotnet build` wymaga bazy — czyli że nie da się
+/// <c>AddCorpus</c> znaczyłoby, że <c>dotnet build</c> wymaga bazy — czyli że nie da się
 /// zbudować projektu bez postawionego Postgresa.
 ///
 /// Zwraca fałsz zamiast rzucać, bo health check ma odpowiedzieć ZAWSZE — odpowiedź
@@ -20,20 +20,21 @@ namespace Klucz.Corpus.Infrastructure;
 /// Powód awarii idzie do logu, nie do odpowiedzi HTTP: adres bazy i nazwa użytkownika
 /// nie są rzeczami, które wystawia się bez pytania.
 /// </remarks>
-public sealed class PostgresDatabaseProbe(IConfiguration konfiguracja, ILogger<PostgresDatabaseProbe> log)
+public sealed class PostgresDatabaseProbe(IConfiguration configuration, ILogger<PostgresDatabaseProbe> log)
     : IDatabaseProbe
 {
-    private readonly Lazy<string> _adres =
-        new(() => PolaczenieBazy.ZeSrodowiska(konfiguracja), LazyThreadSafetyMode.ExecutionAndPublication);
+    private readonly Lazy<string> _connectionString = new(
+        () => DatabaseConnectionString.FromEnvironment(configuration),
+        LazyThreadSafetyMode.ExecutionAndPublication);
 
-    public async Task<bool> OdpowiadaAsync(CancellationToken ct = default)
+    public async Task<bool> IsAliveAsync(CancellationToken ct = default)
     {
         try
         {
-            await using var polaczenie = new NpgsqlConnection(_adres.Value);
-            await polaczenie.OpenAsync(ct);
-            await using var polecenie = new NpgsqlCommand("SELECT 1", polaczenie);
-            await polecenie.ExecuteScalarAsync(ct);
+            await using var connection = new NpgsqlConnection(_connectionString.Value);
+            await connection.OpenAsync(ct);
+            await using var command = new NpgsqlCommand("SELECT 1", connection);
+            await command.ExecuteScalarAsync(ct);
             return true;
         }
         catch (Exception e) when (e is NpgsqlException or TimeoutException or InvalidOperationException)

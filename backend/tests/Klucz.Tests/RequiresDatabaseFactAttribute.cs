@@ -8,9 +8,9 @@ namespace Klucz.Tests;
 /// bo bazy nie było, jest nieodróżnialny od testu, który nic nie sprawdza
 /// (CLAUDE.md). W CI baza stoi, więc tam ten test ma się wykonać naprawdę.
 /// </remarks>
-public sealed class FaktZBazaAttribute : FactAttribute
+public sealed class RequiresDatabaseFactAttribute : FactAttribute
 {
-    public FaktZBazaAttribute()
+    public RequiresDatabaseFactAttribute()
     {
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DB_HOST"))
             && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DATABASE_URL")))

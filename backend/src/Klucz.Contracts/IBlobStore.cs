@@ -14,12 +14,12 @@ namespace Klucz.Contracts;
 /// </remarks>
 public interface IBlobStore
 {
-    /// <summary>Otwiera plik do odczytu. Rzuca, gdy pliku nie ma.</summary>
-    Task<Stream> OtworzAsync(string sciezka, CancellationToken ct = default);
+    /// <summary>Otwiera plik do odczytu. Rzuca <see cref="FileNotFoundException"/>, gdy pliku nie ma.</summary>
+    Task<Stream> OpenAsync(string path, CancellationToken ct = default);
 
-    /// <summary>Zapisuje treść pod wskazaną ścieżką i zwraca ścieżkę względną, pod którą stanęła.</summary>
-    Task<string> ZapiszAsync(string sciezka, Stream tresc, CancellationToken ct = default);
+    /// <summary>Zapisuje treść i zwraca ścieżkę względną, pod którą stanęła.</summary>
+    Task<string> SaveAsync(string path, Stream content, CancellationToken ct = default);
 
-    /// <summary>Czy plik istnieje. Nie rzuca.</summary>
-    Task<bool> IstniejeAsync(string sciezka, CancellationToken ct = default);
+    /// <summary>Czy plik istnieje. Nie rzuca dla brakującego pliku.</summary>
+    Task<bool> ExistsAsync(string path, CancellationToken ct = default);
 }

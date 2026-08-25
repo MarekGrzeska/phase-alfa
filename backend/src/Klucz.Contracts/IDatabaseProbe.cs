@@ -11,5 +11,5 @@ namespace Klucz.Contracts;
 public interface IDatabaseProbe
 {
     /// <summary>Czy baza odpowiada na najprostsze zapytanie. Nie rzuca — zwraca fałsz.</summary>
-    Task<bool> OdpowiadaAsync(CancellationToken ct = default);
+    Task<bool> IsAliveAsync(CancellationToken ct = default);
 }

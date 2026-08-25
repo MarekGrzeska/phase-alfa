@@ -8,9 +8,9 @@ namespace Klucz.Learning;
 /// </summary>
 public static class LearningModule
 {
-    public static IServiceCollection AddLearning(this IServiceCollection uslugi, IConfiguration konfiguracja)
+    public static IServiceCollection AddLearning(this IServiceCollection services, IConfiguration configuration)
     {
-        _ = konfiguracja;
-        return uslugi;
+        _ = configuration;
+        return services;
     }
 }

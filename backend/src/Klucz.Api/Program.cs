@@ -7,8 +7,8 @@ using Klucz.Learning;
 var builder = WebApplication.CreateBuilder(args);
 
 // Konfiguracja: appsettings + zmienne środowiskowe. Adres bazy WYŁĄCZNIE ze
-// zmiennych (patrz `PolaczenieBazy`) — connection string nie ma prawa stać
-// w pliku wersjonowanym.
+// zmiennych (patrz `DatabaseConnectionString`) — connection string nie ma prawa
+// stać w pliku wersjonowanym.
 builder.Configuration.AddEnvironmentVariables();
 
 // Trzy linijki i ani słowa o wnętrzu modułów. Dołożenie czwartego modułu w A2
@@ -27,11 +27,11 @@ app.MapOpenApi();
 // baza jest nieosiągalna; zlepienie tego w jeden status znaczy, że przy awarii
 // nie widać, co się właściwie zepsuło. Kod 200 znaczy „API żyje", a pole
 // `database` mówi, czy żyje cały system.
-app.MapGet("/health", async (IDatabaseProbe baza, CancellationToken ct) =>
+app.MapGet("/health", async (IDatabaseProbe database, CancellationToken ct) =>
 {
-    var odpowiada = await baza.OdpowiadaAsync(ct);
-    var wersja = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
-    return new HealthResponse(odpowiada ? "ok" : "degraded", odpowiada, wersja);
+    var alive = await database.IsAliveAsync(ct);
+    var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+    return new HealthResponse(alive ? "ok" : "degraded", alive, version);
 })
 .WithName("Health")
 .WithSummary("Gotowość API i stan połączenia z bazą");
@@ -39,11 +39,11 @@ app.MapGet("/health", async (IDatabaseProbe baza, CancellationToken ct) =>
 app.Run();
 
 /// <summary>
-/// Punkt zaczepienia dla `WebApplicationFactory` w testach.
+/// Punkt zaczepienia dla <c>WebApplicationFactory</c> w testach.
 /// </summary>
 /// <remarks>
 /// Program najwyższego poziomu ma klasę wygenerowaną i wewnętrzną; bez tej
 /// deklaracji testy nie miałyby czego podać jako parametr typu, a wtedy jedyną
-/// alternatywą jest `InternalsVisibleTo` — czyli otwieranie produktu na testy.
+/// alternatywą jest <c>InternalsVisibleTo</c> — czyli otwieranie produktu na testy.
 /// </remarks>
 public partial class Program;

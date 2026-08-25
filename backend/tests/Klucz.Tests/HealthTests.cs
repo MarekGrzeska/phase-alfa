@@ -8,23 +8,21 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Klucz.Tests;
 
 /// <summary>
-/// `/health` ma odpowiadać ZAWSZE i rozdzielać dwa różne zdarzenia: „proces żyje"
+/// <c>/health</c> ma odpowiadać ZAWSZE i rozdzielać dwa różne zdarzenia: „proces żyje"
 /// i „baza odpowiada".
 /// </summary>
 public class HealthTests
 {
-    private static WebApplicationFactory<Program> Aplikacja(Dictionary<string, string?> ustawienia)
+    private static WebApplicationFactory<Program> Application(Dictionary<string, string?> settings)
         => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((_, cfg) => cfg.AddInMemoryCollection(ustawienia));
-        });
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(settings)));
 
     [Fact]
-    public async Task Nieosiagalna_baza_daje_odpowiedz_degraded_a_nie_blad()
+    public async Task Unreachable_database_yields_degraded_not_an_error()
     {
         // Port 1 na pętli zwrotnej odmawia połączenia natychmiast — to jest
         // „baza leży", a nie „baza wolno odpowiada".
-        await using var aplikacja = Aplikacja(new Dictionary<string, string?>
+        await using var application = Application(new Dictionary<string, string?>
         {
             ["DB_HOST"] = "127.0.0.1",
             ["DB_PORT"] = "1",
@@ -33,21 +31,21 @@ public class HealthTests
             ["DB_PASSWORD"] = "nieistotne",
         });
 
-        var odpowiedz = await aplikacja.CreateClient().GetAsync("/health");
+        var response = await application.CreateClient().GetAsync("/health");
 
-        Assert.Equal(HttpStatusCode.OK, odpowiedz.StatusCode);
-        var stan = await odpowiedz.Content.ReadFromJsonAsync<HealthResponse>();
-        Assert.NotNull(stan);
-        Assert.False(stan!.Database);
-        Assert.Equal("degraded", stan.Status);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var health = await response.Content.ReadFromJsonAsync<HealthResponse>();
+        Assert.NotNull(health);
+        Assert.False(health!.Database);
+        Assert.Equal("degraded", health.Status);
     }
 
     [Fact]
-    public async Task Brak_konfiguracji_bazy_nie_wywala_aplikacji()
+    public async Task Missing_database_configuration_does_not_break_startup()
     {
         // Build generuje dokument OpenAPI, a żeby go wygenerować, startuje aplikację.
         // Gdyby brak zmiennych przewracał start, `dotnet build` wymagałby Postgresa.
-        await using var aplikacja = Aplikacja(new Dictionary<string, string?>
+        await using var application = Application(new Dictionary<string, string?>
         {
             ["DB_HOST"] = null,
             ["DB_PORT"] = null,
@@ -57,35 +55,35 @@ public class HealthTests
             ["DATABASE_URL"] = null,
         });
 
-        var odpowiedz = await aplikacja.CreateClient().GetAsync("/health");
-        var stan = await odpowiedz.Content.ReadFromJsonAsync<HealthResponse>();
+        var response = await application.CreateClient().GetAsync("/health");
+        var health = await response.Content.ReadFromJsonAsync<HealthResponse>();
 
-        Assert.Equal(HttpStatusCode.OK, odpowiedz.StatusCode);
-        Assert.False(stan!.Database);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(health!.Database);
     }
 
-    [FaktZBaza]
-    public async Task Zywa_baza_daje_odpowiedz_ok()
+    [RequiresDatabaseFact]
+    public async Task Live_database_yields_ok()
     {
-        await using var aplikacja = new WebApplicationFactory<Program>();
+        await using var application = new WebApplicationFactory<Program>();
 
-        var stan = await aplikacja.CreateClient().GetFromJsonAsync<HealthResponse>("/health");
+        var health = await application.CreateClient().GetFromJsonAsync<HealthResponse>("/health");
 
-        Assert.NotNull(stan);
-        Assert.True(stan!.Database, "baza stoi (`task up`), a health check jej nie widzi");
-        Assert.Equal("ok", stan.Status);
+        Assert.NotNull(health);
+        Assert.True(health!.Database, "baza stoi (`task up`), a health check jej nie widzi");
+        Assert.Equal("ok", health.Status);
     }
 
     [Fact]
-    public void Kontrakt_ma_jeden_port_bazy_i_jeden_blob_store()
+    public void Composition_registers_database_probe_and_blob_store()
     {
         // Kompozycja jest częścią umowy: moduły rejestrują porty, Api ich używa.
         // Gdyby rejestracja zniknęła, `/health` przewróciłby się dopiero w czasie
         // żądania — a to jest błąd, który chce się widzieć przy starcie.
-        using var aplikacja = Aplikacja([]);
-        using var zakres = aplikacja.Services.CreateScope();
+        using var application = Application([]);
+        using var scope = application.Services.CreateScope();
 
-        Assert.NotNull(zakres.ServiceProvider.GetRequiredService<IDatabaseProbe>());
-        Assert.NotNull(zakres.ServiceProvider.GetRequiredService<IBlobStore>());
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<IDatabaseProbe>());
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<IBlobStore>());
     }
 }

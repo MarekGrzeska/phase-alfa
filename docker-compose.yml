@@ -30,5 +30,42 @@ services:
     # port także wtedy, gdy nikt nad projektem nie pracuje. Podnosi ją
     # `task up`, i tylko wtedy. Wznawianie wróci przy pierwszym wdrożeniu.
 
+  # Emulator Azure Blob Storage. Stoi tu od G1.3, choć backend pisze dziś na dysk
+  # (`DiskBlobStore`) — bo przeniesienie na Azure ma być zmianą KONFIGURACJI, a nie
+  # architektury, i to zdanie trzeba dać się sprawdzić lokalnie, zanim zapadnie
+  # decyzja o chmurze. Bez emulatora „port jest gotowy na Azure" zostaje deklaracją.
+  #
+  # Obraz wystawia trzy usługi; potrzebny jest sam blob (10000). Kolejki i tabele
+  # są wyłączone, żeby nie zajmować portów, których nikt nie używa.
+  blob:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: klucz-blob
+    command: >-
+      azurite-blob
+      --blobHost 0.0.0.0
+      --blobPort 10000
+      --location /data
+      --skipApiVersionCheck
+    ports:
+      # Ten sam wzorzec co przy bazie: numer portu stoi w .env, nie w tym pliku.
+      - "${BLOB_PORT:-10000}:10000"
+    volumes:
+      - klucz-blobdata:/data
+    healthcheck:
+      # Azurite nie ma w obrazie curla ani wget-a, więc pytamy Node'em, który tam
+      # jest — o listę kontenerów konta deweloperskiego. Odpowiedź 200/403 znaczy
+      # „usługa słucha"; liczy się to, że port odpowiada HTTP, a nie autoryzacja.
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "require('http').get('http://127.0.0.1:10000/devstoreaccount1?comp=list',
+          r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    # Bez `restart: unless-stopped` — z tego samego powodu co baza: to jest
+    # narzędzie deweloperskie, podnosi je `task up` i tylko wtedy.
+
 volumes:
   klucz-pgdata:
+  klucz-blobdata:

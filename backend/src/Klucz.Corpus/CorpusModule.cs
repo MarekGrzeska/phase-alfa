@@ -15,19 +15,19 @@ namespace Klucz.Corpus;
 ///
 /// Rejestracja niczego nie sprawdza i niczego nie otwiera: ani bazy, ani dysku.
 /// Build generuje dokument OpenAPI, a żeby go wygenerować, startuje aplikację —
-/// gdyby rejestracja wymagała bazy, `dotnet build` wymagałby postawionego Postgresa.
+/// gdyby rejestracja wymagała bazy, <c>dotnet build</c> wymagałby postawionego Postgresa.
 /// </remarks>
 public static class CorpusModule
 {
-    public static IServiceCollection AddCorpus(this IServiceCollection uslugi, IConfiguration konfiguracja)
+    public static IServiceCollection AddCorpus(this IServiceCollection services, IConfiguration configuration)
     {
-        uslugi.AddSingleton<IDatabaseProbe, PostgresDatabaseProbe>();
+        services.AddSingleton<IDatabaseProbe, PostgresDatabaseProbe>();
 
         // Korzeń składu jest WZGLĘDNY wobec korzenia repozytorium, tak samo jak
         // `BLOB_ROOT` po stronie Pythona — w bazie stoją ścieżki względne.
-        var korzenBlobow = konfiguracja["Blob:Root"] ?? konfiguracja["BLOB_ROOT"] ?? "data/blob";
-        uslugi.AddSingleton<IBlobStore>(new DyskowyBlobStore(KorzenRepozytorium.Rozwin(korzenBlobow)));
+        var blobRoot = configuration["Blob:Root"] ?? configuration["BLOB_ROOT"] ?? "data/blob";
+        services.AddSingleton<IBlobStore>(new DiskBlobStore(RepositoryRoot.Resolve(blobRoot)));
 
-        return uslugi;
+        return services;
     }
 }

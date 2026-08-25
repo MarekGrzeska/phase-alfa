@@ -35,13 +35,13 @@ tasks:
 
   # ------------------------------------------------------------------ baza
   up:
-    desc: Postgres + migracje schematu
+    desc: Postgres + Azurite (emulator Azure Blob) + migracje schematu
     cmds:
       - docker compose up -d --wait
       - task: migrate
 
   down:
-    desc: Zatrzymuje Postgresa (dane zostają)
+    desc: Zatrzymuje Postgresa i Azurite (dane zostają)
     cmds: [docker compose down]
 
   # Moduły, nie ścieżki do plików: korzeniem pakietu jest ingest/, więc

@@ -39,6 +39,8 @@ co `IBlobStore` i `IDatabaseProbe`. Jeden nawyk, nie trzy.
 | `tests/Klucz.ArchitectureTests` | granice modułów — jedyny projekt referujący wszystko |
 | `tests/Klucz.Tests` | zachowanie: health check, skład blobów, kompozycja DI |
 
+Nazwy w kodzie są po angielsku, komentarze po polsku — patrz `CLAUDE.md`, zasada 4.
+
 ## Testy architektury — widziane na czerwono
 
 Test granicy, którego nikt nie widział czerwonego, jest dekoracją. Oba sprawdzone
@@ -75,6 +77,21 @@ tak samo jak po stronie Pythona — numer portu stoi w `.env` raz.
 
 Korzeń składu blobów: `Blob:Root` z `appsettings.json`, nadpisywalny zmienną
 `BLOB_ROOT`. W bazie stoją ścieżki **względne** wobec tego korzenia.
+
+### Azurite — emulator Azure Blob Storage
+
+`task up` podnosi obok Postgresa kontener `klucz-blob` (Azurite) na porcie z `BLOB_PORT`.
+Backend pisze dziś na dysk przez `DiskBlobStore` i emulatora nie dotyka — stoi tu po to,
+żeby zdanie *„przeniesienie na Azure to zmiana konfiguracji, nie architektury"* dało się
+**sprawdzić lokalnie**, zanim zapadnie decyzja o chmurze. Bez emulatora zostaje deklaracją.
+
+Dane logowania (`devstoreaccount1` i klucz w `.env.example`) są wbudowane w Azurite,
+publiczne i takie same u wszystkich — nie są sekretem. Prawdziwy connection string do
+Azure wejdzie wyłącznie przez zmienną środowiskową.
+
+`AzureBlobStore` wchodzi wtedy, gdy będzie na czym go sprawdzić — czyli razem
+z wycinkami stron (G2.4). Port `IBlobStore` jest już przygotowany: żadnego `FileInfo`
+w sygnaturach.
 
 **Adres bazy jest rozwiązywany leniwie, przy pierwszym pytaniu.** Powód: dokument
 OpenAPI powstaje przy buildzie, a generator startuje w tym celu całą aplikację.

@@ -18,50 +18,50 @@ namespace Klucz.Corpus.Infrastructure;
 /// rozkładamy je tutaj na części — inaczej ten sam <c>.env</c> działałby dla Pythona
 /// i nie działał dla C#.
 /// </remarks>
-public static class PolaczenieBazy
+public static class DatabaseConnectionString
 {
-    private static readonly string[] Czesci =
+    private static readonly string[] RequiredKeys =
         ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"];
 
-    public static string ZeSrodowiska(IConfiguration konfiguracja)
+    public static string FromEnvironment(IConfiguration configuration)
     {
-        var url = konfiguracja["DATABASE_URL"];
+        var url = configuration["DATABASE_URL"];
         if (!string.IsNullOrWhiteSpace(url))
         {
-            return ZAdresu(url);
+            return FromUrl(url);
         }
 
-        var brakuje = Czesci.Where(k => string.IsNullOrWhiteSpace(konfiguracja[k])).ToArray();
-        if (brakuje.Length > 0)
+        var missing = RequiredKeys.Where(key => string.IsNullOrWhiteSpace(configuration[key])).ToArray();
+        if (missing.Length > 0)
         {
             throw new InvalidOperationException(
-                $"BRAK zmiennych: {string.Join(", ", brakuje)}. " +
+                $"BRAK zmiennych: {string.Join(", ", missing)}. " +
                 "Skopiuj .env.example do .env (albo ustaw je w środowisku).");
         }
 
         return new NpgsqlConnectionStringBuilder
         {
-            Host = konfiguracja["DB_HOST"],
-            Port = int.Parse(konfiguracja["DB_PORT"]!),
-            Database = konfiguracja["DB_NAME"],
-            Username = konfiguracja["DB_USER"],
-            Password = konfiguracja["DB_PASSWORD"],
+            Host = configuration["DB_HOST"],
+            Port = int.Parse(configuration["DB_PORT"]!),
+            Database = configuration["DB_NAME"],
+            Username = configuration["DB_USER"],
+            Password = configuration["DB_PASSWORD"],
         }.ConnectionString;
     }
 
     /// <summary>`postgresql://user:haslo@host:port/baza` → format, który rozumie Npgsql.</summary>
-    public static string ZAdresu(string url)
+    public static string FromUrl(string url)
     {
-        var adres = new Uri(url);
-        var uzytkownik = adres.UserInfo.Split(':', 2);
+        var uri = new Uri(url);
+        var credentials = uri.UserInfo.Split(':', 2);
 
         return new NpgsqlConnectionStringBuilder
         {
-            Host = adres.Host,
-            Port = adres.IsDefaultPort ? 5432 : adres.Port,
-            Database = adres.AbsolutePath.TrimStart('/'),
-            Username = Uri.UnescapeDataString(uzytkownik[0]),
-            Password = uzytkownik.Length > 1 ? Uri.UnescapeDataString(uzytkownik[1]) : null,
+            Host = uri.Host,
+            Port = uri.IsDefaultPort ? 5432 : uri.Port,
+            Database = uri.AbsolutePath.TrimStart('/'),
+            Username = Uri.UnescapeDataString(credentials[0]),
+            Password = credentials.Length > 1 ? Uri.UnescapeDataString(credentials[1]) : null,
         }.ConnectionString;
     }
 }
