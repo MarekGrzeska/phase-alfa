@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
   // Zaszyty tutaj rozjeżdżałby się z `API_PORT` przy pierwszej kolizji portów.
   const env = loadEnv(mode, REPO_ROOT, "");
   const apiPort = env.API_PORT ?? "5014";
+  const webPort = Number(env.WEB_PORT ?? "5173");
 
   return {
     plugins: [
@@ -34,10 +35,23 @@ export default defineConfig(({ mode }) => {
           display: "standalone",
           background_color: "#ffffff",
           theme_color: "#1f2933",
+          // Bez `icons` przeglądarka nie proponuje instalacji — i nie mówi o tym
+          // ani słowa. `maskable` osobno: Android przycina ikonę do swojego kształtu.
+          icons: [
+            { src: "icon-192.png", sizes: "192x192", type: "image/png" },
+            { src: "icon-512.png", sizes: "512x512", type: "image/png" },
+            { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          ],
         },
       }),
     ],
     server: {
+      // Port z `.env`, tak samo jak `API_PORT` — jedna wartość rządzi serwerem
+      // i komunikatem `task dev` naraz.
+      port: webPort,
+      // Bez `strictPort` Vite przy zajętym porcie po cichu wstaje na następnym,
+      // a komunikat `task dev` obiecuje adres, pod którym nic nie stoi.
+      strictPort: true,
       // Proxy zamiast CORS-u: przeglądarka widzi jeden origin, więc backend
       // nie musi znać adresu dev servera ani wystawiać nagłówków tylko dla niego.
       proxy: {

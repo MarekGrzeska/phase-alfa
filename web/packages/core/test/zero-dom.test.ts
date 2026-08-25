@@ -13,18 +13,24 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
-/** Wszystko, co ciągnie za sobą DOM albo framework widoku. */
+/** Wszystko, co ciągnie za sobą DOM albo framework widoku — nie tylko rodzina Reacta. */
 const FORBIDDEN = [
   "react",
   "react-dom",
   "react-native",
+  "@types/react",
+  "@types/react-dom",
+  "preact",
+  "solid-js",
+  "vue",
+  "svelte",
+  "@angular/core",
   "mathlive",
   "jsdom",
   "happy-dom",
   "@vitejs/plugin-react",
   "@testing-library/react",
   "@testing-library/dom",
-  "@types/react",
 ];
 
 const DOM_GLOBALS = /\b(?:document|window|navigator|localStorage|sessionStorage)\s*[.[]/;
@@ -55,6 +61,20 @@ describe("packages/core nie widzi DOM-u", () => {
     const found = declared.filter((name) => FORBIDDEN.includes(name));
 
     expect(found, `zabronione zależności w packages/core: ${found.join(", ")}`).toEqual([]);
+  });
+
+  // Reguła odwrócona, żeby nie pilnować listy: cokolwiek wejdzie pod nazwą,
+  // której nie ma w `FORBIDDEN`, zapali się tutaj.
+  it("nie deklaruje żadnych zależności produkcyjnych", () => {
+    const manifest = readJson(join(ROOT, "package.json"));
+    const production = ["dependencies", "peerDependencies"].flatMap((section) =>
+      Object.keys((manifest[section] ?? {}) as Record<string, string>),
+    );
+
+    expect(
+      production,
+      `packages/core ma nie mieć zależności produkcyjnych: ${production.join(", ")}`,
+    ).toEqual([]);
   });
 
   it("tsconfig produktu nie wpuszcza `lib: DOM` ani domyślnych @types", () => {

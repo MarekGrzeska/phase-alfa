@@ -192,5 +192,8 @@ jobs:
       # przechodzila ja na zielono, a recznie pisany `client.ts` przestawal sie
       # kompilowac. Zadanie `web` tego nie zastapi: ono typecheck'uje schema.d.ts
       # Z REPOZYTORIUM, a tutaj plik jest swiezo wygenerowany z biezacego kodu.
+      #
+      # `--filter @klucz/api-client`, a nie `-r`: pytanie o dryf dotyczy wylacznie
+      # klienta, a caly workspace typecheck'owal sie tu drugi raz bez nowej informacji.
       - name: Typecheck klienta
-        run: pnpm -C web -r typecheck
+        run: pnpm -C web --filter @klucz/api-client typecheck

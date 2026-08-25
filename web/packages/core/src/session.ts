@@ -7,7 +7,14 @@
  * bez przepisywania.
  */
 
-/** Rodzaje zadań ze schematu bazy (`task.kind`) — jeden słownik w całym produkcie. */
+/**
+ * Rodzaje zadań ze schematu bazy (`task.kind`, więz CHECK w migracji
+ * `0001_corpus.sql`) — jeden słownik w całym produkcie.
+ *
+ * Lista stoi tu DRUGI RAZ świadomie: pakiet ma przejść do fazy 2 bez zmian, więc
+ * nie wolno mu sięgać do migracji ani do klienta API. Gdy powstanie endpoint
+ * z zadaniami (A2/W2), `kind` bierze się z wygenerowanego `schema.d.ts`.
+ */
 export type TaskKind = "closed" | "open_short" | "open_extended" | "essay";
 
 export interface Task {
@@ -51,6 +58,10 @@ export function answerTask(session: Session, taskId: string, answer: string): Se
   return { ...session, answers };
 }
 
+/**
+ * Odpowiedź PO normalizacji z `answerTask` — nie nadaje się na `value`
+ * kontrolowanego pola. Surowy tekst pola trzyma ekran (`App.tsx`).
+ */
 export function answerOf(session: Session, taskId: string): string | undefined {
   return session.answers.get(taskId);
 }

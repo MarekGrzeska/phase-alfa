@@ -25,6 +25,9 @@ const DEMO_TASKS: readonly Task[] = [
 
 export function App() {
   const [session, setSession] = useState(() => createSession(DEMO_TASKS));
+  // Surowy tekst pól, osobno od modelu: `answerTask` KASUJE odpowiedź z samych
+  // białych znaków, więc wpisana spacja znikałaby użytkownikowi spod palców.
+  const [drafts, setDrafts] = useState<ReadonlyMap<string, string>>(() => new Map());
 
   const task = currentTask(session);
   const { answered, total } = progress(session);
@@ -48,8 +51,12 @@ export function App() {
           <label>
             Odpowiedź
             <input
-              value={answerOf(session, task.id) ?? ""}
-              onChange={(event) => setSession(answerTask(session, task.id, event.target.value))}
+              value={drafts.get(task.id) ?? answerOf(session, task.id) ?? ""}
+              onChange={(event) => {
+                const text = event.target.value;
+                setDrafts((previousDrafts) => new Map(previousDrafts).set(task.id, text));
+                setSession(answerTask(session, task.id, text));
+              }}
             />
           </label>
 

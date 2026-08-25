@@ -643,11 +643,16 @@ Reguła „`packages/core` bez DOM od pierwszego dnia" ma być egzekwowana
     "lib": ["ES2022"],          // BEZ "DOM" — `document` przestaje istnieć w typach
     "types": [],                // bez @types/node — żadnego `process`, `Buffer`
     "strict": true,
-    "noEmit": false,
+    "noEmit": true,             // emisja stoi osobno, w tsconfig.build.json
     "moduleResolution": "bundler"
-  }
+  },
+  "include": ["src"]            // sam produkt; testy mają tsconfig.test.json
 }
 ```
+
+Emisja `dist/` idzie przez osobny `tsconfig.build.json` (`noEmit: false`,
+`declaration: true`) — dzięki temu testy da się typecheckować bez wrzucania ich
+do zbudowanego pakietu.
 
 Po tym `document.querySelector(...)` w `core` **nie kompiluje się**.
 Nie „powinno się nie kompilować" — nie kompiluje się.
@@ -655,11 +660,14 @@ Nie „powinno się nie kompilować" — nie kompiluje się.
 **Warstwa 2 — test zależności.** `packages/core/package.json` nie może mieć
 w `dependencies` niczego DOM-owego. Test w CI:
 
-```js
+```ts
 // web/packages/core/test/zero-dom.test.ts
-const ZAKAZANE = ['react', 'react-dom', 'mathlive', '@vitejs/plugin-react'];
-// czyta package.json, sprawdza dependencies + peerDependencies
+const FORBIDDEN = ["react", "react-dom", "mathlive", "@vitejs/plugin-react"];
+// czyta package.json, sprawdza dependencies + peerDependencies + devDependencies
 ```
+
+Do tego reguła odwrócona, która nie wymaga pilnowania listy: `dependencies`
+i `peerDependencies` mają być **puste**.
 
 **Warstwa 3 (opcjonalna) — skan źródeł** na `document.` / `window.` / `navigator.`
 jako komunikat po ludzku („`packages/core` nie może dotykać DOM — przenieś do `apps/web`"),

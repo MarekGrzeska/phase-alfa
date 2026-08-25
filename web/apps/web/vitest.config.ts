@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
-    include: ["test/**/*.test.tsx"],
+    // Oba rozszerzenia: przy samym `.tsx` plik `.test.ts` nie był ani uruchamiany,
+    // ani zgłaszany jako pominięty — vitest po prostu go nie widział.
+    include: ["test/**/*.test.{ts,tsx}"],
   },
 });

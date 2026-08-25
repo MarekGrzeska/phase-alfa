@@ -22,6 +22,18 @@ describe("App", () => {
     expect(screen.getByText(/Bez odpowiedzi: 16, 20/)).toBeDefined();
   });
 
+  // Model kasuje odpowiedź złożoną z samych białych znaków — pole ma jej mimo to
+  // nie zabierać spod palców. Bez rozdzielenia stanu spacja znikała w locie.
+  it("spacja zostaje w polu, ale nie liczy się jako odpowiedź", () => {
+    render(<App />);
+
+    const field = screen.getByLabelText("Odpowiedź") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: " " } });
+
+    expect(field.value).toBe(" ");
+    expect(screen.getByText("Odpowiedzi: 0 z 3")).toBeDefined();
+  });
+
   it("„Następne” przechodzi na kolejne zadanie i wraca", () => {
     render(<App />);
 

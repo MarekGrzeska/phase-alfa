@@ -6,5 +6,7 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["test"]
+  // `vitest.config.ts` TU, a nie w `tsconfig.json`: produkt obejmuje wyłącznie `src`
+  // (pilnuje tego test zero-DOM). Bez tego wpisu nie widział go żaden tsconfig.
+  "include": ["test", "vitest.config.ts"]
 }

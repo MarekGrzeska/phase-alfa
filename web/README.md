@@ -11,7 +11,7 @@ Workspace pnpm, trzy pakiety:
 ```bash
 pnpm -C web install
 task dev                  # API + web z hot-reloadem
-task test:web             # typecheck (w tym zero-DOM) + vitest
+task test:web             # typecheck (w tym zero-DOM) + vitest + build
 task openapi:generate     # regeneracja typów z backend/artifacts/openapi.json
 ```
 
@@ -24,8 +24,9 @@ Reacta — a pilnują tego **trzy warstwy**, z których pierwsza jest właściwa
 1. **`tsconfig.json`** — `lib` bez `"DOM"` i `types: []`. `document` w `src/`
    **nie kompiluje się**: `error TS2584: Cannot find name 'document'`.
 2. **`test/zero-dom.test.ts`** — zabronione zależności w `package.json`
-   (`react`, `jsdom`, `mathlive`…) i sam kształt tsconfiga. Pakiet dopisany, ale
-   jeszcze nie zawołany, jest dla kompilatora niewidoczny.
+   (`react`, `preact`, `vue`, `jsdom`, `mathlive`…), pusta lista zależności
+   produkcyjnych i sam kształt tsconfiga. Pakiet dopisany, ale jeszcze nie
+   zawołany, jest dla kompilatora niewidoczny.
 3. **skan źródeł** — `document.` / `window.` / `navigator.` w `src/`, z komunikatem
    po ludzku. Łapie obejście typów przez `any`.
 
@@ -72,6 +73,15 @@ rzecz, jakiej trzeba przy iteracji co kilka minut.
 Dev server proxuje `/api` na `http://localhost:${API_PORT}` — przeglądarka widzi
 jeden origin, więc backend nie musi wystawiać CORS-u tylko dla dev servera. Port
 czytany jest z `.env` w korzeniu repozytorium, tym samym, z którego bierze go Taskfile.
+
+Sam dev server stoi na `WEB_PORT` z tego samego `.env`, z `strictPort: true`.
+Domyślnie Vite przy zajętym porcie po cichu wstaje na następnym wolnym — komunikat
+`task dev` obiecywał wtedy adres, pod którym nic nie stało. Teraz kolizja portu
+przerywa start i mówi, co zmienić.
+
+Manifest PWA ma ikony (`public/icon-192.png`, `public/icon-512.png`, ta druga też
+jako `maskable`), więc aplikacja jest instalowalna. Bez `icons` przeglądarka nie
+proponuje instalacji i **nie mówi o tym ani słowa** — build wygląda na pełny sukces.
 
 Ekran jest dziś szkieletem: kręci model sesji z `@klucz/core` na zadaniach wpisanych
 na sztywno. Widok statusu bazy (ping API, wersja migracji, liczniki rekordów) dokłada

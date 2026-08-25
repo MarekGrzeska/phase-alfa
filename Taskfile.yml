@@ -116,15 +116,19 @@ tasks:
   # Typecheck JEST tu testem zero-DOM: `packages/core` kompiluje się bez `lib: DOM`,
   # więc `document` w tym pakiecie nie przechodzi przez `tsc`. Vitest dokłada dwie
   # pozostałe warstwy — zabronione zależności i skan źródeł.
+  #
+  # `build` jest trzecim krokiem, bo emisja deklaracji (`declaration: true`) potrafi
+  # paść tam, gdzie `--noEmit` przechodzi — CI widziało wtedy błąd, a lokalnie nie.
   test:web:
-    desc: Typecheck (w tym zero-DOM) + vitest
+    desc: Typecheck (w tym zero-DOM) + vitest + build
     cmds:
       - cmd: |
           if test -f web/pnpm-workspace.yaml; then
             pnpm -C web -r typecheck
             pnpm -C web -r test
+            pnpm -C web -r build
           else
-            echo "POMIJAM test:web — brak workspace (wchodzi w G1.3.2)"
+            echo "POMIJAM test:web — brak workspace weba"
           fi
 
   test:contract:
@@ -176,11 +180,14 @@ tasks:
   # z zajetym 5014 nie mial gdzie go zmienic bez edycji repozytorium.
   # `launchSettings.json` nie ma juz `applicationUrl`: wygrywalo ono nawet
   # z jawnym ASPNETCORE_URLS, wiec zadne ustawienie ze srodowiska nie dzialalo.
+  #
+  # `WEB_PORT` poszedl ta sama droga: stal na sztywno w echo ponizej, a Vite przy
+  # zajetym porcie po cichu wstaje na nastepnym. Stad `strictPort` w vite.config.ts.
   dev:
     desc: API + web z hot-reloadem
     cmds:
       - task: up
-      - cmd: 'echo "API: http://localhost:${API_PORT:-5014} · web: http://localhost:5173 (proxy /api → API)"'
+      - cmd: 'echo "API: http://localhost:${API_PORT:-5014} · web: http://localhost:${WEB_PORT:-5173} (proxy /api → API)"'
       - task: dev:watch
 
   # Oba serwery stoją, dopóki ich nie ubijesz, więc muszą działać RÓWNOLEGLE.

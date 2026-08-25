@@ -14,5 +14,7 @@
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "test", "vite.config.ts"]
+  // `vitest.config.ts` razem z `vite.config.ts` — bez niego błąd typu w konfiguracji
+  // testów przechodził przez `pnpm -r typecheck` niezauważony.
+  "include": ["src", "test", "vite.config.ts", "vitest.config.ts"]
 }
