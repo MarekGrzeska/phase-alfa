@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Test architektury ładuje assembly modułów i sprawdza, kto na kogo patrzy.
+    Musi więc referować WSZYSTKIE projekty — także te, których nie wolno
+    referować nikomu innemu. To jedyny taki projekt w rozwiązaniu.
+  -->
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Klucz.Api\Klucz.Api.csproj" />
+    <ProjectReference Include="..\..\src\Klucz.Contracts\Klucz.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Klucz.Corpus\Klucz.Corpus.csproj" />
+    <ProjectReference Include="..\..\src\Klucz.Grading\Klucz.Grading.csproj" />
+    <ProjectReference Include="..\..\src\Klucz.Learning\Klucz.Learning.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

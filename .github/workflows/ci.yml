@@ -68,3 +68,76 @@ jobs:
       - name: Testy
         working-directory: ingest
         run: uv run pytest -q -rs
+
+  dotnet:
+    name: build + testy backendu
+    runs-on: ubuntu-latest
+
+    # Baza stoi także tutaj: bez niej `Zywa_baza_daje_odpowiedz_ok` pomija się,
+    # a health check przestaje być czymkolwiek sprawdzonym.
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: klucz
+          POSTGRES_USER: klucz
+          POSTGRES_PASSWORD: klucz_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U klucz -d klucz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: '5432'
+      DB_NAME: klucz
+      DB_USER: klucz
+      DB_PASSWORD: klucz_ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Wersja SDK z `backend/global.json` — CI i maszyna budują tym samym.
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+
+      - name: Build
+        run: dotnet build backend/Klucz.sln --configuration Release
+
+      - name: Testy
+        run: dotnet test backend/Klucz.sln --configuration Release --no-build
+
+  kontrakt:
+    name: dryf OpenAPI
+    runs-on: ubuntu-latest
+
+    # Osobne zadanie, bo pyta o co innego niż testy: czy kontrakt w repozytorium
+    # zgadza się z kodem. Zmieniłeś DTO i nie przegenerowałeś klienta → czerwono.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Zależności weba
+        run: pnpm -C web install --frozen-lockfile
+
+      - name: Bramka dryfu
+        run: |
+          dotnet build backend/src/Klucz.Api/Klucz.Api.csproj
+          pnpm -C web --filter @klucz/api-client run generate
+          git diff --exit-code -- backend/artifacts/openapi.json web/packages/api-client/src/schema.d.ts

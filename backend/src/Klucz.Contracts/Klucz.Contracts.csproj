@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    ZERO zależności — także na pakiety NuGet. To nie jest oszczędność, tylko
+    warunek: `Contracts` opisuje kształt danych i porty, więc każdy pakiet
+    dołożony tutaj staje się zależnością wszystkich modułów naraz.
+    Pilnuje tego `Contracts_nie_ma_zaleznosci_zewnetrznych`.
+  -->
+
+</Project>

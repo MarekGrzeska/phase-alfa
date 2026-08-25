@@ -27,8 +27,11 @@ tasks:
       - cmd: 'docker --version > /dev/null || (echo "BRAK: Docker" && exit 1)'
       - cmd: 'uv --version > /dev/null || (echo "BRAK: uv — https://docs.astral.sh/uv/" && exit 1)'
       - cmd: 'test -f .env || (echo "BRAK: .env — skopiuj z .env.example" && exit 1)'
-      - cmd: 'echo "OS={{OS}} ARCH={{ARCH}} — komplet dla G1.1."'
-      # .NET, Node i pnpm dochodzą w G1.3/G1.4 — sprawdzane, gdy będą potrzebne
+      - cmd: 'dotnet --version > /dev/null || (echo "BRAK: .NET SDK — wersja w backend/global.json" && exit 1)'
+      - cmd: 'node --version > /dev/null || (echo "BRAK: Node.js" && exit 1)'
+      - cmd: 'pnpm --version > /dev/null || (echo "BRAK: pnpm — corepack enable pnpm" && exit 1)'
+      - cmd: 'echo "OS={{OS}} ARCH={{ARCH}} — komplet dla G1.1-G1.3."'
+      # Vitest i reszta narzędzi weba dochodzą w G1.4
 
   # ------------------------------------------------------------------ baza
   up:
@@ -91,7 +94,7 @@ tasks:
   # „nie ma pliku" od „testy się wywaliły" i połyka jedno i drugie. Od G1.3
   # czerwony test .NET wypisywałby wtedy POMIJAM i kończył się sukcesem.
   test:dotnet:
-    desc: Build + testy architektury (G1.3)
+    desc: Build + testy architektury i zachowania
     cmds:
       - cmd: |
           if test -f backend/Klucz.sln; then
@@ -100,14 +103,18 @@ tasks:
             echo "POMIJAM test:dotnet — brak solution (wchodzi w G1.3)"
           fi
 
+  # Dziś to typecheck klienta API: workspace weba stoi (G1.3.2), ale aplikacji
+  # i testów jednostkowych jeszcze nie ma. Zadanie MÓWI, czego nie sprawdza —
+  # cichy stub jest nieodróżnialny od testu, który przechodzi.
   test:web:
-    desc: Typecheck + vitest + zero-DOM (G1.4)
+    desc: Typecheck workspace'u weba (vitest i zero-DOM wchodzą w G1.4)
     cmds:
       - cmd: |
-          if test -f web/package.json; then
-            pnpm -C web test
+          if test -f web/pnpm-workspace.yaml; then
+            pnpm -C web -r typecheck
+            echo "UWAGA: vitest i test zero-DOM wchodzą w G1.4 — na razie sam typecheck."
           else
-            echo "POMIJAM test:web — brak workspace (wchodzi w G1.4)"
+            echo "POMIJAM test:web — brak workspace (wchodzi w G1.3.2)"
           fi
 
   test:contract:
@@ -120,12 +127,34 @@ tasks:
             echo "POMIJAM test:contract — brak OpenAPI (wchodzi w G1.3.2)"
           fi
 
+  # --------------------------------------------------------------- kontrakt
+  openapi:generate:
+    desc: Dokument OpenAPI z API + typy klienta TS
+    cmds:
+      # Dokument powstaje przy buildzie (Microsoft.Extensions.ApiDescription.Server),
+      # więc build JEST generacją — nie ma drugiej ścieżki, która mogłaby się rozjechać.
+      - dotnet build backend/src/Klucz.Api/Klucz.Api.csproj
+      - pnpm -C web --filter @klucz/api-client run generate
+
+  openapi:check:
+    desc: Bramka dryfu — kontrakt w repo musi się zgadzać z kodem
+    cmds:
+      - task: openapi:generate
+      # Zmieniłeś API i nie przegenerowałeś klienta → czerwony build. O to chodzi.
+      - cmd: |
+          # Najpierw: czy oba pliki w ogóle są w repo. `git diff` milczy o plikach
+          # nieśledzonych, więc bez tego bramka przepuszczałaby wariant „wygenerowane,
+          # ale nigdy nie zacommitowane" — czyli dokładnie ten, który psuje diff PR-a.
+          git ls-files --error-unmatch backend/artifacts/openapi.json web/packages/api-client/src/schema.d.ts > /dev/null || (echo "KONTRAKT POZA REPO: openapi.json albo schema.d.ts nie sa sledzone przez gita." && exit 1)
+          git diff --exit-code -- backend/artifacts/openapi.json web/packages/api-client/src/schema.d.ts || (echo "DRYF KONTRAKTU: openapi.json albo schema.d.ts rozjechaly sie z kodem. Zacommituj wynik: task openapi:generate" && exit 1)
+
   # ------------------------------------------------------------- development
   dev:
-    desc: API + web z hot-reloadem (G1.3/G1.4)
+    desc: API z hot-reloadem (web dochodzi w G1.4)
     deps: [up]
     cmds:
-      - cmd: 'echo "dev wchodzi w G1.3 (dotnet watch) i G1.4 (vite). Baza już stoi."'
+      - cmd: 'echo "API: http://localhost:5014 — /health, /openapi/v1.json. Web wchodzi w G1.4."'
+      - dotnet watch --project backend/src/Klucz.Api run
 
   # ------------------------------------------------------------ dalsze fazy
   mirror:
