@@ -151,6 +151,23 @@ człowieka**, najdroższego zasobu tego kamienia. Zanim powstanie UI:
 `corpus_task` zwraca zero wierszy przed pierwszym zatwierdzeniem; ponowny
 `task ingest` nie rusza klucza z korektą — sprawdzone świadomie.
 
+> **Poprawki z implementacji (G2.1.1).**
+> **(1)** `correction_event.task_id` jest **NULL-owalne, z `ON DELETE SET NULL`**,
+> a nie `NOT NULL` z kaskadą jak wyżej w planie. Kaskada kasowała pomiar S8 razem
+> z zadaniami przy `--overwrite-reviewed`, a S8 jest wynikiem alfy i liczbą do wniosku;
+> wiersz bez zadania wciąż niesie czas i rodzaj decyzji, czyli wszystko, czego pomiar
+> potrzebuje.
+> **(2)** Flaga nazywa się `--overwrite-reviewed`, nie `--nadpisz-korekte`: nowe
+> identyfikatory w tym repozytorium są po angielsku (CLAUDE.md, zasada 4), a polskie
+> flagi obok są długiem z G1.2 i schodzą osobnym commitem.
+> **(3)** Doszła kolumna `task.page` — strona w KLUCZU. `task_version.page` po wczytaniu
+> z `--z-arkuszami` trzyma stronę w ARKUSZU i wtedy numeru strony klucza nie ma nigdzie,
+> a ekran korekty renderuje właśnie ją. Migracja uzupełnia ją dla korpusu wczytanego
+> bez arkuszy; reszta domaga się przeładowania i mówi to wprost.
+> **(4)** Bramka `--wyczysc` (TRUNCATE) jest osobna od bramki w ładowarce — ten SQL
+> omija ładowarkę z definicji, więc ochrona przed skasowaniem całego korpusu musi stać
+> w runnerze.
+
 ---
 
 ### G2.1.2 — UI lokalne
@@ -206,6 +223,19 @@ ingest/correction/
 **Zrobione, gdy:** pełny cykl na jednym zadaniu przechodzi z przeglądarki:
 otwórz → popraw kryterium → zatwierdź → rekord widoczny w `corpus_task`,
 wpis w dzienniku, status dokumentu zaktualizowany.
+
+> **Poprawki z implementacji (G2.1.2).**
+> **(1) htmx nie wszedł — ekran nie ma ani linijki JavaScriptu.** Wymiana fragmentów
+> okazała się niepotrzebna: dodawanie progu, warunku i zapisu to zwykłe `submit`
+> tego samego formularza (zapisz edycje → wstaw pusty wiersz → przekierowanie), więc
+> jedyne, co htmx by wniósł, to wendorowany plik zewnętrzny do przeglądu i utrzymania.
+> **(2) Jeden przycisk „Zatwierdź", dwa stany.** Plan zakładał rozdzielenie
+> `approve`/`correct` w interfejsie; w implementacji o statusie decyduje **porównanie
+> formularza z bazą**. Dzięki temu S6/S8 nie da się przekłamać kliknięciem — a przy
+> okazji `fields_changed` powstaje za darmo, z tego samego porównania.
+> **(3) Status `corrected` wymusza uczciwość również przy pustych wierszach:** nowy
+> warunek wchodzi z pustym opisem (`NOT NULL` pozwala na `''`), a walidacja nie puści
+> zapisu, dopóki człowiek go nie wypełni albo nie usunie.
 
 ---
 
@@ -661,7 +691,7 @@ to jedyny zasób, którego nie da się kupić tokenami.
 |---|---|
 | Status korekty na `task`, konsumenci czytają widok `corpus_task` | zadanie jest jednostką pracy w ekranie; definicja „co jest korpusem" stoi w jednym miejscu schematu, nie w kodzie trzech warstw |
 | `approved` ≠ `corrected` | odsetek trafień parsera (S6/S8) wprost ze statusów, bez rekonstrukcji z dziennika |
-| Ekran korekty: FastAPI + Jinja2 + htmx, zero build stepu | narzędzie na 3 tygodnie dla jednej osoby; React zostaje w `web/`, gdzie jest kontrakt OpenAPI |
+| Ekran korekty: FastAPI + Jinja2, zero build stepu i zero JavaScriptu | narzędzie na 3 tygodnie dla jednej osoby; React zostaje w `web/`, gdzie jest kontrakt OpenAPI. htmx z planu okazał się zbędny — dodawanie wierszy to `submit` tego samego formularza |
 | Render PDF przez pypdfium2 | licencja Apache-2.0/BSD; PyMuPDF (AGPL) pozostaje zakazany |
 | Ochrona rerunu: ingest pomija klucze po korekcie, `--nadpisz-korekte` wymusza | praca człowieka jest najdroższym zasobem A2; utrata cicha = najgorsza |
 | MathJSON: Node CLI z `@cortex-js/compute-engine` | ten sam silnik co EvaluateClosed w A3 — zero dryfu dialektu; zawężenie do `condition_expression` (odpowiedzi zamkniętych to litery) |

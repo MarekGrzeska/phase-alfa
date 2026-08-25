@@ -18,7 +18,7 @@ Kontraktem między warstwami jest **schemat bazy plus pliki JSON golden setu**, 
 | Kamień | Zakres | Status |
 |---|---|---|
 | **A1** | Szkielet: monorepo, Postgres w Dockerze, monolit C# z granicami modułów, OpenAPI → klient TS, CI | G1.1 ✓ · G1.2 ✓ · G1.3 ✓ · G1.4 ✓ · G1.5 ✓ |
-| A2 | Korpus: ekran korekty → parser OMAP E8 2019–2026 → zatwierdzone rekordy w bazie | |
+| **A2** | Korpus: ekran korekty → parser OMAP E8 2019–2026 → zatwierdzone rekordy w bazie | G2.1 ✓ |
 | A3 | Grading: pipeline 5 kroków, golden set, benchmark, macierz eksperymentów | |
 | A4 / W4 | Sesja zadań, mapa braków, telemetria, sprawdzian od zera | |
 
@@ -75,6 +75,8 @@ task up        # docker compose up -d + migracje schematu
 task dev       # dotnet watch + vite dev server
 task test      # testy: architektura, zero-DOM, regresja parsera, więzy schematu
 task ingest    # przebieg parsera (po A2)
+task correction        # ekran korekty — bramka między parserem a korpusem (G2.1)
+task correction:report # pomiar S8: stan korekty, czasy, prognoza
 task bench     # benchmark golden setu (po A3)
 ```
 

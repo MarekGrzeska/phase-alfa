@@ -9,6 +9,8 @@ task mirror -- --filtr matematyka   # zwózka (idempotentna, dosypuje brakujące
 task mirror -- --dry-run            # nic nie pobiera: raport z tego, co leży na dysku
 task ingest -- --limit 8            # szybki przebieg parsera
 task ingest -- --wyczysc            # cały zakres od zera (~2,5 min)
+task correction                     # ekran korekty na localhoście (G2.1)
+task correction:report              # pomiar S8 do data/reports/
 task test:python                    # ruff + pytest
 ```
 
@@ -30,7 +32,7 @@ już pobrany obok, ustaw `MIRROR_ROOT=../cke-mirror` zamiast pobierać go drugi 
 | `pdf/` | warstwa pozycyjna: `layout.py` (znaki, ramki, kreski; dwa silniki za jednym API) + `reconstruct.py` (ułamki, potęgi, NFKC, przypisy) |
 | `parsers/omap_e8/` | parser matematyki E8: `parser.py` → `loader.py` → `run.py` |
 | `schema/` | migracje SQL + runner — patrz [`schema/README.md`](schema/README.md) |
-| `correction/` | ekran korekty (A2, jeszcze pusty) |
+| `correction/` | ekran korekty: `app.py` (FastAPI) → `db.py` (SQL) → `stats.py` (S8) |
 | `golden/` | golden set jako JSON (A3, jeszcze pusty) |
 | `tests/` | regresja warstwy pozycyjnej, więzy schematu, ładowanie korpusu, mirror |
 | `tests/fixtures/` | zrzuty stron (JSON) — regresja rekonstrukcji bez ani jednego PDF-a |
@@ -57,6 +59,55 @@ z sondą „z pamięci" nie jest porównaniem.
 Ponowne uruchomienie jest bezpieczne: klucz zastępuje to, co sam zapisał poprzednio
 (kasowane są jego zadania i reguły, dokument wchodzi przez `ON CONFLICT (url)`).
 `--wyczysc` jest do czyszczenia CAŁEGO korpusu, nie do powtórki jednego przebiegu.
+
+## Ekran korekty — bramka między parserem a korpusem
+
+Parser produkuje **kandydatów**, nie korpus. Rekord wchodzi do korpusu dopiero wtedy,
+gdy człowiek go rozstrzygnie w ekranie (`task correction`, domyślnie
+`http://localhost:8600`). Kolejność z `DECYZJE.md`: najpierw ekran korekty, potem parser.
+
+| Status `task.review_status` | Znaczy |
+|---|---|
+| `pending` | parser zapisał, nikt nie patrzył — **poza korpusem** |
+| `approved` | człowiek zatwierdził **bez zmian** — trafienie parsera |
+| `corrected` | człowiek poprawił i zatwierdził |
+| `rejected` | rekord nie do uratowania — **poza korpusem**, dziura do zaraportowania |
+
+Konsumenci korpusu (moduł `Corpus` w C#, pipeline w A3) czytają widok **`corpus_task`**,
+nigdy wprost z `task`. Dzięki temu definicja „co jest korpusem" stoi w jednym miejscu
+schematu, zamiast być powtórzona w kodzie trzech warstw.
+
+**`approved` i `corrected` to dwa stany, bo różnica między nimi jest wynikiem badawczym.**
+Odsetek zadań, które parser trafił sam, to pomiar S8 (koszt półautomatu) i liczba do
+wniosku grantowego. Statusu nie da się przekłamać: ekran ma jeden przycisk „Zatwierdź",
+a o tym, który stan zapisać, decyduje **porównanie formularza z bazą**, nie deklaracja
+człowieka.
+
+`task correction:report` zrzuca te liczby do `data/reports/correction-RRRR-MM-DD.txt`:
+stan, mediana czasu na zadanie, prognozę reszty. Prognoza mnoży medianę, a nie średnią —
+formularz zostawiony otwarty na noc wchodzi do dziennika jako praca.
+
+### Ponowny ingest nie kasuje korekty
+
+`loader` przy powtórce klucza kasuje jego zadania i wstawia od nowa — i to jest poprawne,
+dopóki nikt tych rekordów nie tknął. Po pierwszej ręcznej poprawce ta sama linijka kasuje
+**pracę człowieka**, czyli najdroższy zasób całego A2. Dlatego:
+
+```bash
+task ingest                                  # klucze po korekcie POMIJA, wypisuje które
+task ingest -- --overwrite-reviewed          # przeładowuje je, KASUJĄC rozstrzygnięcia
+task ingest -- --wyczysc                     # odmawia, gdy w korpusie jest korekta
+```
+
+Pominięcie nie jest błędem: im dalej w A2, tym więcej kluczy przebieg omija, a raport
+wypisuje je wprost — cicho pominięty klucz wyglądałby w raporcie tak samo jak załadowany.
+Bramka siedzi w `loader._wyczysc_klucz`, tuż przed `DELETE`, więc obowiązuje każdą drogę
+do niego: runner, testy i ekran. Runner dokłada do tego zapytanie wstępne, żeby pominięty
+klucz nie kosztował 1,5 s parsowania.
+
+Dziennik `correction_event` przeżywa przeładowanie (`ON DELETE SET NULL`): pomiar S8 jest
+wynikiem alfy i nie ma znikać razem z zadaniami, bo wiersz bez zadania wciąż niesie czas
+i rodzaj decyzji.
 
 ## Uruchamianie modułami, nie ścieżkami
 
