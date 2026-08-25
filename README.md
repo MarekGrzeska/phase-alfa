@@ -25,9 +25,13 @@ Kontraktem między warstwami jest **schemat bazy plus pliki JSON golden setu**, 
 Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 **W** (web przyrostowo — po każdym feature silnika powstaje jego obsługa na FE).
 
-## Plany
+## Plany i przeglądy
 
 - [`docs/plan-A1.md`](docs/plan-A1.md) — szczegółowy plan implementacji **G1.1–G1.5** (kamień A1)
+- [`docs/review/`](docs/review/) — przeglądy kodu; plan mówi, co miało powstać, przegląd — co z tego wyszło
+
+Przeglądy tworzy skill [`.claude/skills/przeglad-kodu`](.claude/skills/przeglad-kodu/SKILL.md)
+na podstawie diffa brancha i zrealizowanego planu.
 
 Dokumenty nadrzędne leżą w repozytorium `cke-mirror`:
 

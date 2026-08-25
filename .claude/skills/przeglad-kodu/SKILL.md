@@ -1,6 +1,6 @@
 ---
 name: przeglad-kodu
-description: Tworzy przegląd kodu (code review) po polsku na podstawie diffa bieżącego brancha i/lub zrealizowanego planu .md, zapisuje go jako samodzielny dokument HTML w katalogu review/. Komentarze posortowane od najważniejszych, każdy z oznaczonym stopniem ważności, wskazaniem pliku i miejsca w kodzie, napisany prostym językiem. Używaj, gdy użytkownik prosi o: "przegląd kodu", "code review", "zrób review", "sprawdź brancha", "oceń co zrobiłem", "/przeglad-kodu".
+description: Tworzy przegląd kodu (code review) po polsku na podstawie diffa bieżącego brancha i/lub zrealizowanego planu .md, zapisuje go jako samodzielny dokument HTML w katalogu docs/review/. Komentarze posortowane od najważniejszych, każdy z oznaczonym stopniem ważności, wskazaniem pliku i miejsca w kodzie, napisany prostym językiem. Używaj, gdy użytkownik prosi o: "przegląd kodu", "code review", "zrób review", "sprawdź brancha", "oceń co zrobiłem", "/przeglad-kodu".
 ---
 
 # Przegląd kodu po polsku → dokument HTML
@@ -142,8 +142,10 @@ Numeruj komentarze od 1 w górę **przez cały dokument**, nie od nowa w każdej
 
 ## 6. Dokument wyjściowy
 
-**Miejsce i nazwa:** `review/RRRR-MM-DD-<branch>.html`
-(np. `review/2026-08-25-feat-g1.1-fundament.html`). Katalog `review/` utwórz, jeśli nie ma.
+**Miejsce i nazwa:** `docs/review/RRRR-MM-DD-<branch>.html`
+(np. `docs/review/2026-08-25-feat-g1.1-fundament.html`). Katalog `docs/review/` utwórz, jeśli nie ma.
+Przeglądy stoją obok planów, bo czyta się je razem: plan mówi, co miało powstać,
+przegląd — co z tego wyszło.
 
 **Forma:** jeden samodzielny plik HTML — cały CSS w środku, żadnych zewnętrznych
 zasobów poza Google Fonts. Ma się otwierać podwójnym kliknięciem.
