@@ -113,7 +113,10 @@ w trybie zamkniętym: `uv sync --frozen`, `pnpm install --frozen-lockfile`,
 `packages.lock.json` — pakiet dodany bez zacommitowania lockfile'a kończy się
 błędem `NU1004`, a nie cichym pobraniem innej wersji niż na maszynie autora.
 
-Gałąź `main` jest chroniona: merge dopiero po przejściu wszystkich czterech zadań.
+Ochrony gałęzi `main` **nie ma i na tym planie GitHuba być nie może** — repozytorium
+jest prywatne, a ochrona wymaga planu Pro (API odpowiada `403: Upgrade to GitHub Pro`).
+Bramką jest więc dyscyplina, nie ustawienie: scalamy przez pull request i dopiero
+z czterema zielonymi checkami.
 
 ## Licencje zależności
 

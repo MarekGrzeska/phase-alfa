@@ -18,6 +18,12 @@ on:
     branches: [main]
   pull_request:
 
+# BEZ `paths-ignore` na `docs/**` — mimo ze zmiana samego przegladu HTML odpala cztery
+# zadania (~3,5 minuty). `paths-ignore` sprawia, ze zadanie sie NIE URUCHAMIA, a nie ze
+# konczy sukcesem: gdyby kiedys weszly wymagane checki, taki PR utknalby w stanie
+# „expected — waiting for status" bez komunikatu prowadzacego do przyczyny. Decyzja
+# czeka na rozstrzygniecie sprawy ochrony `main` (plan G1.5, krok 3).
+
 # Kolejny push do galezi ubija poprzedni przebieg tej samej galezi — zadania
 # licza sie do limitu, a wynik dla nieaktualnego commita nikogo nie obchodzi.
 # Na `main` NIE anulujemy: tam kazdy przebieg opisuje stan, ktory zostaje.
@@ -31,9 +37,15 @@ permissions:
   contents: read
 
 jobs:
+  # `timeout-minutes` na kazdym zadaniu, bo domyslny limit GitHuba to 360 minut —
+  # jeden zwis (`dotnet test`, `docker pull` czekajacy na siec, usluga bazy, ktora
+  # nigdy nie zglosi zdrowia) zjadlby 18% miesiecznego limitu konta i nie powiedzial
+  # nic, czego nie powiedzialby po dwoch minutach. Zapas jest duzy, bo limit ma lapac
+  # ZWIS, a nie wolniejszy dzien: zmierzone czasy to 28s, 41s, 1m02s i 1m06s.
   python:
-    name: ruff + pytest + migracje
+    name: ruff + pytest + migracje + BOM
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     services:
       db:
@@ -58,7 +70,11 @@ jobs:
       PYTHONIOENCODING: utf-8
 
     steps:
-      - uses: actions/checkout@v4
+      # `@v5`, nie `@v4`: tamte deklaruja Node 20, ktory GitHub juz uznal za przestarzaly
+      # i uruchamia je na Node 24 wbrew deklaracji. Dzis to samo ostrzezenie w logu;
+      # w dniu, w ktorym podkladka zniknie, zadania stana na kroku `checkout` — czyli
+      # pierwszym, bez zwiazku ze zmiana, ktora akurat bedzie w PR-ze.
+      - uses: actions/checkout@v5
 
       - name: uv
         uses: astral-sh/setup-uv@v5
@@ -85,9 +101,24 @@ jobs:
         working-directory: ingest
         run: uv run pytest -q -rs
 
+      # Trzy bajty, ktore decyduja, czy skrypt w ogole sie uruchomi: bez BOM-u Windows
+      # PowerShell 5.1 czyta plik jako ANSI, polskie napisy sie rozjezdzaja i parser lamie
+      # sie na peknietym cudzyslowie. Dotad pilnowal tego wylacznie komentarz w pliku,
+      # czyli nic — a repozytorium, ktore zero-DOM pilnuje czterema warstwami, nie ma
+      # powodu robic tu wyjatku. Zadanie jest tanie i nie potrzebuje niczego poza powloka.
+      - name: BOM w skryptach PowerShella
+        run: |
+          for script in scripts/*.ps1; do
+            head -c 3 "$script" | od -An -tx1 | tr -d ' \n' | grep -qx efbbbf || {
+              echo "BRAK BOM: $script — PowerShell 5.1 przeczyta go jako ANSI (CLAUDE.md)"
+              exit 1
+            }
+          done
+
   dotnet:
     name: build + testy backendu
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     # Baza stoi także tutaj: bez niej `Zywa_baza_daje_odpowiedz_ok` pomija się,
     # a health check przestaje być czymkolwiek sprawdzonym.
@@ -113,12 +144,12 @@ jobs:
       DB_PASSWORD: klucz_ci
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Wersja SDK z `backend/global.json` — CI i maszyna budują tym samym.
       # Cache pakietow trzyma sie `packages.lock.json`: zmiana wersji w
       # `Directory.Packages.props` przelicza lockfile'e, a te sa kluczem cache'u.
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: backend/global.json
           cache: true
@@ -142,13 +173,14 @@ jobs:
   web:
     name: typecheck (zero-DOM) + vitest
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     # Osobne zadanie od `contract`, bo pyta o co innego: czy warstwa TS sama w sobie
     # jest zdrowa. Zero-DOM egzekwuje tu `tsc` — `packages/core` kompiluje sie bez
     # `lib: DOM`, wiec `document` w tym pakiecie nie przechodzi typecheck'u. Vitest
     # dokłada dwie pozostale warstwy: zabronione zaleznosci i skan zrodel.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: pnpm/action-setup@v4
         with:
@@ -177,13 +209,14 @@ jobs:
   contract:
     name: dryf OpenAPI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     # Osobne zadanie, bo pyta o co innego niż testy: czy kontrakt w repozytorium
     # zgadza się z kodem. Zmieniłeś DTO i nie przegenerowałeś klienta → czerwono.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: backend/global.json
           cache: true

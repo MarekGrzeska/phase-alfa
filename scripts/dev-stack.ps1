@@ -27,7 +27,7 @@ function Fail([string]$message) {
 }
 
 if (-not (Get-Command task -ErrorAction SilentlyContinue)) {
-    Fail "brak `task` — zainstaluj: winget install Task.Task"
+    Fail "brak 'task' — zainstaluj: winget install Task.Task"
 }
 
 # Docker musi ODPOWIADAĆ, a nie tylko być zainstalowany: przy wyłączonym silniku
@@ -67,4 +67,10 @@ Write-Host "Kontenery zostają w tle; zatrzymuje je 'task down'." -ForegroundCol
 Write-Host ""
 
 # Oba serwery stoją, dopóki ich nie ubijesz — to ostatnia komenda skryptu.
+#
+# `exit $LASTEXITCODE`, bo Windows PowerShell NIE przenosi kodu wyjścia natywnego
+# programu na kod wyjścia skryptu: bez tej linijki `dev-stack.ps1` kończył się zerem
+# także wtedy, gdy `task dev` padł (choćby na zajętym porcie — `strictPort` przerywa
+# start Vite). Wersja `.sh` propaguje kod sama, przez `set -e`.
 task dev
+exit $LASTEXITCODE
