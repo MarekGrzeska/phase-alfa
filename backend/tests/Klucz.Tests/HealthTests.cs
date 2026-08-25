@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using Klucz.Contracts;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Klucz.Tests;
 
@@ -13,7 +12,7 @@ namespace Klucz.Tests;
 /// </summary>
 public class HealthTests
 {
-    private static WebApplicationFactory<Program> Application(Dictionary<string, string?> settings)
+    internal static WebApplicationFactory<Program> Application(Dictionary<string, string?> settings)
         => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(settings)));
 
@@ -38,6 +37,49 @@ public class HealthTests
         Assert.NotNull(health);
         Assert.False(health!.Database);
         Assert.Equal("degraded", health.Status);
+    }
+
+    [Fact]
+    public async Task Malformed_port_yields_degraded_not_a_500()
+    {
+        // Literówka w `.env` to BŁĄD KONFIGURACJI, nie awaria API. Wcześniej
+        // składanie adresu stało poza `try` w sondzie, więc `FormatException`
+        // z `int.Parse(DB_PORT)` wychodziło jako HTTP 500 ze stack trace w treści
+        // odpowiedzi: monitoring widział „API leży", choć API stało.
+        await using var application = Application(new Dictionary<string, string?>
+        {
+            ["DB_HOST"] = "127.0.0.1",
+            ["DB_PORT"] = "5432x",
+            ["DB_NAME"] = "klucz",
+            ["DB_USER"] = "klucz",
+            ["DB_PASSWORD"] = "nieistotne",
+        });
+
+        var response = await application.CreateClient().GetAsync("/health");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var health = await response.Content.ReadFromJsonAsync<HealthResponse>();
+        Assert.Equal("degraded", health!.Status);
+        Assert.False(health.Database);
+    }
+
+    [Fact]
+    public async Task Unsupported_connection_parameter_yields_degraded_not_a_500()
+    {
+        // Nieznany parametr w `DATABASE_URL` zatrzymuje składanie adresu
+        // (`ArgumentException` z buildera Npgsql) — celowo, bo cicha utrata
+        // parametru połączenia jest gorsza niż błąd. Ale endpoint ma to oddać
+        // jako `degraded`, a nie jako 500.
+        await using var application = Application(new Dictionary<string, string?>
+        {
+            ["DATABASE_URL"] = "postgresql://klucz:tajne@localhost:5432/klucz?takiego_parametru_nie_ma=1",
+        });
+
+        var response = await application.CreateClient().GetAsync("/health");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var health = await response.Content.ReadFromJsonAsync<HealthResponse>();
+        Assert.Equal("degraded", health!.Status);
     }
 
     [Fact]
@@ -69,21 +111,17 @@ public class HealthTests
 
         var health = await application.CreateClient().GetFromJsonAsync<HealthResponse>("/health");
 
+        // Komunikat opisuje to, co WIDAĆ, a nie to, co powinno być prawdą. Wcześniej
+        // stało tu „baza stoi (`task up`), a health check jej nie widzi" — zdanie
+        // twierdzące odwrotność stanu faktycznego, gdy kontenera po prostu nie było.
+        // Od czasu, gdy atrybut pomija test po nieudanej próbie połączenia, ta asercja
+        // zapala się tylko wtedy, gdy baza ODPOWIADA, a API jej mimo to nie widzi —
+        // czyli gdy zepsuta jest konfiguracja API, nie baza.
+        var target = $"{Environment.GetEnvironmentVariable("DB_HOST")}:{Environment.GetEnvironmentVariable("DB_PORT")}";
+
         Assert.NotNull(health);
-        Assert.True(health!.Database, "baza stoi (`task up`), a health check jej nie widzi");
+        Assert.True(health!.Database,
+            $"baza pod {target} odpowiada, ale API jej nie widzi — sprawdź konfigurację API, nie kontener");
         Assert.Equal("ok", health.Status);
-    }
-
-    [Fact]
-    public void Composition_registers_database_probe_and_blob_store()
-    {
-        // Kompozycja jest częścią umowy: moduły rejestrują porty, Api ich używa.
-        // Gdyby rejestracja zniknęła, `/health` przewróciłby się dopiero w czasie
-        // żądania — a to jest błąd, który chce się widzieć przy starcie.
-        using var application = Application([]);
-        using var scope = application.Services.CreateScope();
-
-        Assert.NotNull(scope.ServiceProvider.GetRequiredService<IDatabaseProbe>());
-        Assert.NotNull(scope.ServiceProvider.GetRequiredService<IBlobStore>());
     }
 }

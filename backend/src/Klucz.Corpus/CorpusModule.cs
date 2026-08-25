@@ -21,12 +21,34 @@ public static class CorpusModule
 {
     public static IServiceCollection AddCorpus(this IServiceCollection services, IConfiguration configuration)
     {
+        // `configuration` w sygnaturze zostaje: trzy metody `Add*` mają wyglądać
+        // tak samo, a moduły A2–A4 będą jej potrzebować. Rejestracje poniżej biorą
+        // konfigurację z kontenera, żeby czytać ją PÓŹNIEJ, nie w tym miejscu.
         services.AddSingleton<IDatabaseProbe, PostgresDatabaseProbe>();
 
-        // Korzeń składu jest WZGLĘDNY wobec korzenia repozytorium, tak samo jak
-        // `BLOB_ROOT` po stronie Pythona — w bazie stoją ścieżki względne.
-        var blobRoot = configuration["Blob:Root"] ?? configuration["BLOB_ROOT"] ?? "data/blob";
-        services.AddSingleton<IBlobStore>(new DiskBlobStore(RepositoryRoot.Resolve(blobRoot)));
+        // Skład blobów powstaje przy PIERWSZYM UŻYCIU, nie tutaj — z tego samego
+        // powodu co leniwy adres bazy. `RepositoryRoot.Resolve` chodzi po dysku
+        // w górę katalogów, a ta metoda ma tylko rejestrować. Poza tym konfiguracja
+        // bywa dokładana PO rejestracji usług (tak robi `WebApplicationFactory`
+        // w testach), więc odczyt w tym miejscu nie widziałby nadpisań i „korzeń
+        // z konfiguracji" nie dałoby się sprawdzić testem.
+        services.AddSingleton<IBlobStore>(provider =>
+        {
+            var settings = provider.GetRequiredService<IConfiguration>();
+
+            // Korzeń składu jest WZGLĘDNY wobec korzenia repozytorium, tak samo jak
+            // `BLOB_ROOT` po stronie Pythona — w bazie stoją ścieżki względne.
+            //
+            // KOLEJNOŚĆ MA ZNACZENIE: zmienna środowiskowa stoi PIERWSZA. `Blob:Root`
+            // jest w `appsettings.json`, więc zawsze coś zwraca — postawiony przed
+            // `BLOB_ROOT` zjadałby go w całości i zmienna z `.env` nie wykonałaby się
+            // nigdy, mimo że `.env.example` i `backend/README.md` obiecują, że to nią
+            // przenosi się skład na inny dysk. Objawem byłby korpus w dwóch miejscach:
+            // Python pisze w nowym, C# czyta ze starego, i nic o tym nie mówi.
+            var blobRoot = settings["BLOB_ROOT"] ?? settings["Blob:Root"] ?? "data/blob";
+
+            return new DiskBlobStore(RepositoryRoot.Resolve(blobRoot));
+        });
 
         return services;
     }

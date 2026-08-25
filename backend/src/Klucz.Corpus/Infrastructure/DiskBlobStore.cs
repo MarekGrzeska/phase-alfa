@@ -6,7 +6,8 @@ namespace Klucz.Corpus.Infrastructure;
 /// Skład na dysku lokalnym — implementacja <see cref="IBlobStore"/> na czas alfy.
 /// </summary>
 /// <remarks>
-/// Korzeń bierze się z konfiguracji (<c>Blob:Root</c>, domyślnie <c>data/blob</c>).
+/// Korzeń bierze się z konfiguracji (<c>BLOB_ROOT</c>, w drugiej kolejności
+/// <c>Blob:Root</c> z <c>appsettings.json</c>, domyślnie <c>data/blob</c>).
 /// W bazie stoją ścieżki WZGLĘDNE wobec tego korzenia, więc przeniesienie korpusu
 /// na inną maszynę albo do Azure jest zmianą konfiguracji, a nie migracją danych.
 /// </remarks>
@@ -23,6 +24,15 @@ public sealed class DiskBlobStore : IBlobStore
         // rejestrują się także wtedy, gdy build generuje dokument OpenAPI,
         // a build nie ma prawa tworzyć katalogów z danymi.
     }
+
+    /// <summary>Korzeń składu — pełna ścieżka, zakończona separatorem katalogów.</summary>
+    /// <remarks>
+    /// Wystawione po to, żeby test kompozycji mógł sprawdzić, GDZIE stanął skład,
+    /// a nie tylko że usługa się zarejestrowała. To drugie przechodzi niezależnie
+    /// od tego, na co wskazuje ścieżka — czyli także wtedy, gdy `BLOB_ROOT`
+    /// z `.env` jest po cichu ignorowane.
+    /// </remarks>
+    public string Root => _root;
 
     public Task<Stream> OpenAsync(string path, CancellationToken ct = default)
     {

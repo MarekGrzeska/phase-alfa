@@ -9,6 +9,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <!-- Npgsql WPROST, choć wchodzi też tranzytywnie przez Klucz.Corpus:
+         `RequiresDatabaseFact` łączy się z bazą świadomie, więc zależność ma być
+         widoczna w tym pliku, a nie brana z cudzego drzewa. Granicy „Npgsql tylko
+         w Corpus.Infrastructure" to nie łamie — ona dotyczy projektów z `src/`
+         i pilnuje jej `No_module_touches_the_database_directly`. -->
+    <PackageReference Include="Npgsql" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
