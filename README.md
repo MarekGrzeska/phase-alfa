@@ -28,6 +28,7 @@ Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 ## Plany i przeglądy
 
 - [`docs/plan-A1.md`](docs/plan-A1.md) — szczegółowy plan implementacji **G1.1–G1.5** (kamień A1)
+- [`docs/plan-A2.md`](docs/plan-A2.md) — szczegółowy plan implementacji **G2.1–G2.7 + W2** (kamień A2)
 - [`ingest/README.md`](ingest/README.md) · [`backend/README.md`](backend/README.md) · [`web/README.md`](web/README.md) — jak uruchomić i czego pilnują bramki w każdej z warstw
 - [`docs/g1.2-ingest.html`](docs/g1.2-ingest.html) — **G1.2** ingest: co powstało, co osiąga, jak podłączyć się do bazy DBeaverem
 - [`docs/review/`](docs/review/) — przeglądy kodu (G1.1–G1.4); plan mówi, co miało powstać, przegląd — co z tego wyszło
