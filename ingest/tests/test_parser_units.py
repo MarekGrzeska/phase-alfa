@@ -85,7 +85,7 @@ def test_filtr_rocznika_odcina_pozostale_roczniki():
 def test_filtr_wariantu_znajduje_zeszyt_zadan_mimo_litery_wersji():
     """Zeszyt ma w `warianty` także wersję („100,X") — filtr patrzy na pierwszy człon.
 
-    Bez tego `--z-arkuszami` z filtrem wariantu wczytywał klucz bez ani jednego
+    Bez tego `--with-papers` z filtrem wariantu wczytywał klucz bez ani jednego
     arkusza: spis zeszytów wychodził pusty, a treści zadań nie miał kto dowieźć.
     """
     zeszyt = _wiersz(typ="arkusz", warianty="100,X")

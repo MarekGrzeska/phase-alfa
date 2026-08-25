@@ -69,7 +69,7 @@ def save(cur, task_id: int, form: Mapping[str, str], edited: dict[str, int],
         if asset["paper_path"] is None:
             problems.append(
                 f"Zasób {asset['path']}: nie znam zeszytu zadań tej wersji, "
-                "więc nie ma z czego wyciąć. Przeładuj klucz z `--z-arkuszami`.")
+                "więc nie ma z czego wyciąć. Przeładuj klucz z `--with-papers`.")
             continue
         try:
             crop_pdf.crop(pages.source_pdf(asset["paper_path"]), page,

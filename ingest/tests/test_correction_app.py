@@ -669,4 +669,4 @@ def test_strona_zeszytu_bez_zeszytu_mowi_co_zrobic(client, con, task, zasob):
     response = client.get(f"/asset/{zasob['id']}/page.png")
 
     assert response.status_code == 404
-    assert "--z-arkuszami" in response.text
+    assert "--with-papers" in response.text

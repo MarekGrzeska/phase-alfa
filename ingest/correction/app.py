@@ -257,7 +257,7 @@ def asset_page(asset_id: int, n: int | None = None, grid: str = "1") -> FileResp
         raise HTTPException(
             404,
             "ta wersja zadania nie ma w bazie zeszytu zadań — przeładuj klucz "
-            "poleceniem `task ingest -- --z-arkuszami`",
+            "poleceniem `task ingest -- --with-papers`",
         )
     try:
         return FileResponse(
