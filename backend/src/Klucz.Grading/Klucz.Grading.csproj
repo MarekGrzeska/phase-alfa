@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Ocenianie. Nie widzi Corpusa ani Learningu; kryteriów zażąda przez port
+    w `Contracts`, gdy przyjdzie na to czas (A3).
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klucz.Contracts\Klucz.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

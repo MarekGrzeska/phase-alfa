@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Jedyne miejsce, które widzi wszystkie moduły naraz — bo składa je w aplikację.
+    Moduły nie widzą Api: zależność idzie w JEDNĄ stronę i pilnuje tego
+    `Nikt_nie_zalezy_od_Api`.
+  -->
+
+  <PropertyGroup>
+    <!-- Dokument OpenAPI powstaje przy buildzie i wchodzi do repozytorium:
+         zmiana kontraktu ma być widoczna w diffie PR-a, a nie dopiero w CI. -->
+    <OpenApiGenerateDocuments>true</OpenApiGenerateDocuments>
+    <OpenApiDocumentsDirectory>$(MSBuildThisFileDirectory)../../artifacts</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
+    <!-- Bez tego plik nazywa się jak assembly (`Klucz.Api.json`). Nazwa jest
+         częścią umowy z Taskfile i z generatorem klienta TS, więc ustalamy ją tutaj. -->
+    <OpenApiGenerateDocumentsOptions>--file-name openapi</OpenApiGenerateDocumentsOptions>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <!-- To ten pakiet generuje dokument przy buildzie (narzędzie GetDocument.Insider).
+         PrivateAssets: jest potrzebny do zbudowania, nie do uruchomienia. -->
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" PrivateAssets="all" />
+    <!-- Npgsql tu NIE WCHODZI. Kompozycja nie potrzebuje sterownika bazy — dostaje
+         gotowy port `IDatabaseProbe` z Contracts, a jedynym miejscem, które trzyma
+         Npgsql w ręku, jest `Klucz.Corpus.Infrastructure`. Sam wpis w tym pliku był
+         zaproszeniem, żeby napisać `new NpgsqlConnection(...)` wprost w Program.cs.
+         Pilnują tego dwa sita w `No_module_touches_the_database_directly`:
+         deklaracje w csproj-ach i referencje assembly. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klucz.Contracts\Klucz.Contracts.csproj" />
+    <ProjectReference Include="..\Klucz.Corpus\Klucz.Corpus.csproj" />
+    <ProjectReference Include="..\Klucz.Grading\Klucz.Grading.csproj" />
+    <ProjectReference Include="..\Klucz.Learning\Klucz.Learning.csproj" />
+  </ItemGroup>
+
+</Project>

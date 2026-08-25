@@ -1,0 +1,44 @@
+<Project>
+
+  <!--
+    Ustawienia wspólne dla WSZYSTKICH projektów backendu. Stoją w jednym pliku,
+    bo inaczej rozjeżdżają się między projektami — a wtedy „ostrzeżenia są
+    błędami" obowiązuje w czterech projektach na siedem i nikt tego nie zauważa.
+
+    TreatWarningsAsErrors: ostrzeżenie, które wolno zignorować, jest ignorowane
+    zawsze. Kompilator C# ostrzega m.in. o możliwym `null` — czyli o tej klasie
+    błędów, którą `Nullable` ma wyłapywać.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Nazwy typów i metod są po angielsku, komentarze po polsku (CLAUDE.md).
+         Ostrzeżenie o braku komentarza XML byłoby tu szumem — dokumentujemy
+         „dlaczego", a nie „co", i robimy to w miejscach, gdzie coś to znaczy. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Wersja jest USTAWIANA, a nie zostawiona domyślnej. `/health` oddaje
+         `InformationalVersion`, a bez tej właściwości byłaby to stała `1.0.0.0`
+         w każdym buildzie — pole „wersja zbudowanego API", które nie odróżnia
+         żadnych dwóch buildów, jest gorsze niż jego brak.
+
+         CI dokłada SHA commita przez `-p:SourceRevisionId=<sha>`; SDK dokleja go
+         do `InformationalVersion` po znaku `+`. Lokalny build zostaje przy samym
+         numerze i to jest w porządku: lokalnie wiadomo, co się zbudowało. -->
+    <VersionPrefix>0.1.0</VersionPrefix>
+  </PropertyGroup>
+
+  <!--
+    Wyjście buildu zostaje w `bin/` i `obj/` przy projektach — te dwa wzorce są
+    już w `.gitignore`. Katalog `backend/artifacts/` jest zarezerwowany dla
+    JEDNEGO pliku: `openapi.json`, który jest artefaktem WERSJONOWANYM (zmiana
+    kontraktu ma być widoczna w diffie PR-a). Wrzucenie tam wyjścia kompilacji
+    znaczyłoby, że ten plik trzeba wyłuskiwać wyjątkiem w .gitignore.
+  -->
+
+</Project>

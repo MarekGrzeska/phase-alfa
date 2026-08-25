@@ -492,31 +492,32 @@ Ten sam wzorzec co `IGradingModel` i `IBlobStore` — jeden nawyk, nie trzy.
 2. Test architektury (`Klucz.ArchitectureTests`, NetArchTest.Rules + xUnit):
 
    ```csharp
+   // Nazwy testów po angielsku, jak cały kod (CLAUDE.md, zasada 4).
    [Fact]
-   public void Moduly_nie_widza_sie_nawzajem()
+   public void Modules_do_not_see_each_other()
    {
-       string[] moduly = ["Klucz.Corpus", "Klucz.Grading", "Klucz.Learning"];
-       foreach (var modul in moduly)
+       string[] modules = ["Klucz.Corpus", "Klucz.Grading", "Klucz.Learning"];
+       foreach (var module in modules)
        {
-           var pozostale = moduly.Where(m => m != modul).ToArray();
-           var wynik = Types.InAssembly(Assembly.Load(modul))
-               .Should().NotHaveDependencyOnAny(pozostale)
+           var others = modules.Where(m => m != module).ToArray();
+           var result = Types.InAssembly(Assembly.Load(module))
+               .Should().NotHaveDependencyOnAny(others)
                .GetResult();
-           Assert.True(wynik.IsSuccessful,
-               $"{modul} sięga do: {string.Join(", ", wynik.FailingTypeNames ?? [])}");
+           Assert.True(result.IsSuccessful,
+               $"{module} sięga do: {string.Join(", ", result.FailingTypeNames ?? [])}");
        }
    }
 
-   [Fact] public void Nikt_nie_zalezy_od_Api() { /* moduły + Contracts ↛ Klucz.Api */ }
+   [Fact] public void Nothing_depends_on_Api() { /* moduły + Contracts ↛ Klucz.Api */ }
 
-   [Fact] public void Contracts_nie_ma_zaleznosci_zewnetrznych() { /* tylko BCL */ }
+   [Fact] public void Contracts_has_no_external_dependencies() { /* tylko BCL */ }
 
    [Fact]
-   public void Zaden_modul_nie_dotyka_bazy_bezposrednio()
+   public void No_module_touches_the_database_directly()
        => /* Corpus.Infrastructure wyjątkiem; Grading i Learning ↛ Npgsql */;
 
    [Fact]
-   public void Backend_nie_parsuje_PDF()
+   public void Backend_does_not_parse_PDF()
        => /* żaden projekt ↛ pakiet z „Pdf" w nazwie — granica z DECYZJE.md */;
    ```
 
@@ -577,13 +578,13 @@ Przeniesienie na Azure po alfie ma być **zmianą configu, nie architektury**.
    ```csharp
    public interface IBlobStore
    {
-       Task<Stream> OtworzAsync(string sciezka, CancellationToken ct = default);
-       Task<string> ZapiszAsync(string sciezka, Stream tresc, CancellationToken ct = default);
-       Task<bool> IstniejeAsync(string sciezka, CancellationToken ct = default);
+       Task<Stream> OpenAsync(string path, CancellationToken ct = default);
+       Task<string> SaveAsync(string path, Stream content, CancellationToken ct = default);
+       Task<bool> ExistsAsync(string path, CancellationToken ct = default);
    }
    ```
 
-2. `DyskowyBlobStore` — korzeń z konfiguracji (`Blob:Root` → `data/blob/`).
+2. `DiskBlobStore` — korzeń z konfiguracji (`Blob:Root` → `data/blob/`).
    **W bazie stoją ścieżki względne** (`omap/2505/zad-16-x.png`), nigdy absolutne
    i nigdy z literą dysku — inaczej korpus przestaje być przenośny.
 3. **Ochrona przed wyjściem poza korzeń:** ścieżka po normalizacji musi zostawać

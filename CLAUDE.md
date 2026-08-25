@@ -88,11 +88,35 @@ Wartości w więzach `CHECK` też są po angielsku (`'marking_scheme'`, `'open_s
 *co* to jest, komentarz mówi, *dlaczego tak* — i to drugie jest po polsku, jak wszystko
 inne w tym repozytorium.
 
-### Czego te zasady nie rozstrzygają — do ustalenia
+### 4. Cały kod — **po angielsku**. Bez wyjątków
 
-**Nazwy zmiennych i funkcji w Pythonie** mieszają oba języki: `migrate.py` ma
-`polaczenie()` i `suma()` obok `main()` i `status()`. Do rozstrzygnięcia, gdy zacznie
-przeszkadzać — schemat bazy, jako kontrakt między warstwami, był pilniejszy.
+Rozstrzygnięcie z 25.08.2026. Dotyczy **wszystkiego, co jest identyfikatorem**:
+klasy, interfejsy, metody, funkcje, zmienne, parametry, pola, właściwości, stałe,
+nazwy testów, klucze konfiguracji, komunikaty wyjątków przeznaczone dla kodu.
+
+```csharp
+Task<Stream> OpenAsync(string path, CancellationToken ct = default);   // dobrze
+Task<Stream> OtworzAsync(string sciezka, CancellationToken ct = default);  // źle
+```
+
+```python
+def read_key(path: str) -> Key: ...      # dobrze
+def czytaj_klucz(sciezka: str): ...      # źle
+```
+
+**Komentarze, docstringi i teksty dla człowieka zostają po polsku** (zasada 2).
+Nazwa mówi *co* to jest — po angielsku, jak schemat bazy i jak nazwy plików.
+Komentarz mówi *dlaczego tak* — po polsku, bo czyta go autor.
+
+Polskie pojęcia z dokumentów CKE tłumaczy słownik z zasady 3
+(`zasady_oceniania` → `marking_scheme`, `zadanie` → `task`). Ten sam przekład
+obowiązuje w kodzie, nie tylko w bazie — inaczej parser, schemat i moduł C#
+nazywają tę samą rzecz na trzy sposoby.
+
+**Dług do spłacenia:** `ingest/` powstał przed tym rozstrzygnięciem i ma nazwy
+po polsku (`czytaj_klucz`, `polaczenie`, `Ladowarka`). Przemianowanie to osobne
+zadanie — nie robi się go w commicie, który zmienia zachowanie, bo wtedy nie da
+się odróżnić regresji od zmiany nazwy.
 
 ---
 
@@ -166,7 +190,7 @@ Zamiast tego rozdzielać przypadki jawnie przez `if`.
 
 ```bash
 task setup     # sprawdza, czy maszyna ma komplet narzędzi
-task up        # Postgres + migracje schematu
+task up        # Postgres + Azurite (emulator Azure Blob) + migracje schematu
 task dev       # dotnet watch + vite (od G1.3/G1.4)
 task test      # architektura, zero-DOM, regresja parsera, więzy schematu
 task db:reset  # baza od zera (kasuje wolumen)

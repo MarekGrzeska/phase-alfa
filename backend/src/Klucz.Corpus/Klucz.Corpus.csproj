@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Korpus: dostęp do gotowej struktury w bazie. JEDYNY moduł, któremu wolno
+    dotknąć Npgsql — i tylko w warstwie `Infrastructure`. Reszta rozmawia
+    z bazą przez porty z `Contracts`.
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klucz.Contracts\Klucz.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
