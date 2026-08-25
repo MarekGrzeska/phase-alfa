@@ -42,15 +42,28 @@ Dokumenty nadrzędne leżą w repozytorium `cke-mirror`:
 
 ## Wymagania
 
+Repozytorium jest **wieloplatformowe: Windows, macOS i Linux (CI) wołają identyczne komendy.**
+Żadnych wariantów per system — `Taskfile.yml` ma wbudowany interpreter POSIX sh,
+więc działa na Windows bez instalowania bash-a.
+
 - Docker (PostgreSQL — jedyna zależność infrastrukturalna)
-- .NET SDK
+- .NET SDK (wersja przypięta w `global.json`)
 - Node.js LTS + pnpm
-- Python 3.10+ (`uv` zalecane)
+- Python 3.10+ przez [`uv`](https://docs.astral.sh/uv/)
 - [go-task](https://taskfile.dev) — `task` jako jedno wejście do wszystkich pętli
+
+Instalacja `task`:
+
+| Platforma | Komenda |
+|---|---|
+| Windows | `winget install Task.Task` |
+| macOS | `brew install go-task/tap/go-task` |
+| obie | `npm i -g @go-task/cli` |
 
 ## Uruchomienie
 
 ```bash
+task setup     # sprawdza, czy maszyna ma komplet narzędzi
 task up        # docker compose up -d + migracje schematu
 task dev       # dotnet watch + vite dev server
 task test      # testy: architektura, zero-DOM, regresja parsera, więzy schematu

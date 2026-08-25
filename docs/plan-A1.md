@@ -128,7 +128,8 @@ services:
       POSTGRES_DB: klucz
       POSTGRES_USER: klucz
       POSTGRES_PASSWORD: klucz_dev
-      POSTGRES_INITDB_ARGS: "--locale=pl_PL.UTF-8 --encoding=UTF8"
+      # C.UTF-8, NIE pl_PL.UTF-8 — patrz uwaga o locale niżej
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
     ports:
       - "55432:5432"        # 55432, żeby nie kolidować z lokalnym Postgresem
     volumes:
@@ -142,6 +143,23 @@ services:
 volumes:
   klucz-pgdata:
 ```
+
+> **Locale: cluster w `C.UTF-8`, polskie sortowanie przez ICU tam, gdzie jest potrzebne.**
+> Obraz alpine stoi na musl, które **nie ma `pl_PL.UTF-8`** — `initdb` z takim locale
+> po prostu nie wstanie. Zamiast walczyć z obrazem, cluster zostaje w `C.UTF-8`
+> (szybkie, przenośne, identyczne na każdej maszynie i w CI), a polskie porządkowanie
+> wchodzi jawnie tam, gdzie ma znaczenie — czyli przy sortowaniu treści zadań:
+>
+> ```sql
+> -- migrations/0001_korpus.sql
+> CREATE COLLATION IF NOT EXISTS pl_icu (provider = icu, locale = 'pl-PL');
+> -- ... tresc text COLLATE pl_icu
+> ```
+>
+> PostgreSQL 15+ ma ICU wkompilowane także w wariancie alpine. Alternatywa —
+> `--locale-provider=icu --icu-locale=pl-PL` przy `initdb` — działa, ale ustawia
+> to globalnie i wraca jako różnica przy każdej zmianie obrazu. Kolacja per kolumna
+> jest jawna i widoczna w schemacie, czyli w kontrakcie.
 
 **Migracje — plain SQL, nie ORM.** Schemat jest kontraktem między warstwami, więc
 ma być czytelny jako SQL, a nie wyprowadzalny z modelu w którymkolwiek języku.
@@ -193,9 +211,27 @@ odtwarza ją od zera, a druga próba migracji nic nie robi (idempotencja).
 
 **Czeka na:** G1.1.1 · **Równolegle z:** G1.1.2
 
-**Taskfile, nie Makefile** — praca idzie na Windows 11, gdzie `make` jest osobną instalacją
-i osobnym źródłem różnic wobec CI. [go-task](https://taskfile.dev) jest jednym binarium,
-działa tak samo na Windows/Linux, a CI używa dokładnie tych samych komend co maszyna lokalna.
+**Wymaganie: ta sama komenda działa na Windows, macOS i w CI (Linux).**
+
+**Taskfile, nie Makefile** — i to jest dokładnie powód. `make` na Windows to osobna
+instalacja i osobne źródło różnic wobec reszty maszyn. [go-task](https://taskfile.dev)
+jest jednym binarium bez zależności, a kluczowe: **ma wbudowany interpreter POSIX sh**
+([mvdan/sh](https://github.com/mvdan/sh), napisany w Go). Składnia `&&`, `||`, potoki
+i podstawienia zmiennych działa identycznie na Windows **bez instalowania bash-a**.
+To znaczy, że jeden `Taskfile.yml` obsługuje wszystkie trzy platformy — nie ma wariantu
+„dla Windows" i „dla Maca".
+
+#### Instalacja — jeden sposób dla obu maszyn
+
+| Platforma | Komenda |
+|---|---|
+| Windows | `winget install Task.Task` (albo `scoop install task`) |
+| macOS | `brew install go-task/tap/go-task` |
+| **obie naraz** | `npm i -g @go-task/cli` — Node i tak jest wymagany, więc to jedna komenda na każdej maszynie |
+
+Wariant npm jest utrzymywany przez społeczność, nie przez zespół Task, i potrafi być
+o wersję z tyłu. Dla alfy bez znaczenia; gdyby zaczęło przeszkadzać, `winget`/`brew`
+są zawsze aktualne. Wersję Taska przypiąć w README, żeby obie maszyny gadały tym samym.
 
 ```yaml
 version: '3'
@@ -245,8 +281,46 @@ tasks:
   bench:    { cmds: [dotnet run --project backend/tests/Klucz.Bench]} # A3
 ```
 
-**Zrobione, gdy:** `task --list` pokazuje komplet, `task test` przechodzi (na razie
-na pustych projektach), a CI woła te same nazwy zadań.
+#### Pięć rzeczy, które łamią wieloplatformowość — i reguła na każdą
+
+Interpreter POSIX załatwia **składnię**. Nie załatwia tego, że po drugiej stronie
+komendy musi istnieć program. Stąd pięć twardych reguł dla tego Taskfile'a:
+
+| # | Pułapka | Reguła |
+|---|---|---|
+| 1 | **`rm`, `cp`, `mkdir -p`, `touch` nie istnieją na Windows.** Task ma interpreter shella, nie coreutils — a Windows nie ma tych plików wykonywalnych | **Zero operacji na plikach w Taskfile.** Sprzątanie delegować do narzędzi, które to umieją same: `docker compose down -v`, `dotnet clean`, `pnpm store prune`. Gdy naprawdę trzeba — `{{if eq OS "windows"}}` albo `platforms: [windows]` na osobnym wariancie zadania |
+| 2 | **`python` vs `python3`.** Na Windows binarką jest `python`, na macOS `python3` (samo `python` bywa nieobecne) | Zawsze `uv run python ...`. `uv` normalizuje to na obu i przy okazji trzyma lockfile — jedna zależność mniej do ustalania per maszyna |
+| 3 | **Wielkość liter w ścieżkach.** macOS (APFS) i Windows są domyślnie **case-insensitive**, Linux w CI **case-sensitive** | Import z literówką w wielkości liter przechodzi lokalnie na **obu** maszynach i wywala się dopiero w CI. To nie jest argument za ostrożnością — to argument za tym, żeby CI był jedynym źródłem prawdy o zielonym buildzie |
+| 4 | **Zakończenia linii.** Windows dopisze CRLF, macOS/Linux nie | `.gitattributes` z `* text=auto eol=lf` (G1.1.1). Bez tego fixture'y parsera różnią się bajtowo i pół dnia idzie na szukanie regresji, której nie ma |
+| 5 | **Szimy `.cmd` na Windows.** `pnpm`, `npx` i spółka to na Windows pliki `.cmd`, nie `.exe` | Task rozwiązuje je przez `PATHEXT` i zwykle działa. Gdyby któryś się postawił — `platforms:` z jawnym wariantem. Sprawdzić raz, na starcie, a nie w trakcie debugowania czegoś innego |
+
+Docker jest bezpieczny na obu: obraz `postgres:17-alpine` ma wariant `linux/arm64`,
+więc Apple Silicon nie wymaga emulacji. Wolumen jest **nazwany**, nie bind-mountem —
+na macOS bind-mount do kontenera potrafi być dramatycznie wolny, a nazwany wolumen nie.
+
+#### `task setup` — sprawdzian środowiska
+
+Przy dwóch maszynach opłaca się jedno zadanie, które mówi, czego brakuje, zamiast
+pozwalać temu wyjść w połowie `task up`:
+
+```yaml
+  setup:
+    desc: Sprawdza, czy maszyna ma komplet narzędzi
+    silent: true
+    cmds:
+      - cmd: docker --version  || (echo "BRAK: Docker"        && exit 1)
+      - cmd: dotnet --version  || (echo "BRAK: .NET SDK"      && exit 1)
+      - cmd: node --version    || (echo "BRAK: Node.js"       && exit 1)
+      - cmd: pnpm --version    || (echo "BRAK: pnpm"          && exit 1)
+      - cmd: uv --version      || (echo "BRAK: uv"            && exit 1)
+      - echo "OS={{OS}} ARCH={{ARCH}} — komplet."
+```
+
+`{{OS}}` i `{{ARCH}}` to zmienne Taska — działają bez `uname`, którego na Windows nie ma.
+
+**Zrobione, gdy:** `task --list` pokazuje komplet, `task setup` przechodzi na obu
+maszynach, `task test` przechodzi (na razie na pustych projektach), a CI woła
+dokładnie te same nazwy zadań co maszyna lokalna.
 
 ---
 
@@ -649,7 +723,7 @@ czyli smoke test całego kontraktu end-to-end w tygodniu 1, a nie w tygodniu 7.
 
 ## Checklista domknięcia A1
 
-- [ ] `git clone` → `task up` → `task dev` działa na czystej maszynie **bez kroków spoza README**
+- [ ] `git clone` → `task setup` → `task up` → `task dev` działa **na Windows i na macOS**, bez kroków spoza README i bez wariantów Taskfile'a per platforma
 - [ ] `task test` zielony lokalnie i w CI (4 zadania)
 - [ ] Test architektury widziany na czerwono przy nielegalnym imporcie
 - [ ] Test zero-DOM widziany na czerwono przy `document` w `packages/core`
@@ -672,7 +746,9 @@ merge dopiero po alfie.
 
 | Decyzja | Uzasadnienie |
 |---|---|
-| Taskfile zamiast Makefile | praca na Windows; CI i maszyna wołają identyczne komendy |
+| Taskfile zamiast Makefile | wbudowany interpreter POSIX sh — **jeden plik obsługuje Windows, macOS i CI**, bez bash-a na Windows i bez wariantów per platforma |
+| Zero operacji na plikach w Taskfile | `rm`/`cp`/`mkdir -p` nie istnieją na Windows; sprzątanie robią narzędzia same |
+| Cluster w `C.UTF-8`, kolacja `pl_icu` per kolumna | musl w obrazie alpine nie ma `pl_PL.UTF-8`; polskie sortowanie jawne w schemacie, czyli w kontrakcie |
 | Migracje plain SQL + własny runner | schemat jest kontraktem — ma być czytelny jako SQL; C# go tylko czyta |
 | `openapi.json` wersjonowany w repo | zmiana kontraktu widoczna w diffie PR-a, nie dopiero w CI |
 | pnpm zamiast npm | rygorystyczne `node_modules` wyłapuje niezadeklarowane zależności |
@@ -681,9 +757,10 @@ merge dopiero po alfie.
 
 **Trzy rzeczy, które w A1 najłatwiej przeoczyć**
 
-1. **CRLF.** Bez `.gitattributes` z `* text=auto eol=lf` fixture'y parsera będą się
-   różnić bajtowo między Windows a ubuntu w CI — i pół dnia pójdzie na szukanie
-   „regresji", której nie ma.
+1. **Różnice między maszynami.** Komplet pułapek Windows ↔ macOS ↔ CI stoi w tabeli
+   przy [G1.1.3](#g113--taskfile). Dwie najdroższe: brak `.gitattributes` (CRLF psuje
+   fixture'y parsera) i wielkość liter w ścieżkach — literówka przechodzi lokalnie
+   na **obu** maszynach, a wywala się dopiero na Linuksie w CI.
 2. **Testy, których nikt nie widział na czerwono.** Test architektury, zero-DOM
    i bramka dryfu — każdy trzeba raz świadomie złamać. Test, który zawsze był zielony,
    jest nieodróżnialny od testu, który nic nie sprawdza.
