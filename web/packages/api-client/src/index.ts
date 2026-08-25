@@ -1,3 +1,3 @@
-export { utworzKlienta } from "./client";
-export type { KlientApi, StanZdrowia } from "./client";
+export { createApiClient } from "./client";
+export type { ApiClient, HealthStatus } from "./client";
 export type { components, operations, paths } from "./schema";

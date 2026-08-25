@@ -17,7 +17,9 @@ task openapi:generate     # regeneracja typów z backend/artifacts/openapi.json
 | `src/client.ts` | pisany ręcznie: adres bazowy i nagłówki, nic więcej |
 | `src/index.ts` | co pakiet wystawia na zewnątrz |
 
-Typy ścieżek, parametrów i odpowiedzi pochodzą wyłącznie ze schematu. Dopisanie
+Nazwy w kodzie po angielsku (`createApiClient`, `HealthStatus`, `ApiClient`), komentarze
+po polsku — `CLAUDE.md`, zasada 4. Typy ścieżek, parametrów i odpowiedzi pochodzą
+wyłącznie ze schematu. Dopisanie
 własnych typów DTO znaczyłoby, że kontrakt ma dwa źródła prawdy — a wtedy rozjazd
 przestaje łamać build i zaczyna psuć działającą aplikację.
 
