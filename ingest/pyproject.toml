@@ -1,0 +1,41 @@
+[project]
+name = "klucz-ingest"
+version = "0.1.0"
+description = "Offline ETL: PDF-y CKE -> rekordy w PostgreSQL. Nie obsluguje ruchu uzytkownika."
+requires-python = ">=3.10"
+dependencies = [
+    "psycopg[binary]>=3.2",
+    # G1.2 dolozy: pdfplumber (MIT), pypdf (BSD), cryptography
+    # (jeden klucz w korpusie jest zaszyfrowany AES z pustym haslem wlasciciela)
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# S  = reguly bezpieczenstwa (bandit) - zeby wyciszenia `# noqa: S...` cokolwiek znaczyly
+# RUF100 = wylapuje MARTWE wyciszenia, czyli takie dla regul, ktorych nie ma w tej liscie
+select = ["E", "F", "I", "UP", "B", "SIM", "S", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# W testach asercje sa cala trescia (S101), haslo do bazy deweloperskiej stoi
+# jawnie w docker-compose.yml, wiec nie jest sekretem (S105/S106), a subprocess
+# uruchamia NASZ wlasny runner przez sys.executable, nie dane z zewnatrz (S603).
+"tests/*" = ["S101", "S105", "S106", "S603"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# zeby testy mogly zaimportowac `migrate` - sposob skladania adresu bazy
+# ma byc w JEDNYM miejscu, wspolnym dla runnera i dla testow
+pythonpath = ["schema"]
+markers = [
+    "integracyjny: wymaga dzialajacej bazy (DATABASE_URL albo DB_* w srodowisku)",
+    "mirror: wymaga pobranego mirrora CKE w data/raw/",
+]

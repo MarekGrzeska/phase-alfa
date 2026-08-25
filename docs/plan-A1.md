@@ -65,7 +65,7 @@ phase-alfa/
 │   ├── mirror/                 #   cke_mirror.py (gotowe, idempotentne)
 │   ├── pdf/                    #   layout.py + reconstruct.py (awans z research/)
 │   ├── parsers/                #   omap_e8.py — parser per segment, nie uniwersalny
-│   ├── korekta/                #   ekran korekty (A2 — na razie pusty katalog)
+│   ├── correction/             #   ekran korekty (A2 — na razie pusty katalog)
 │   ├── schema/                 #   migracje SQL + runner
 │   ├── golden/                 #   golden set jako JSON — część kontraktu (A3)
 │   ├── tests/                  #   pytest: regresja parsera, więzy schematu
@@ -131,7 +131,8 @@ services:
       # C.UTF-8, NIE pl_PL.UTF-8 — patrz uwaga o locale niżej
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
     ports:
-      - "55432:5432"        # 55432, żeby nie kolidować z lokalnym Postgresem
+      # Port KONFIGUROWALNY, nie zaszyty — patrz uwaga niżej
+      - "${DB_PORT:-55434}:5432"
     volumes:
       - klucz-pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -144,6 +145,12 @@ volumes:
   klucz-pgdata:
 ```
 
+> **Port hosta jest konfigurowalny.** `55432` wydaje się bezpiecznie wysoki i nie jest —
+> na maszynie deweloperskiej stoi zwykle kilka innych Postgresów w kontenerach
+> (przy pierwszym `task up` port zajmował inny projekt). Stąd `${DB_PORT:-55434}`
+> w compose i `DB_PORT` w `.env`: kolizja to zmiana jednej liczby, nie edycja
+> pliku wersjonowanego.
+
 > **Locale: cluster w `C.UTF-8`, polskie sortowanie przez ICU tam, gdzie jest potrzebne.**
 > Obraz alpine stoi na musl, które **nie ma `pl_PL.UTF-8`** — `initdb` z takim locale
 > po prostu nie wstanie. Zamiast walczyć z obrazem, cluster zostaje w `C.UTF-8`
@@ -151,7 +158,7 @@ volumes:
 > wchodzi jawnie tam, gdzie ma znaczenie — czyli przy sortowaniu treści zadań:
 >
 > ```sql
-> -- migrations/0001_korpus.sql
+> -- migrations/0001_corpus.sql
 > CREATE COLLATION IF NOT EXISTS pl_icu (provider = icu, locale = 'pl-PL');
 > -- ... tresc text COLLATE pl_icu
 > ```
@@ -168,8 +175,8 @@ ma być czytelny jako SQL, a nie wyprowadzalny z modelu w którymkolwiek języku
 ```
 ingest/schema/
 ├── migrations/
-│   ├── 0001_korpus.sql          # schema.sql z research/ pocięty na kroki
-│   ├── 0002_indeksy.sql
+│   ├── 0001_corpus.sql          # schema.sql z research/ pocięty na kroki
+│   ├── 0002_indexes.sql
 │   └── 0003_status_korekty.sql  # (A2 — status per rekord)
 ├── migrate.py                   # runner: ~50 linii, psycopg, tabela schema_migrations
 └── README.md
@@ -189,16 +196,17 @@ ingest/schema/
 
 **Kroki**
 
-1. Przenieść `research/schema/schema.sql` → `ingest/schema/migrations/0001_korpus.sql`.
+1. Przenieść `research/schema/schema.sql` → `ingest/schema/migrations/0001_corpus.sql`.
    Sprawdzić, czy DDL jest czysto Postgresowe (research pisał je jako PG DDL, ale sonda
    ładowała do SQLite — patrz pułapki w G1.2.2).
-2. **Więzy zostają ostre.** `UNIQUE (zadanie_id, punkty)` w `kryterium` złapał prawdziwy
+2. **Więzy zostają ostre.** `UNIQUE (task_id, points)` w `criterion` złapał prawdziwy
    błąd przy pierwszym ładowaniu (sekcja reguł przekrojowych udawała drugi próg 0 pkt).
    Nic nie luzować „żeby przeszło" — od tego jest ekran korekty w A2.
 3. Napisać `migrate.py` i test: podniesienie pustej bazy → migracje → `\d` pokazuje
-   komplet tabel (`forma_dokument`, `zadanie`, `zadanie_wersja`, `kryterium`,
-   `kryterium_warunek`, `warunek_zapis`, `odpowiedz_wzorcowa`, `rozwiazanie_przykladowe`,
-   `regula`, `zasob`, `wymaganie`, `rezim`, `zadanie_wymaganie`).
+   komplet tabel (`exam_form_document`, `task`, `task_version`, `criterion`,
+   `criterion_condition`, `condition_expression`, `model_answer`, `example_solution`,
+   `rule`, `asset`, `requirement`, `requirement_regime`, `task_requirement`).
+   Nazwy po angielsku wg słownika z `CLAUDE.md`; model bez zmian wobec sondy.
 4. Connection string wyłącznie z konfiguracji (`.env` + `.env.example` w repo).
    Żadnych haseł w kodzie — nawet dev-owych.
 
@@ -402,9 +410,9 @@ Cel: ten sam przebieg co w sondzie, ale zapisujący do Postgresa z Dockera.
    kluczy 75 · ~114 s (1,5 s/klucz) · zadań 1436 (2062 punkty)
    pokrycie wymagań 100% · odpowiedzi 100% · kryteriów 100%
 
-   zadanie 1436 · zadanie_wersja 1574 · zadanie_wymaganie 3809
-   kryterium 3315 · kryterium_warunek 4379 · warunek_zapis 514
-   rozwiazanie_przykladowe 1227 · odpowiedz_wzorcowa 1221 · regula 772
+   task 1436 · task_version 1574 · task_requirement 3809
+   criterion 3315 · criterion_condition 4379 · condition_expression 514
+   example_solution 1227 · model_answer 1221 · rule 772
    ```
 
    **Rozbieżność w tych liczbach = regresja przeprowadzki, nie ciekawostka.** Zapisać
@@ -752,7 +760,7 @@ merge dopiero po alfie.
 | Migracje plain SQL + własny runner | schemat jest kontraktem — ma być czytelny jako SQL; C# go tylko czyta |
 | `openapi.json` wersjonowany w repo | zmiana kontraktu widoczna w diffie PR-a, nie dopiero w CI |
 | pnpm zamiast npm | rygorystyczne `node_modules` wyłapuje niezadeklarowane zależności |
-| Port 55432 na zewnątrz | brak kolizji z lokalnym Postgresem |
+| Port hosta przez `${DB_PORT:-55434}`, nie zaszyty | wysoki numer nie gwarantuje wolnego portu — sprawdzone boleśnie: 55432 zajmował inny projekt w kontenerze |
 | Zero-DOM przez `lib: ["ES2022"]` | egzekwuje kompilator, nie code review |
 
 **Trzy rzeczy, które w A1 najłatwiej przeoczyć**
