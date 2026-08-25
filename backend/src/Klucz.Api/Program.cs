@@ -21,7 +21,23 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-app.MapOpenApi();
+// Dokument tylko poza produkcją. Pełny opis API to mapa powierzchni ataku, a poza
+// deweloperką nikt go stąd nie czyta: klient TS bierze typy z wersjonowanego
+// `backend/artifacts/openapi.json`, a ten powstaje przy BUILDZIE (narzędzie
+// GetDocument.Insider woła generator z DI), nie przez ten endpoint.
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+// Wersja z `InformationalVersion`, nie z `Assembly.GetName().Version`. Ta druga
+// jest stałą `1.0.0.0`, bo numeru assembly nikt tu nie ustawia — pole opisane jako
+// „wersja zbudowanego API" nie odróżniało wtedy żadnych dwóch buildów. CI dokłada
+// SHA commita przez `-p:SourceRevisionId=…`, więc odpowiedź z wdrożenia mówi
+// wprost, który commit tam stoi. Liczone raz, przy starcie: to jest stała procesu.
+var version = Assembly.GetExecutingAssembly()
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+    ?? "0.0.0";
 
 // Gotowość procesu i stan bazy — OSOBNO. Proces potrafi stać i odpowiadać, gdy
 // baza jest nieosiągalna; zlepienie tego w jeden status znaczy, że przy awarii
@@ -30,7 +46,6 @@ app.MapOpenApi();
 app.MapGet("/health", async (IDatabaseProbe database, CancellationToken ct) =>
 {
     var alive = await database.IsAliveAsync(ct);
-    var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
     return new HealthResponse(alive ? "ok" : "degraded", alive, version);
 })
 .WithName("Health")

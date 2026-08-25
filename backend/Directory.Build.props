@@ -21,6 +21,16 @@
          Ostrzeżenie o braku komentarza XML byłoby tu szumem — dokumentujemy
          „dlaczego", a nie „co", i robimy to w miejscach, gdzie coś to znaczy. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Wersja jest USTAWIANA, a nie zostawiona domyślnej. `/health` oddaje
+         `InformationalVersion`, a bez tej właściwości byłaby to stała `1.0.0.0`
+         w każdym buildzie — pole „wersja zbudowanego API", które nie odróżnia
+         żadnych dwóch buildów, jest gorsze niż jego brak.
+
+         CI dokłada SHA commita przez `-p:SourceRevisionId=<sha>`; SDK dokleja go
+         do `InformationalVersion` po znaku `+`. Lokalny build zostaje przy samym
+         numerze i to jest w porządku: lokalnie wiadomo, co się zbudowało. -->
+    <VersionPrefix>0.1.0</VersionPrefix>
   </PropertyGroup>
 
   <!--
