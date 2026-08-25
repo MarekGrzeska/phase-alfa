@@ -8,7 +8,8 @@ więzy naprawdę odrzucają złe dane, a widoki dają się wykonać.
 from __future__ import annotations
 
 import pytest
-from migrate import polaczenie as adres
+
+from schema.migrate import polaczenie as adres
 
 psycopg = pytest.importorskip("psycopg")
 

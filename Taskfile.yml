@@ -41,15 +41,19 @@ tasks:
     desc: Zatrzymuje Postgresa (dane zostają)
     cmds: [docker compose down]
 
+  # Moduły, nie ścieżki do plików: korzeniem pakietu jest ingest/, więc
+  # `pdf.layout`, `parsers.omap_e8.parser` i `schema.migrate` widzą się nawzajem.
+  # Uruchomienie przez ścieżkę ustawiłoby sys.path na katalog pliku i importy
+  # między pakietami by się posypały.
   migrate:
     desc: Stosuje brakujące migracje schematu
     dir: ingest
-    cmds: ['{{.PY}} schema/migrate.py']
+    cmds: ['{{.PY}} -m schema.migrate']
 
   migrate:status:
     desc: Pokazuje, które migracje weszły
     dir: ingest
-    cmds: ['{{.PY}} schema/migrate.py --status']
+    cmds: ['{{.PY}} -m schema.migrate --status']
 
   db:reset:
     desc: 'Baza od zera (UWAGA: kasuje wolumen z korpusem)'
@@ -125,14 +129,14 @@ tasks:
 
   # ------------------------------------------------------------ dalsze fazy
   mirror:
-    desc: Zwózka korpusu CKE (G1.2.3)
+    desc: Zwózka korpusu CKE — idempotentna, dosypuje tylko brakujące
     dir: ingest
-    cmds: ['{{.PY}} mirror/cke_mirror.py {{.CLI_ARGS}}']
+    cmds: ['{{.PY}} -m mirror.cke_mirror {{.CLI_ARGS}}']
 
   ingest:
-    desc: Przebieg parsera na korpusie (A2)
+    desc: Parser kluczy OMAP E8 → korpus w Postgresie
     dir: ingest
-    cmds: ['{{.PY}} parsers/omap_e8/ingest.py {{.CLI_ARGS}}']
+    cmds: ['{{.PY}} -m parsers.omap_e8.run {{.CLI_ARGS}}']
 
   bench:
     desc: Benchmark golden setu (A3)

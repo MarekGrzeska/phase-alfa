@@ -17,7 +17,7 @@ Kontraktem między warstwami jest **schemat bazy plus pliki JSON golden setu**, 
 
 | Kamień | Zakres | Status |
 |---|---|---|
-| **A1** | Szkielet: monorepo, Postgres w Dockerze, monolit C# z granicami modułów, OpenAPI → klient TS, CI | w toku |
+| **A1** | Szkielet: monorepo, Postgres w Dockerze, monolit C# z granicami modułów, OpenAPI → klient TS, CI | G1.1 ✓ · G1.2 ✓ |
 | A2 | Korpus: ekran korekty → parser OMAP E8 2019–2026 → zatwierdzone rekordy w bazie | |
 | A3 | Grading: pipeline 5 kroków, golden set, benchmark, macierz eksperymentów | |
 | A4 / W4 | Sesja zadań, mapa braków, telemetria, sprawdzian od zera | |

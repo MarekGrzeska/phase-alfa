@@ -19,7 +19,8 @@ from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 import pytest
-from migrate import polaczenie as adres
+
+from schema.migrate import polaczenie as adres
 
 psycopg = pytest.importorskip("psycopg")
 

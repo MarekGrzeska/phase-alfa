@@ -1,0 +1,25 @@
+TEST ROZSTRZYGAJĄCY — zadanie 16, OMAP-100-2505-zasady.pdf
+cel: 7/15-(1/5+1/6)  oraz  7/15-(1/5+1/6)=14/30-11/30=3/30=1/10
+
+  pdfplumber   wyrażenie   7/15-(1/5+1/6)                           OK
+               rozwiązanie 7/15-(1/5+1/6)=14/30-11/30=3/30=1/10     OK
+
+  pymupdf      wyrażenie   7/15-(1/5+1/6)                           OK
+               rozwiązanie 7/15-(1/5+1/6)=14/30-11/30=3/30=1/10     OK
+
+ZASIĘG — klucze matematyki E8, silnik pdfplumber
+  plików 75 · stron 1581 · 159.8 s (9.9 stron/s)
+  kresek kandydujących:   4472
+  przyjętych jako ułamek: 3330 (74.5%)
+  z tego liczba/liczba:   2539 (76.2%)
+  kursywy matematycznej na wejściu: 22102 znaków (po normalizacji: 0)
+  ekstrapolacja: K2 3751 stron → 6.3 min · korpus 43101 → 73 min
+
+ZASIĘG — klucze matematyki E8, silnik pymupdf
+  plików 75 · stron 1581 · 63.4 s (24.9 stron/s)
+  kresek kandydujących:   4662
+  przyjętych jako ułamek: 3653 (78.4%)
+  z tego liczba/liczba:   2833 (77.6%)
+  kursywy matematycznej na wejściu: 22343 znaków (po normalizacji: 0)
+  ekstrapolacja: K2 3751 stron → 2.5 min · korpus 43101 → 29 min
+

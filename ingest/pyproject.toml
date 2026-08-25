@@ -4,9 +4,12 @@ version = "0.1.0"
 description = "Offline ETL: PDF-y CKE -> rekordy w PostgreSQL. Nie obsluguje ruchu uzytkownika."
 requires-python = ">=3.10"
 dependencies = [
+    "cryptography>=42",
+    "pdfplumber>=0.11",
     "psycopg[binary]>=3.2",
     # G1.2 dolozy: pdfplumber (MIT), pypdf (BSD), cryptography
     # (jeden klucz w korpusie jest zaszyfrowany AES z pustym haslem wlasciciela)
+    "pypdf>=5",
 ]
 
 [project.optional-dependencies]
@@ -24,18 +27,43 @@ target-version = "py310"
 # RUF100 = wylapuje MARTWE wyciszenia, czyli takie dla regul, ktorych nie ma w tej liscie
 select = ["E", "F", "I", "UP", "B", "SIM", "S", "RUF"]
 
+# RUF001/002/003 zglaszaja "znak dwuznaczny" dla polskich liter i symboli
+# matematycznych. Ten korpus jest po polsku i pelen minusow typograficznych,
+# kropek mnozenia i cudzyslowow drukarskich - regula ma tu 100% falszywych
+# trafien, wiec jest wylaczona globalnie, a nie wyciszana linia po linii.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
 [tool.ruff.lint.per-file-ignores]
 # W testach asercje sa cala trescia (S101), haslo do bazy deweloperskiej stoi
 # jawnie w docker-compose.yml, wiec nie jest sekretem (S105/S106), a subprocess
 # uruchamia NASZ wlasny runner przez sys.executable, nie dane z zewnatrz (S603).
 "tests/*" = ["S101", "S105", "S106", "S603"]
 
+# --- kod awansowany z research/ (G1.2) ---
+# Te trzy moduly przeszly z research/ BEZ ZMIAN LOGIKI i taka byla teza
+# przeprowadzki: liczby z sondy (1436 zadan, pokrycie 100/100/100) sa jedynym
+# sposobem, zeby sprawdzic, ze nic sie po drodze nie zepsulo, i dzialaja tylko
+# wtedy, gdy nikt niczego "przy okazji nie poprawil".
+#
+# Wyciszone sa WYLACZNIE reguly stylu: stara skladnia typow (UP), formatowanie
+# przez %, nazwy jednoliterowe. Reguly, ktore lapia BLEDY - F, B (poza B905),
+# S poza wyjatkami nizej - zostaja wlaczone i wlasnie zlapaly prawdziwa
+# regresje (brak `import sys` po usunieciu hacka na sys.path).
+#
+# Sprzatanie stylu to osobny commit, po G1.2.
+"pdf/*.py" = ["UP", "E741", "B905", "RUF007"]
+"parsers/omap_e8/parser.py" = ["UP", "E741", "B905", "E501"]
+"parsers/omap_e8/run.py" = ["UP031", "UP006", "UP045"]
+# Mirror pobiera pliki z cke.gov.pl po https, a adresy bierze z indeksu tej
+# samej witryny - S310 ostrzega przed schematem file:/custom, ktorego tu nie ma.
+"mirror/cke_mirror.py" = ["UP", "S310", "B904", "E741", "B905", "E501"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# zeby testy mogly zaimportowac `migrate` - sposob skladania adresu bazy
-# ma byc w JEDNYM miejscu, wspolnym dla runnera i dla testow
-pythonpath = ["schema"]
+# korzeniem pakietu jest ingest/ - stad importy `schema.migrate`, `pdf.layout`,
+# `parsers.omap_e8.parser`; sposob skladania adresu bazy w JEDNYM miejscu
+pythonpath = ["."]
 markers = [
     "integracyjny: wymaga dzialajacej bazy (DATABASE_URL albo DB_* w srodowisku)",
-    "mirror: wymaga pobranego mirrora CKE w data/raw/",
+    "mirror: wymaga pobranego mirrora CKE (MIRROR_ROOT)",
 ]
