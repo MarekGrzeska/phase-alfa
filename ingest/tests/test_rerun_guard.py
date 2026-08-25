@@ -95,3 +95,27 @@ def test_runner_widzi_klucze_po_korekcie(baza, klucz_po_korekcie):
     from parsers.omap_e8.run import reviewed_by_url
 
     assert reviewed_by_url(baza).get(URL) == 1
+
+
+def test_wyczysc_broni_takze_dziennika_korekty(baza, klucz_po_korekcie):
+    """Dziennik S8 ginie w kaskadzie TRUNCATE-a mimo `ON DELETE SET NULL`.
+
+    Scenariusz nie jest teoretyczny: po przeładowaniu kluczy z
+    `--overwrite-reviewed` żadne zadanie nie jest już „po korekcie", więc
+    pierwsza bramka przepuszcza — a w dzienniku leżą wtedy wszystkie zmierzone
+    czasy z dotychczasowej pracy.
+    """
+    from parsers.omap_e8.run import wipe_refusal
+
+    with baza.cursor() as cur:
+        cur.execute("UPDATE task SET review_status = 'pending'")
+        cur.execute("INSERT INTO correction_event (task_id, action, started_at) "
+                    "VALUES (NULL, 'approve', now())")
+
+    powod = wipe_refusal(baza)
+    assert powod is not None
+    assert "dziennik" in powod
+
+    with baza.cursor() as cur:
+        cur.execute("TRUNCATE correction_event")
+    assert wipe_refusal(baza) is None

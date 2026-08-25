@@ -114,6 +114,28 @@ def reviewed_by_url(con) -> dict[str, int]:
            GROUP BY d.url""").fetchall())
 
 
+def wipe_refusal(con) -> str | None:
+    """Powód, dla którego `--wyczysc` ma odmówić — albo `None`, gdy wolno.
+
+    Dwie rzeczy, nie jedna: korekta zadań i dziennik `correction_event`.
+    Dziennik ginie razem z korpusem mimo `ON DELETE SET NULL`, bo kaskada
+    TRUNCATE-a nie pyta o akcję kasowania, tylko czyści każdą tabelę, która
+    odwołuje się do czyszczonej. A dziennik jest pomiarem S8, czyli wynikiem
+    alfy — po przeładowaniu kluczy z `--overwrite-reviewed` zostaje w bazie
+    jedyny ślad, ile ta praca kosztowała.
+    """
+    (reviewed,) = con.execute(
+        "SELECT count(*) FROM task WHERE review_status <> 'pending'").fetchone()
+    if reviewed:
+        return ("ODMOWA: --wyczysc kasuje CAŁY korpus, a zadań po korekcie "
+                "jest w nim %d." % reviewed)
+    (events,) = con.execute("SELECT count(*) FROM correction_event").fetchone()
+    if events:
+        return ("ODMOWA: --wyczysc kasuje TAKŻE dziennik korekty (kaskada "
+                "TRUNCATE-a), a ma on %d wpisów — to jest pomiar S8." % events)
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -180,11 +202,9 @@ def main() -> int:
         # TRUNCATE jest większym młotem niż przeładowanie jednego klucza: bierze
         # CAŁY korpus razem z korektą każdego rocznika. Bramka z ładowarki tu nie
         # sięga, bo ten SQL omija ją z definicji.
-        (po_korekcie,) = con.execute(
-            "SELECT count(*) FROM task WHERE review_status <> 'pending'").fetchone()
-        if po_korekcie and not args.overwrite_reviewed:
-            print("ODMOWA: --wyczysc kasuje CAŁY korpus, a zadań po korekcie "
-                  "jest w nim %d." % po_korekcie)
+        refusal = None if args.overwrite_reviewed else wipe_refusal(con)
+        if refusal:
+            print(refusal)
             print("Jeśli naprawdę o to chodzi: --wyczysc --overwrite-reviewed.")
             con.close()
             return 2
