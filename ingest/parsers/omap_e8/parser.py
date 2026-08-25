@@ -299,6 +299,11 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
         acc += len(s) + 1
 
     def strona_offsetu(off: int) -> int:
+        """Numer strony DLA CZŁOWIEKA, liczony od 1 — tak samo jak w stopce PDF-a.
+
+        Warstwa pozycyjna indeksuje strony od zera; rekord w bazie ogląda się
+        w ekranie korekty obok skanu, więc trzyma numer, a nie indeks.
+        """
         lo, hi = 0, len(granice) - 1
         while lo < hi:
             mid = (lo + hi + 1) // 2
@@ -306,7 +311,7 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
                 lo = mid
             else:
                 hi = mid - 1
-        return lo
+        return lo + 1
 
     zadania_pozycje = _tnij_zadania(tekst, dial)
     if not zadania_pozycje:
@@ -794,17 +799,19 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> dict:
                 nr = m.group(1)
                 nast = RE_ZADANIE.search(txt, m.end())
                 tresc = txt[m.end():nast.start() if nast else len(txt)]
+                # Numer od 1, jak w kluczu i jak w stopce arkusza — indeks
+                # z warstwy pozycyjnej pokazywałby stronę wcześniejszą.
                 out.setdefault(nr, {"tresc": " ".join(tresc.split())[:1500],
-                                    "strona": page.number,
+                                    "strona": page.number + 1,
                                     "zasoby": []})
                 # Numer zadania trafia się na dwóch stronach — zasób ma być jeden na stronę, nie jeden na trafienie.
                 strony_zasobow = {z["strona"] for z in out[nr]["zasoby"]}
-                if page.number not in strony_zasobow and re.search(
+                if page.number + 1 not in strony_zasobow and re.search(
                         r"\b(diagram\w*|rysunk\w+|rysunek|wykres\w*|siatc\w+"
                         r"|osi liczbowej)\b", tresc, re.I):
                     out[nr]["zasoby"].append({
                         "rodzaj": "diagram",
-                        "strona": page.number,
+                        "strona": page.number + 1,
                         # UPROSZCZENIE: bbox to cała strona; wykrywanie regionu grafiki to osobna robota.
                         "bbox": [0, 0, page.width, page.height],
                     })

@@ -161,3 +161,21 @@ def test_drugi_przebieg_nie_dubluje_i_nie_pada(baza_z_kluczem):
 
     assert po == przed, "drugi przebieg zmienił liczby — klucz się zdublował"
     assert licznik(baza_z_kluczem, "document") == 1, "dokument wszedł drugi raz"
+
+
+def test_numery_stron_sa_takie_jak_w_stopce_pdf(baza_z_kluczem):
+    """Strona w bazie to numer DLA CZŁOWIEKA, liczony od 1 — nie indeks od zera.
+
+    Warstwa pozycyjna indeksuje strony od zera i ten indeks szedł wprost do
+    bazy: ekran korekty renderował stronę wcześniejszą niż rekord, czyli przy
+    zadaniu 1 pokazywał stronę tytułową klucza. Zadanie 1 z OMAP-100-2505 stoi
+    na stronie 2 klucza (sprawdzone w PDF-ie), a jego rysunek na stronie 4
+    zeszytu zadań.
+    """
+    (strona,) = baza_z_kluczem.execute(
+        "SELECT page FROM task WHERE number = '1'").fetchone()
+    assert strona == 2
+
+    (najmniejsza,) = baza_z_kluczem.execute(
+        "SELECT min(page) FROM task WHERE page IS NOT NULL").fetchone()
+    assert najmniejsza >= 1
