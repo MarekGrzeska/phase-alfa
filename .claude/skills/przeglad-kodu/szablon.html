@@ -10,6 +10,13 @@
     .k.kryt  .k.istot  .k.drob  .k.rozw    — karty komentarzy (kolor lewej krawędzi)
     .ev / .ev-h / .ev-b                    — blok z kodem albo wynikiem przebiegu
     .fix                                   — sekcja „jak naprawić" w karcie
+
+  KOD KOLOROWANY: każdy <pre> ma mieć atrybut data-lang, np.
+    <pre data-lang="python">…</pre>
+  Języki: python · yaml · sql · bash · conf (.env, .gitignore) · out (wydruk
+  z konsoli — koloruje napisy, liczby, znak zachęty $ i objaśnienia po ←).
+  Bez data-lang blok zostaje zwykłym tekstem. Podświetlacz siedzi w <script>
+  na dole pliku — nie usuwaj go przy kopiowaniu szablonu.
 -->
 <title>Przegląd kodu — ZAKRES</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,6 +34,9 @@
   --crit:#9E2E2E; --crit-soft:#F3DEDE;
   --info:#2B5C86; --info-soft:#DCE7F1;
   --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+  /* kolory składni — osobne od semantycznych, żeby zmiana jednych nie ruszała drugich */
+  --t-kw:#8B3E8F; --t-str:#2C7355; --t-com:#6B7C79;
+  --t-num:#B0651A; --t-fn:#2B5C86; --t-type:#0E5B4F; --t-ann:#9E2E2E;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -39,6 +49,8 @@
     --crit:#E07A7A; --crit-soft:#371D1D;
     --info:#7FB3DC; --info-soft:#152634;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+    --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+    --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
   }
 }
 :root[data-theme="dark"]{
@@ -51,6 +63,8 @@
   --crit:#E07A7A; --crit-soft:#371D1D;
   --info:#7FB3DC; --info-soft:#152634;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+  --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
 }
 
 *{box-sizing:border-box}
@@ -145,6 +159,15 @@ td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent
 pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
   color:var(--ink);white-space:pre}
 
+/* kolorowanie składni — klasy nadaje skrypt na dole dokumentu */
+.t-kw{color:var(--t-kw);font-weight:600}
+.t-str{color:var(--t-str)}
+.t-com{color:var(--t-com);font-style:italic}
+.t-num{color:var(--t-num)}
+.t-fn{color:var(--t-fn)}
+.t-type{color:var(--t-type)}
+.t-ann{color:var(--t-ann);font-weight:600}
+
 ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
 ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
 ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
@@ -194,3 +217,100 @@ footer p{margin-bottom:.4em}
 </footer>
 
 </div>
+
+<script>
+/* Kolorowanie składni bez żadnej biblioteki — dokument ma zostać samodzielny.
+ *
+ * Użycie:  <pre data-lang="python">…</pre>
+ * Języki:  python · yaml · sql · bash · conf · out (wydruk z konsoli)
+ *
+ * Jak działa: reguły każdego języka sklejane są w JEDEN regex z grupami
+ * nazwanymi, więc tekst jest przechodzony raz, a pierwsza pasująca reguła
+ * wygrywa. Dlatego komentarze i napisy stoją na początku listy — inaczej
+ * słowo kluczowe wewnątrz napisu zostałoby pokolorowane osobno.
+ *
+ * Bez skryptu (albo przy jego błędzie) blok zostaje zwykłym tekstem —
+ * czytelnym, tylko czarno-białym.
+ */
+(function () {
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+  function esc(s) { return s.replace(/[&<>]/g, function (c) { return ESC[c]; }); }
+
+  // UWAGA: wewnątrz reguł tylko grupy nieprzechwytujące (?:...) —
+  // zwykły nawias rozjechałby numerację grup w sklejonym wyrażeniu.
+  var RULES = {
+    python: [
+      ['com',  /#[^\n]*/],
+      ['str',  /(?:[rbfu]{0,2})(?:"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/],
+      ['kw',   /\b(?:def|class|return|if|elif|else|for|while|with|as|import|from|try|except|finally|raise|yield|lambda|not|and|or|in|is|None|True|False|pass|assert|del|async|await|global|nonlocal)\b/],
+      ['fn',   /@[A-Za-z_][\w.]*|\b[A-Za-z_]\w*(?=\()/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    yaml: [
+      ['com',  /#[^\n]*/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['fn',   /^[ \t]*(?:-[ \t]+)?[A-Za-z_][\w.\/-]*(?=[ \t]*:)/],
+      ['kw',   /\b(?:true|false|null|yes|no)\b/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    sql: [
+      ['com',  /--[^\n]*/],
+      ['str',  /'(?:[^']|'')*'/],
+      ['kw',   /\b(?:CREATE|TABLE|INDEX|VIEW|COLLATION|SELECT|FROM|WHERE|JOIN|LEFT|INNER|ON|GROUP|ORDER|BY|HAVING|INSERT|INTO|VALUES|UPDATE|DELETE|SET|RETURNING|CONFLICT|DO|NOTHING|NOT|NULL|PRIMARY|FOREIGN|KEY|REFERENCES|UNIQUE|CHECK|DEFAULT|CONSTRAINT|CASCADE|AND|OR|IN|AS|IF|EXISTS|BETWEEN|PROVIDER|LOCALE|COLLATE|BEGIN|COMMIT|DISTINCT|COUNT|SUM|ARRAY_AGG|LIMIT)\b/i],
+      ['type', /\b(?:text|integer|smallint|bigint|serial|smallserial|boolean|date|timestamptz|numeric|jsonb|char|varchar)\b/i],
+      ['num',  /\b\d+\b/]
+    ],
+    bash: [
+      ['com',  /#[^\n]*/],
+      ['ann',  /^\$/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['kw',   /\b(?:if|then|elif|else|fi|for|in|do|done|while|case|esac|function|return|exit|test|echo|cd|export|local)\b/],
+      ['num',  /(?:^|[ \t])-{1,2}[A-Za-z][\w-]*|\b\d+\b/]
+    ],
+    conf: [
+      ['com',  /#[^\n]*/],
+      ['kw',   /^!/],
+      ['fn',   /^[A-Za-z_][A-Za-z0-9_]*(?==)/],
+      ['str',  /(?<==)[^\n]+/]
+    ],
+    out: [
+      ['ann',  /←[^\n]*|^\$/],
+      ['str',  /"[^"]*"|'[^']*'/],
+      ['num',  /\b\d+\b/]
+    ]
+  };
+
+  function podswietl(kod, jezyk) {
+    var reguly = RULES[jezyk];
+    if (!reguly) { return esc(kod); }
+    var wzor = reguly.map(function (r, i) {
+      return '(?<g' + i + '>' + r[1].source + ')';
+    }).join('|');
+    var re;
+    try {
+      re = new RegExp(wzor, 'gm');
+    } catch (e) {
+      return esc(kod);           // starsza przeglądarka — zostaje zwykły tekst
+    }
+    var wynik = '', koniec = 0, m;
+    while ((m = re.exec(kod)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      wynik += esc(kod.slice(koniec, m.index));
+      var klasa = null;
+      for (var i = 0; i < reguly.length; i++) {
+        if (m.groups['g' + i] !== undefined) { klasa = reguly[i][0]; break; }
+      }
+      wynik += '<span class="t-' + klasa + '">' + esc(m[0]) + '</span>';
+      koniec = m.index + m[0].length;
+    }
+    return wynik + esc(kod.slice(koniec));
+  }
+
+  var bloki = document.querySelectorAll('pre[data-lang]');
+  for (var i = 0; i < bloki.length; i++) {
+    try {
+      bloki[i].innerHTML = podswietl(bloki[i].textContent, bloki[i].dataset.lang);
+    } catch (e) { /* blok zostaje zwykłym tekstem — lepsze niż pusty */ }
+  }
+})();
+</script>

@@ -176,6 +176,34 @@ CSS z `szablon.html` — obsługuje tryb jasny i ciemny, w tym ustawienie system
   różnica między przeglądem a opinią.
 - Jeśli czegoś nie sprawdziłeś, bo się nie dało — napisz to w stopce, zamiast milczeć.
 
+### Kod ma być kolorowany
+
+**Każdy `<pre>` musi mieć atrybut `data-lang`.** Bez niego blok zostaje czarno-białym
+tekstem — działa, ale czyta się gorzej, a przy diffie i wydruku z konsoli kolor jest
+tym, co pozwala złapać sedno bez czytania linia po linii.
+
+| `data-lang` | Do czego |
+|---|---|
+| `python` | kod Pythona |
+| `yaml` | `Taskfile.yml`, `docker-compose.yml`, przepływy CI |
+| `sql` | migracje, zapytania |
+| `bash` | polecenia powłoki |
+| `conf` | `.env`, `.gitignore`, pliki klucz–wartość |
+| `out` | **wydruk z konsoli** — koloruje napisy, liczby, znak zachęty `$` i objaśnienia po `←` |
+
+Podświetlacz to kilkadziesiąt linii czystego JavaScriptu na dole `szablon.html` —
+**żadnej biblioteki z sieci**, bo dokument ma się otwierać podwójnym kliknięciem
+i działać bez internetu. Skopiuj go razem z szablonem i nie usuwaj.
+
+W blokach `out` dopisuj objaśnienia po strzałce `←` — to one niosą sens wydruku:
+
+```
+KOD WYJSCIA ZADANIA: 0        ← porażka testu została połknięta
+```
+
+Znaki `<`, `>` i `&` wpisuj w `<pre>` jako encje (`&lt;`, `&gt;`, `&amp;`) —
+podświetlacz czyta tekst już rozkodowany i sam go z powrotem zabezpiecza.
+
 ---
 
 ## 7. Po zapisaniu
