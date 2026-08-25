@@ -179,3 +179,24 @@ def test_numery_stron_sa_takie_jak_w_stopce_pdf(baza_z_kluczem):
     (najmniejsza,) = baza_z_kluczem.execute(
         "SELECT min(page) FROM task WHERE page IS NOT NULL").fetchone()
     assert najmniejsza >= 1
+
+
+def test_czytanie_zeszytu_oddaje_liczbe_stron():
+    """Zeszyt niesie liczbę stron razem z treścią — inaczej trzeba go otworzyć dwa razy.
+
+    Ekran korekty pokazuje przy ręcznej ramce „strona N z M"; bez M człowiek
+    wpisuje numer strony w ciemno i dowiaduje się o pomyłce dopiero z błędu
+    cięcia. `OMAP-100-X-2505-zeszyt-zadan.pdf` ma 20 stron.
+    """
+    from parsers.omap_e8 import parser as K
+
+    sciezka = os.path.join(
+        korzen_mirrora(),
+        "data/raw/e8/2025/matematyka/OMAP-100-X-2505-zeszyt-zadan.pdf")
+    if not os.path.exists(sciezka):
+        pytest.skip(f"brak mirrora: {sciezka}")
+
+    zadania, stron = K.czytaj_arkusz(sciezka)
+
+    assert stron == 20
+    assert zadania, "zeszyt bez ani jednego zadania — to nie jest problem liczby stron"

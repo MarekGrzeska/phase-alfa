@@ -787,12 +787,17 @@ def _szczegolowe(prawa: str, dial: Dialekt) -> List[dict]:
 
 # ── ZESZYT ZADAŃ — treść zadania i prostokąty rysunków ────────────────────────
 
-def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> dict:
-    """Treść zadań + zasoby graficzne, per numer zadania."""
+def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
+    """Treść zadań + zasoby graficzne per numer zadania, plus liczba stron zeszytu.
+
+    Liczba stron jedzie razem z treścią, bo inaczej trzeba by otworzyć ten sam
+    plik drugi raz — a zeszyt to kilkadziesiąt stron pełnych grafiki.
+    """
     out: Dict[str, dict] = {}
     if not os.path.exists(path):
-        return out
+        return out, 0
     with open_pdf(path, engine=silnik) as doc:
+        stron = len(doc)
         for page in doc:
             txt = reconstruct.page_text(page, pomin_przypisy=True)
             for m in RE_ZADANIE.finditer(txt):
@@ -815,7 +820,7 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> dict:
                         # UPROSZCZENIE: bbox to cała strona; wykrywanie regionu grafiki to osobna robota.
                         "bbox": [0, 0, page.width, page.height],
                     })
-    return out
+    return out, stron
 
 
 def _main() -> int:

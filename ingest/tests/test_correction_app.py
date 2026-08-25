@@ -504,13 +504,18 @@ def test_zapis_nie_gubi_zakresu(client, con, task):
 
 
 def test_lista_filtruje_po_wariancie(client, task, klucz_z_innego_rocznika):
+    """Adresy porównujemy ZE ZNAKIEM ZAPYTANIA, bo `/task/1` jest podciągiem `/task/12`.
+
+    Bez domknięcia numeru test zaczyna kłamać, gdy tylko fixture urośnie
+    do dwucyfrowych identyfikatorów.
+    """
     tylko_700 = client.get("/?variant=700")
-    assert f"/task/{klucz_z_innego_rocznika}" in tylko_700.text
-    assert f"/task/{task['id']}" not in tylko_700.text
+    assert f"/task/{klucz_z_innego_rocznika}?" in tylko_700.text
+    assert f"/task/{task['id']}?" not in tylko_700.text
 
     tylko_100 = client.get("/?variant=100")
-    assert f"/task/{task['id']}" in tylko_100.text
-    assert f"/task/{klucz_z_innego_rocznika}" not in tylko_100.text
+    assert f"/task/{task['id']}?" in tylko_100.text
+    assert f"/task/{klucz_z_innego_rocznika}?" not in tylko_100.text
 
 
 @pytest.fixture
@@ -587,3 +592,81 @@ def test_przycisk_wytnij_nie_rozstrzyga_zadania(client, con, task, zasob):
     assert (zasob["blob"] / "TEST" / "z20-0.png").exists()
     assert _state(con, task["id"])["review_status"] == "pending"
     assert _events(con) == []
+
+
+def test_runda_wytnij_pamieta_usuniecie(client, con, task, zasob):
+    """Skasowany wiersz w rundzie „Wytnij" jest poprawką, nie trafieniem parsera.
+
+    Znacznik `edited_before` niósł wcześniej tylko edycje. Usunięcie wypadało
+    z pomiaru: zadanie zatwierdzone zaraz potem wchodziło do S6 jako rekord,
+    który parser trafił sam.
+    """
+    formularz = _full(task)
+    formularz[f"delete.answer.{task['answer']}"] = "1"
+    formularz.pop(f"answer.{task['answer']}.answer")
+
+    wytnij = _post(client, task, action="crop", **formularz)
+    assert "edited_before=1" in wytnij.headers["location"]
+
+    bez_odpowiedzi = _full(task)
+    bez_odpowiedzi.pop(f"answer.{task['answer']}.answer")
+    _post(client, task, action="approve", edited_before="1", **bez_odpowiedzi)
+
+    assert _state(con, task["id"])["review_status"] == "corrected"
+
+
+def test_wycinek_nie_powstaje_gdy_zapis_sie_wycofuje(client, con, task, zasob):
+    """Dysk nie cofa się razem z transakcją, więc cięcie idzie PO walidacji tekstu.
+
+    Inaczej w blobie zostaje plik z ramką, której w bazie nie ma: ekran pokazuje
+    wtedy wycinek niezgodny z polami obok, a licznik liczy go jako gotowy.
+    """
+    response = _post(client, task, action="approve",
+                     **_full(task, **{f"condition.{task['condition']}.description": ""}),
+                     **_ramka(zasob))
+
+    assert response.status_code == 422
+    assert not (zasob["blob"] / "TEST" / "z20-0.png").exists()
+
+
+def test_ramka_wraca_do_formularza_po_bledzie(client, task, zasob):
+    """Po nieudanej walidacji człowiek dostaje z powrotem TO, CO WPISAŁ.
+
+    Odczyt czterech liczb z siatki kosztuje minutę; kasowanie go za cudzą
+    literówkę w innym polu formularza jest karą bez związku z przewinieniem.
+    """
+    response = _post(client, task, action="approve",
+                     **_full(task, **{f"condition.{task['condition']}.description": ""}),
+                     **_ramka(zasob))
+
+    assert response.status_code == 422
+    for pole, wartosc in (("x0", "100"), ("top", "50"), ("x1", "300"), ("bottom", "150")):
+        assert f'name="asset.{zasob["id"]}.{pole}" value="{wartosc}"' in response.text
+
+
+def test_podglad_wycinka_i_strony_zeszytu(client, task, zasob):
+    """Trasy obrazków: bez wycinka 404 z podpowiedzią, po wycięciu — PNG."""
+    przed = client.get(f"/asset/{zasob['id']}.png")
+    assert przed.status_code == 404
+    assert "ramkę" in przed.text
+
+    _post(client, task, action="crop", **_full(task), **_ramka(zasob))
+
+    po = client.get(f"/asset/{zasob['id']}.png")
+    assert po.status_code == 200
+    assert po.headers["content-type"] == "image/png"
+
+    strona = client.get(f"/asset/{zasob['id']}/page.png")
+    assert strona.status_code == 200
+    assert strona.headers["content-type"] == "image/png"
+
+
+def test_strona_zeszytu_bez_zeszytu_mowi_co_zrobic(client, con, task, zasob):
+    """Zasób bez wczytanego zeszytu ma powiedzieć, którym poleceniem go dowieźć."""
+    with con.cursor() as cur:
+        cur.execute("DELETE FROM exam_form_document WHERE role = 'paper'")
+
+    response = client.get(f"/asset/{zasob['id']}/page.png")
+
+    assert response.status_code == 404
+    assert "--z-arkuszami" in response.text

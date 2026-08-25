@@ -397,10 +397,15 @@ def save(cur, task_id: int, form: Mapping[str, str]) -> dict[str, dict[str, int]
         _save_rows(cur, task_id, form, prefix, table, columns, skips[prefix],
                    edited, problems)
     _save_requirements(cur, task_id, form, edited, deleted)
-    # Ostatnie, bo cięcie PNG dotyka dysku: gdy walidacja tekstu i tak wywróci
-    # zapis, plik nie ma po co powstawać.
-    assets.save(cur, task_id, form, edited, problems)
 
+    # Cięcie PNG dotyka DYSKU, a dysk nie cofa się razem z transakcją: plik
+    # wycięty przed nieudaną walidacją zostałby na miejscu, pokazując ramkę,
+    # której w bazie nie ma. Dlatego najpierw wywracamy zapis na tekście,
+    # a dopiero potem ruszamy zasoby.
+    if problems:
+        raise ValidationError(problems)
+
+    assets.save(cur, task_id, form, edited, problems)
     if problems:
         raise ValidationError(problems)
     return {"edited": edited, "deleted": deleted}

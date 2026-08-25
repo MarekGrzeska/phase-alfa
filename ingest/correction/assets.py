@@ -37,7 +37,11 @@ def for_task(cur, task_id: int) -> list[dict]:
     for row in cur.fetchall():
         box = [float(v) for v in row["bbox"]]
         out.append({**row,
-                    "box": dict(zip(BOX_FIELDS, box, strict=True)),
+                    # Tekst, nie liczba: po nieudanej walidacji w to samo pole
+                    # wchodzi to, co człowiek wpisał, a szablon nie ma wtedy
+                    # czego formatować.
+                    "box": {name: f"{value:.1f}" for name, value
+                            in zip(BOX_FIELDS, box, strict=True)},
                     "cropped": _has_file(row["path"]),
                     # Parser wstawia ramkę „cała strona" z zerem w lewym górnym
                     # rogu; ręczna i automatyczna prawie nigdy tam nie zaczyna.
@@ -125,6 +129,21 @@ def source(cur, asset_id: int) -> dict | None:
     return cur.fetchone()
 
 
+def _blob_files() -> set[str]:
+    """Ścieżki względne plików pod korzeniem blobów — JEDNO przejście po katalogu.
+
+    Pytanie o każdy zasób osobno kosztuje przy pełnym korpusie 587 zapytań
+    do dysku na każde otwarcie strony głównej.
+    """
+    try:
+        root = crop_pdf.blob_root()
+    except crop_pdf.CropError:
+        return set()
+    if not root.exists():
+        return set()
+    return {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
+
+
 def counts(cur) -> dict[str, int]:
     """Ile zasobów ma dociągniętą ramkę i ile ma plik — miara „0 bez wycinka".
 
@@ -134,6 +153,8 @@ def counts(cur) -> dict[str, int]:
     rows = cur.fetchall()
     framed = sum(1 for r in rows
                  if not (float(r["bbox"][0]) == 0 and float(r["bbox"][1]) == 0))
+    na_dysku = _blob_files()
     return {"total": len(rows),
             "framed": framed,
-            "cropped": sum(1 for r in rows if _has_file(r["path"]))}
+            "cropped": sum(1 for r in rows
+                           if r["path"].replace("\\", "/") in na_dysku)}

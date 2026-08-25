@@ -107,6 +107,14 @@ def _overlay(task: dict, form: Mapping[str, str]) -> None:
             key = f"answer.{answer['id']}.answer"
             if key in form:
                 answer["answer"] = form[key]
+    for asset in task["assets"]:
+        for name in assets.BOX_FIELDS:
+            key = f"asset.{asset['id']}.{name}"
+            if key in form:
+                asset["box"][name] = form[key]
+        key = f"asset.{asset['id']}.page"
+        if key in form:
+            asset["page"] = form[key]
     for criterion in task["criteria"]:
         for column in ("points", "label", "description"):
             key = f"criterion.{criterion['id']}.{column}"
@@ -302,8 +310,11 @@ async def task_save(request: Request, task_id: int):
                     # liczył czas pracy nad zadaniem, a nie od ostatniego cięcia.
                     target = f"/task/{task_id}?" + urlencode(
                         {"started_at": started_at.isoformat(),
+                         # Usunięcia liczą się tak samo jak edycje: skasowany
+                         # próg to poprawka, a nie trafienie parsera.
                          **({"edited_before": "1"}
-                            if edited_before or changes["edited"] else {}),
+                            if edited_before or changes["edited"]
+                            or changes["deleted"] else {}),
                          **({"page": shown_page} if shown_page else {}),
                          **{k: v for k, v in scope.items() if v is not None}})
                 elif action.startswith("add:"):

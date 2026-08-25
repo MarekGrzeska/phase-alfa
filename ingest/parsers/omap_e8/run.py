@@ -244,8 +244,8 @@ def main() -> int:
                 wersje = sorted({w for f in k.formy if f["wariant"] == wlasny
                                  for w in f["wersje"]}, key=lambda w: (w is None, w))
                 for w, dane in arkusze_dla(r, wersje or [None], spis_arkuszy).items():
-                    dane["zadania"] = K.czytaj_arkusz(os.path.join(ROOT, dane["sciezka"]),
-                                                      silnik=args.silnik)
+                    dane["zadania"], dane["stron"] = K.czytaj_arkusz(
+                        os.path.join(ROOT, dane["sciezka"]), silnik=args.silnik)
                     arkusze[w] = dane
             stat = lad.zaladuj(k, meta_z_wiersza(r), arkusze)
         except loader.ReviewedKeyError as e:

@@ -144,7 +144,7 @@
             </label>
             {% for name in ['x0', 'top', 'x1', 'bottom'] %}
               <label class="small">{{ name }}
-                <input name="asset.{{ a.id }}.{{ name }}" value="{{ '%.1f'|format(a.box[name]) }}" size="6">
+                <input name="asset.{{ a.id }}.{{ name }}" value="{{ a.box[name] }}" size="6">
               </label>
             {% endfor %}
             <button name="action" value="crop" class="small">Wytnij</button>

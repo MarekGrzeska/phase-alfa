@@ -323,14 +323,19 @@ class Ladowarka:
             if not dane.get("sciezka"):
                 continue
             cur.execute(
+                # `pages` także dla zeszytu: ekran korekty pokazuje przy ręcznej
+                # ramce „strona N z M", a bez M człowiek wpisuje numer w ciemno.
                 """INSERT INTO document
-                   (segment, year, code, variants, session, kind, kind_source, url, path)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                   ON CONFLICT (url) DO UPDATE SET path = EXCLUDED.path
+                   (segment, year, code, variants, session, kind, kind_source, url,
+                    path, pages)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   ON CONFLICT (url) DO UPDATE SET path = EXCLUDED.path,
+                                                   pages = EXCLUDED.pages
                    RETURNING id""",
                 (meta["segment"], int(meta["rocznik"]), meta["kod"],
                  meta.get("warianty"), sesja, "paper", "suffix",
-                 dane.get("url", dane["sciezka"]), dane["sciezka"]),
+                 dane.get("url", dane["sciezka"]), dane["sciezka"],
+                 dane.get("stron") or None),
             )
             (aid,) = cur.fetchone()
             arkusz_ids[wersja] = aid
