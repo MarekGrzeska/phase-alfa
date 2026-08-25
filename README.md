@@ -77,6 +77,19 @@ task ingest    # przebieg parsera (po A2)
 task bench     # benchmark golden setu (po A3)
 ```
 
+Cały stos jednym poleceniem — `.env` z `.env.example`, sprawdzenie narzędzi,
+kontenery, migracje i oba serwery:
+
+| Platforma | Komenda |
+|---|---|
+| Windows | `powershell -File scripts\dev-stack.ps1` |
+| macOS / Linux | `./scripts/dev-stack.sh` |
+
+Skrypty nie powtarzają logiki z `Taskfile.yml` — wołają `task`. Dokładają to,
+czego Taskfile z założenia nie robi: operacje na plikach (`.env` nie istnieje przy
+pierwszym klonie) i sprawdzenie, czy silnik Dockera **odpowiada**, a nie tylko jest
+zainstalowany.
+
 ## CI
 
 `.github/workflows/ci.yml` — cztery zadania równoległe, każde odpowiada jednemu
