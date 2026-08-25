@@ -245,8 +245,12 @@ class Ladowarka:
                (segment, year, code, variants, session, kind, kind_source,
                 url, path, pages)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+               -- `ingest_status` wraca do 'new', bo zadania tego klucza wlasnie
+               -- zniknely i wchodza od nowa jako `pending`. Bez tego przeladowany
+               -- klucz zostawalby 'approved' o zadaniach, ktorych nikt nie widzial.
                ON CONFLICT (url) DO UPDATE SET path = EXCLUDED.path,
-                                               pages = EXCLUDED.pages
+                                               pages = EXCLUDED.pages,
+                                               ingest_status = 'new'
                RETURNING id""",
             (meta["segment"], int(meta["rocznik"]), meta["kod"],
              meta.get("warianty"), sesja, "marking_scheme",

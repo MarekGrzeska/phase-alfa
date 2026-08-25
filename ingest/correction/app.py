@@ -198,6 +198,15 @@ def task_page(task_id: int, n: int | None = None) -> FileResponse:
 
 @app.post("/task/{task_id}")
 async def task_save(request: Request, task_id: int):
+    # Ekran nie ma uwierzytelnienia, bo stoi na 127.0.0.1 — ale „na localhoście"
+    # nie znaczy „tylko my": każda inna strona otwarta w tej przeglądarce może
+    # wysłać tu formularz i zatwierdzić zadanie. Nagłówek `Sec-Fetch-Site` wysyłają
+    # wszystkie dzisiejsze przeglądarki; jego brak (curl, stary klient) przepuszczamy,
+    # bo bramka ma odciąć cudzą STRONĘ, a nie narzędzia z konsoli.
+    origin = request.headers.get("sec-fetch-site", "same-origin")
+    if origin != "same-origin":
+        raise HTTPException(403, f"żądanie spoza ekranu korekty (sec-fetch-site: {origin})")
+
     form = dict(await request.form())
     action = str(form.get("action", ""))
     started_at = _started_at(str(form.get("started_at") or ""))

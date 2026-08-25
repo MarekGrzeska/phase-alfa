@@ -115,9 +115,11 @@
     {% endfor %}
     </tbody>
   </table>
+  {% if tasks|length >= 200 %}
   <p class="small" style="margin-bottom:0">
-    Lista jest ucięta do 200 pozycji — do pracy służy przycisk
+    Lista ucięta do 200 pozycji — do pracy służy przycisk
     „Następne do korekty", nie przewijanie.
   </p>
+  {% endif %}
 </div>
 {% endblock %}

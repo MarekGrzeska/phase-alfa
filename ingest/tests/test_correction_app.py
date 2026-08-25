@@ -400,6 +400,58 @@ def test_zdublowany_numer_zadania_wskazuje_wlasciwa_tabele(client, con, task):
     assert "zadanie o takim numerze" in response.text
 
 
+def test_status_klucza_idzie_za_stanem_zadan(client, con, task):
+    """`document.ingest_status` był obietnicą planu, której kod nie spełniał —
+    kolumna stała na `new` niezależnie od tego, ile zadań przeszło przez ekran."""
+    def status():
+        return con.execute("SELECT ingest_status AS s FROM document "
+                           "WHERE url = 'test://app'").fetchone()["s"]
+
+    assert status() == "new"
+
+    # Klucz ma dwa zadania: jedno rozstrzygnięte, drugie czeka.
+    con.execute("INSERT INTO task (marking_scheme_id, number, position, max_points, "
+                "kind) SELECT marking_scheme_id, '21', 21, 2, 'open_short' FROM task "
+                "WHERE id = %s", (task["id"],))
+    _post(client, task, action="approve", **_full(task))
+    assert status() == "parsed", "klucz z zadaniem w kolejce nie jest domknięty"
+
+    con.execute("UPDATE task SET review_status = 'approved' WHERE number = '21'")
+    _post(client, task, action="reopen")
+    _post(client, task, action="approve", **_full(task))
+    assert status() == "approved"
+
+
+def test_odrzucenie_wszystkiego_daje_klucz_odrzucony(client, con, task):
+    _post(client, task, action="reject", **_full(task))
+    assert con.execute("SELECT ingest_status AS s FROM document "
+                       "WHERE url = 'test://app'").fetchone()["s"] == "rejected"
+
+
+def test_wersji_zadania_nie_da_sie_skasowac_formularzem(client, con, task):
+    """Kasowanie wersji pociąga kaskadą odpowiedzi wzorcowe i wycinki graficzne,
+    a ekran tego nie oferuje — pole doklejone ręcznie ma być zignorowane."""
+    response = _post(client, task, action="approve",
+                     **_full(task, **{f"delete.version.{task['version']}": "1"}))
+
+    assert response.status_code == 303
+    assert con.execute("SELECT count(*) AS n FROM task_version").fetchone()["n"] == 1
+    # Zignorowane pole nie jest zmiana, wiec status ma zostac trafieniem parsera.
+    assert _state(con, task["id"])["review_status"] == "approved"
+
+
+def test_zadanie_z_cudzej_strony_nie_zmienia_korpusu(client, con, task):
+    """Ekran nie ma uwierzytelnienia, bo stoi na localhoście — ale to nie znaczy,
+    że tylko my możemy do niego wysłać formularz."""
+    response = client.post(f"/task/{task['id']}",
+                           data={"started_at": _started(), "action": "approve"},
+                           headers={"sec-fetch-site": "cross-site"},
+                           follow_redirects=False)
+
+    assert response.status_code == 403
+    assert _state(con, task["id"])["review_status"] == "pending"
+
+
 def test_nastepne_do_korekty_prowadzi_do_zadania(client, con, task):
     response = client.get("/next", follow_redirects=False)
     assert response.headers["location"] == f"/task/{task['id']}"

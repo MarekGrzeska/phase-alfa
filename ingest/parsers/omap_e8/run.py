@@ -187,7 +187,7 @@ def main() -> int:
             pominiete.append(r["plik"])
             continue
         if po_korekcie_url.get(r["url"]):
-            po_korekcie.append((r["plik"], po_korekcie_url[r["url"]]))
+            po_korekcie.append((r["plik"], r["rocznik"], po_korekcie_url[r["url"]]))
             print("%-34s POMIJAM — zadań po korekcie: %d"
                   % (r["plik"][:34], po_korekcie_url[r["url"]]))
             continue
@@ -207,7 +207,7 @@ def main() -> int:
             # Nie błąd: klucz ma korektę, a przebieg jej nie tknął. Ten wyjątek
             # łapie wyścig — korekta zatwierdzona po zapytaniu wstępnym — więc
             # pominięcie liczy się tak samo jak tam.
-            po_korekcie.append((r["plik"], e.reviewed))
+            po_korekcie.append((r["plik"], r["rocznik"], e.reviewed))
             print("%-34s POMIJAM — zadań po korekcie: %d" % (r["plik"][:34], e.reviewed))
             continue
         except Exception as e:
@@ -308,17 +308,28 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
     print("\n" + "─" * 74)
     print("POKRYCIE PER ROCZNIK")
     print("─" * 74)
-    print("  %-8s %-10s %6s %6s %6s %6s %6s %6s"
-          % ("rocznik", "dialekt", "kluczy", "zadań", "wym%", "odp%", "kryt%", "reguł"))
-    for rocznik in sorted({w["rocznik"] for w in wyniki}):
+    # Kolumna „pomin." jest tu po to, żeby tabela mówiła, ilu kluczy NIE opisuje.
+    # Bez niej rocznik z połową kluczy po korekcie pokazywał pokrycie 100% liczone
+    # z drugiej połowy, a rocznik skorygowany w całości znikał z tabeli bez śladu.
+    print("  %-8s %-10s %6s %6s %6s %6s %6s %6s %6s"
+          % ("rocznik", "dialekt", "kluczy", "zadań", "wym%", "odp%", "kryt%",
+             "reguł", "pomin."))
+    roczniki = sorted({w["rocznik"] for w in wyniki}
+                      | {rocznik for _, rocznik, _ in po_korekcie})
+    for rocznik in roczniki:
         grupa = [w for w in wyniki if w["rocznik"] == rocznik]
+        pomin = sum(1 for _, r, _ in po_korekcie if r == rocznik)
+        if not grupa:
+            print("  %-8s %-10s %6d %6s %6s %6s %6s %6s %6d"
+                  % (rocznik, "—", 0, "—", "—", "—", "—", "—", pomin))
+            continue
         n = len(grupa)
-        print("  %-8s %-10s %6d %6d %6.0f %6.0f %6.0f %6d"
+        print("  %-8s %-10s %6d %6d %6.0f %6.0f %6.0f %6d %6d"
               % (rocznik, grupa[0]["dialekt"], n, sum(g["zadan"] for g in grupa),
                  100 * sum(g["wym"] for g in grupa) / n,
                  100 * sum(g["odp"] for g in grupa) / n,
                  100 * sum(g["kryt"] for g in grupa) / n,
-                 sum(g["reguly"] for g in grupa)))
+                 sum(g["reguly"] for g in grupa), pomin))
 
     print("\n" + "─" * 74)
     print("WARIANTY DOSTOSOWANE — 700 i 800 mają INNE zadania na to samo wymaganie")
@@ -416,6 +427,14 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
     print("PODSUMOWANIE")
     print("─" * 74)
     n = len(wyniki)
+    if not n:
+        # Przebieg, który nic nie sparsował, ma wyglądać inaczej niż przebieg
+        # udany. Bez tego raport kończył się zdaniem o wszystkich kluczach
+        # powyżej progów pokrycia wypowiedzianym o ZERZE kluczy — czyli tym,
+        # czego CLAUDE.md zabrania: sukces nieodróżnialny od braku roboty.
+        print("  NIC NIE ZALADOWANO w tym przebiegu.")
+        print("  Kluczy pominietych po korekcie: %d." % len(po_korekcie))
+        print("  Liczby wyzej opisuja korpus w bazie, nie wynik tego przebiegu.")
     if n:
         print("  kluczy sparsowanych : %d w %.0f s (%.1f s/klucz)" % (n, czas, czas / n))
         print("  zadań               : %d (%d punktów)"
@@ -444,15 +463,15 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
         # kluczy przebieg omija. Wypisane wprost, bo cicho pominięty klucz
         # wygląda w raporcie dokładnie tak samo jak klucz załadowany.
         print("  pominięte po korekcie: kluczy %d, zadań %d"
-              % (len(po_korekcie), sum(n for _, n in po_korekcie)))
-        for plik, n in po_korekcie[:5]:
+              % (len(po_korekcie), sum(n for _, _, n in po_korekcie)))
+        for plik, _, n in po_korekcie[:5]:
             print("    ↳ %-34s zadań: %d" % (plik[:34], n))
     problemy = [w for w in wyniki if w["uwagi"]]
     if problemy:
         print("\n  PONIŻEJ PROGU — %d z %d:" % (len(problemy), n))
         for w in problemy:
             print("    %-34s %s" % (w["plik"][:34], "; ".join(w["uwagi"])))
-    else:
+    elif wyniki:
         print("\n  wszystkie klucze powyżej progów pokrycia")
     if bledy:
         print("\n  BŁĘDY TWARDE — %d:" % len(bledy))

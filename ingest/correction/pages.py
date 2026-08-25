@@ -43,7 +43,9 @@ def render(relative_path: str, page: int) -> Path:
     # z założenia niezmienny („mirror raz, potem tylko kopia"), a plik pobrany
     # ponownie ma tę samą treść i sumę SHA-256.
     stamp = hashlib.sha256(relative_path.encode("utf-8")).hexdigest()[:16]
-    out = CACHE / f"{stamp}-{page}.png"
+    # Skala w nazwie, bo `SCALE` jest stała do podkręcenia — a bez niej ekran
+    # po jej zmianie dalej trafiał w stary plik i pokazywał starą rozdzielczość.
+    out = CACHE / f"{stamp}-{page}-{SCALE:g}.png"
     if out.exists():
         return out
 

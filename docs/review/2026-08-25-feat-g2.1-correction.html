@@ -1,0 +1,730 @@
+<title>Przegląd kodu — feat/g2.1-correction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+  --t-kw:#8B3E8F; --t-str:#2C7355; --t-com:#6B7C79;
+  --t-num:#B0651A; --t-fn:#2B5C86; --t-type:#0E5B4F; --t-ann:#9E2E2E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+    --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+    --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+  --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:68ch}
+h1,h2,h3,.tag,th,.knum{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:0 0 .3rem;text-wrap:balance}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:52px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-kryt{color:var(--crit)} .n-istot{color:var(--warn)}
+.n-drob{color:var(--accent)} .n-rozw{color:var(--info)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-kryt{background:var(--crit-soft);color:var(--crit)}
+.st-istot{background:var(--warn-soft);color:var(--warn)}
+.st-drob{background:var(--accent-soft);color:var(--accent)}
+.st-rozw{background:var(--info-soft);color:var(--info)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+.k{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px 22px;border-left:3px solid var(--rule);box-shadow:var(--shadow);
+  margin:0 0 16px;scroll-margin-top:20px}
+.k.kryt{border-left-color:var(--crit)}
+.k.istot{border-left-color:var(--warn)}
+.k.drob{border-left-color:var(--accent)}
+.k.rozw{border-left-color:var(--info)}
+.k-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+.knum{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+  color:var(--ink-3);min-width:1.6rem}
+.k h3{flex:1 1 18ch;margin:0}
+.k-gdzie{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-3);
+  margin:0 0 .9rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule-soft)}
+.k p{font-size:.95rem;color:var(--ink-2);margin-bottom:.75em}
+.k p:last-child{margin-bottom:0}
+.fix{font-size:.92rem;color:var(--ink);border-top:1px solid var(--rule-soft);
+  padding-top:.8rem;margin-top:1rem}
+.fix b{font-family:Archivo,sans-serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:.4rem}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+.t-kw{color:var(--t-kw);font-weight:600}
+.t-str{color:var(--t-str)}
+.t-com{color:var(--t-com);font-style:italic}
+.t-num{color:var(--t-num)}
+.t-fn{color:var(--t-fn)}
+.t-type{color:var(--t-type)}
+.t-ann{color:var(--t-ann);font-weight:600}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">przegląd kodu · 25.08.2026 · feat/g2.1-correction</span>
+  <h1>Ekran korekty — bramka między parserem a korpusem</h1>
+  <p class="lede">
+    Cztery commity realizujące <strong>G2.1</strong> z planu A2: migracja statusów,
+    ochrona przed przeładowaniem klucza po korekcie, lokalny ekran w FastAPI i pomiar S8.
+    <strong>Nadaje się do scalenia</strong> — nic tu nie psuje danych ani nie łamie
+    granicy warstw. Blokad nie było; dwie rzeczy ugryzłyby dopiero w połowie A2,
+    gdy jest najdrożej.
+    <strong>Wszystkie osiem komentarzy zostało zamkniętych</strong> w commicie
+    naprawczym, razem z jedynym rozjazdem z planem
+    (<code>document.ingest_status</code>) — kolumna „stan" w spisie mówi jak.
+  </p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n n-kryt">0</span><span class="metric-l">krytyczne</span></div>
+    <div class="metric"><span class="metric-n n-istot">2</span><span class="metric-l">istotne</span></div>
+    <div class="metric"><span class="metric-n n-drob">4</span><span class="metric-l">drobne</span></div>
+    <div class="metric"><span class="metric-n n-rozw">2</span><span class="metric-l">do rozważenia</span></div>
+    <div class="metric"><span class="metric-n">26</span><span class="metric-l">plików w diffie<br>+3106 / −15</span></div>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head">
+    <span class="num">01 — SPIS</span>
+    <h2>Osiem komentarzy, od najważniejszego</h2>
+    <p class="sec-sub">
+      Komentarze 1 i 2 dotyczą rzeczy, które dziś wyglądają poprawnie i przestaną,
+      gdy korekta ruszy na serio. Reszta to niedoskonałości o małym zasięgu.
+    </p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="n">#</th><th>Stopień</th><th>Rzecz</th><th>Plik</th><th>Stan</th></tr></thead>
+      <tbody>
+        <tr><td class="n"><a href="#k1">1</a></td><td><span class="tag st-istot">istotny</span></td>
+            <td>Raport ingestu przestaje opisywać korpus, a wygląda tak samo</td>
+            <td class="id">parsers/omap_e8/run.py</td><td class="small">kolumna „pomin." w tabeli pokrycia; pusty przebieg mówi to wprost</td></tr>
+        <tr><td class="n"><a href="#k2">2</a></td><td><span class="tag st-istot">istotny</span></td>
+            <td>Rozjazd zegarów hosta i kontenera wywraca zapis rozstrzygnięcia</td>
+            <td class="id">correction/db.py</td><td class="small"><code>LEAST(%s, now())</code> — oba znaczniki z zegara bazy</td></tr>
+        <tr><td class="n"><a href="#k3">3</a></td><td><span class="tag st-drob">drobny</span></td>
+            <td>Formularz przyjmuje skasowanie wersji zadania, choć ekran tego nie oferuje</td>
+            <td class="id">correction/db.py</td><td class="small">osobna lista <code>DELETABLE</code>, bez wersji zadania</td></tr>
+        <tr><td class="n"><a href="#k4">4</a></td><td><span class="tag st-drob">drobny</span></td>
+            <td>Pamięć podręczna renderu nie wie o skali</td>
+            <td class="id">correction/pages.py</td><td class="small">skala w nazwie pliku w pamięci podręcznej</td></tr>
+        <tr><td class="n"><a href="#k5">5</a></td><td><span class="tag st-drob">drobny</span></td>
+            <td>Ekran milczy, gdy próg przekracza pulę punktów zadania</td>
+            <td class="id">correction/templates/task.html</td><td class="small">ostrzeżenie przy progu, bez blokowania zapisu</td></tr>
+        <tr><td class="n"><a href="#k6">6</a></td><td><span class="tag st-drob">drobny</span></td>
+            <td>Strona główna zawsze twierdzi, że lista jest ucięta</td>
+            <td class="id">correction/templates/index.html</td><td class="small">zdanie o ucięciu tylko przy 200 pozycjach</td></tr>
+        <tr><td class="n"><a href="#k7">7</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+            <td>Import wewnątrz funkcji sugeruje cykl, którego nie ma</td>
+            <td class="id">correction/stats.py</td><td class="small">import przeniesiony na górę pliku</td></tr>
+        <tr><td class="n"><a href="#k8">8</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+            <td>Dowolna strona otwarta w przeglądarce może zmienić korpus</td>
+            <td class="id">correction/app.py</td><td class="small">sprawdzenie <code>Sec-Fetch-Site</code> — decyzja: dołożyć</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="num">02 — KOMENTARZE</span>
+    <h2>Co naprawić i dlaczego</h2>
+  </div>
+
+  <div class="k istot" id="k1">
+    <div class="k-head">
+      <span class="knum">1</span>
+      <h3>Raport ingestu przestaje opisywać korpus, a wygląda dokładnie tak samo</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/run.py — <code>_raport()</code>, sekcje „POKRYCIE PER ROCZNIK" i „PODSUMOWANIE"</p>
+
+    <p>
+      Pominięcie klucza po korekcie jest nowym, normalnym stanem — i słusznie.
+      Ale tabela pokrycia liczy się <strong>wyłącznie z kluczy załadowanych w tym
+      przebiegu</strong>, więc każdy skorygowany klucz z niej po cichu znika.
+      Rocznik, który ma osiem kluczy, pokazuje siedem i dalej twierdzi, że pokrycie
+      wynosi 100%.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">jeden klucz rocznika 2019 oznaczony jako poprawiony · task ingest -- --limit 8</div>
+      <div class="ev-b"><pre data-lang="out">  rocznik  dialekt    kluczy  zadań   wym%   odp%  kryt%  reguł
+  2019     e8-2019         7    141    100    100    100      0    ← rocznik ma 8 kluczy i 162 zadania
+
+  kluczy sparsowanych : 7 w 15 s
+  pominięte po korekcie: kluczy 1, zadań 21                        ← jedyny ślad, 20 linii niżej</pre></div>
+    </div>
+
+    <p>
+      Na końcu A2, gdy wszystko będzie zatwierdzone, przebieg nie załaduje niczego —
+      a raport powie, że jest dobrze:
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">wszystkie klucze rocznika oznaczone jako poprawione · ten sam przebieg</div>
+      <div class="ev-b"><pre data-lang="out">  rocznik  dialekt    kluczy  zadań   wym%   odp%  kryt%  reguł
+                                                                   ← tabela pusta
+
+  wszystkie klucze powyżej progów pokrycia                         ← zdanie o zerze kluczy
+KOD WYJSCIA: 0                                                     ← przebieg, który nic nie zrobił</pre></div>
+    </div>
+
+    <p>
+      To jest dokładnie wzorzec, który <code>CLAUDE.md</code> nazywa zakazanym:
+      „test, który zawsze był zielony, jest nieodróżnialny od testu, który nic nie
+      sprawdza". Tu przebieg, który nic nie sparsował, jest nieodróżnialny od przebiegu,
+      w którym wszystko przeszło.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      <p>
+        Dwie zmiany w <code>_raport()</code>. Pierwsza: dopisać kolumnę
+        z liczbą kluczy pominiętych w tym roczniku, żeby tabela mówiła, ilu kluczy
+        <em>nie opisuje</em>. Druga: gdy <code>wyniki</code> jest puste, napisać to
+        wprost zamiast zdania o progach pokrycia.
+      </p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">if not wyniki:
+    print("  NIC NIE ZALADOWANO — %d klucz(y) pominietych po korekcie."
+          % len(po_korekcie))
+    print("  Pokrycie opisuje wylacznie klucze z TEGO przebiegu.")
+elif problemy:
+    ...</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="k istot" id="k2">
+    <div class="k-head">
+      <span class="knum">2</span>
+      <h3>Rozjazd zegarów hosta i kontenera wywraca zapis rozstrzygnięcia</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/db.py — <code>decide()</code>; migracja 0004, <code>CHECK (finished_at &gt;= started_at)</code></p>
+
+    <p>
+      <code>started_at</code> powstaje w Pythonie, na zegarze hosta.
+      <code>finished_at</code> powstaje w bazie, z <code>DEFAULT now()</code>, czyli
+      na zegarze kontenera. Więz wymaga, żeby drugie było większe od pierwszego —
+      a to założenie o dwóch różnych zegarach, nie o kolejności zdarzeń.
+    </p>
+    <p>
+      Docker Desktop na Windows potrafi zostawić zegar maszyny wirtualnej w tyle po
+      uśpieniu laptopa. Wtedy zatwierdzenie zadania kończy się naruszeniem więzu,
+      a człowiek widzi komunikat „Wartość poza zakresem, na który pozwala schemat"
+      i traci rozstrzygnięcie, którego treść była w porządku. Awaria jest
+      warunkowa i przychodzi w najgorszym momencie — po przerwie w pracy.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">ingest/correction/db.py — stan obecny</div>
+      <div class="ev-b"><pre data-lang="python">cur.execute(
+    """INSERT INTO correction_event (task_id, action, started_at, fields_changed)
+       VALUES (%s, %s, %s, %s)""",
+    (task_id, event, started_at, Jsonb(changes) if changed_now else None),
+)</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      <p>
+        Niech oba znaczniki pochodzą z tego samego zegara. Najtaniej przez
+        <code>LEAST</code>: jeśli znacznik z formularza wyprzedza zegar bazy,
+        przedział skraca się do zera zamiast łamać więz. Pomiar traci wtedy jedną
+        sesję, a nie całą decyzję.
+      </p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="sql">INSERT INTO correction_event (task_id, action, started_at, fields_changed)
+VALUES (%s, %s, LEAST(%s, now()), %s)</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="k drob" id="k3">
+    <div class="k-head">
+      <span class="knum">3</span>
+      <h3>Formularz przyjmuje skasowanie wersji zadania, choć ekran tego nie oferuje</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/db.py — słownik <code>EDITABLE</code>, funkcja <code>_delete_rows()</code></p>
+
+    <p>
+      <code>_delete_rows()</code> obsługuje każdy prefiks ze słownika
+      <code>EDITABLE</code>, a jest w nim <code>version</code>. Pole
+      <code>delete.version.N</code> nie powstaje w żadnym szablonie, ale wysłane
+      ręcznie zadziała — i skasuje wersję zadania razem z odpowiedziami wzorcowymi
+      <em>i wycinkami graficznymi</em>, bo <code>asset</code> wisi na
+      <code>task_version</code> z kaskadą.
+    </p>
+    <p>
+      Ryzyko jest małe (narzędzie stoi na localhoście), ale zasięg szkody duży,
+      a rozdzielenie „co wolno edytować" od „co wolno usuwać" kosztuje jedną stałą.
+      Dziś obie listy są tym samym słownikiem przez przypadek, nie przez decyzję.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python"># Usuwać wolno tylko to, co ekran naprawdę oferuje. Wersja zadania i jej
+# wycinki powstają w ingeście i tam się je poprawia.
+DELETABLE = ("answer", "criterion", "condition", "expression")</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="k drob" id="k4">
+    <div class="k-head">
+      <span class="knum">4</span>
+      <h3>Pamięć podręczna renderu nie wie o skali</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/pages.py:45–46</p>
+
+    <p>
+      Nazwa pliku w pamięci podręcznej składa się ze skrótu ścieżki i numeru strony.
+      Stała <code>SCALE</code> stoi na górze pliku i wygląda na przeznaczoną do
+      podkręcenia — a po jej zmianie ekran dalej pokazuje stare obrazy w starej
+      rozdzielczości, bo trafia w ten sam plik. Objaw („zmieniłem skalę i nic się
+      nie stało") nie prowadzi do przyczyny.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">out = CACHE / f"{stamp}-{page}-{SCALE:g}.png"</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="k drob" id="k5">
+    <div class="k-head">
+      <span class="knum">5</span>
+      <h3>Ekran milczy, gdy próg przekracza pulę punktów zadania</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/templates/task.html — sekcja „Kryteria"</p>
+
+    <p>
+      Schemat świadomie <strong>nie</strong> zabrania progu za 3 punkty przy puli 2 —
+      i słusznie, bo taki zapis stoi w prawdziwym kluczu CKE
+      (<code>OMAP-900-2105</code>, literówka komisji), a parser ma oddawać dokument
+      wiernie. Ale to znaczy, że człowiek może w ekranie stworzyć taki rozjazd
+      <em>przez pomyłkę</em> i nic mu tego nie powie.
+    </p>
+    <p>
+      Sekcja <code>SPÓJNOŚĆ</code> w raporcie ingestu wyłapie to później — sprawdzone,
+      pyta całą bazę, nie tylko klucze z bieżącego przebiegu. Chodzi więc o moment
+      wykrycia, nie o to, czy w ogóle. Człowiek dowiaduje się przy następnym raporcie
+      zamiast w chwili, gdy patrzy na klucz.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      <p>
+        Ostrzeżenie przy progu, bez blokowania zapisu — to ma być informacja,
+        nie więz:
+      </p>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="bash">{% if c.points|int &gt; task.max_points|int %}
+  &lt;span class="tag"&gt;próg ponad pulą zadania&lt;/span&gt;
+{% endif %}</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="k drob" id="k6">
+    <div class="k-head">
+      <span class="knum">6</span>
+      <h3>Strona główna zawsze twierdzi, że lista jest ucięta</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/templates/index.html:119</p>
+
+    <p>
+      Zdanie „Lista jest ucięta do 200 pozycji" stoi pod tabelą bezwarunkowo, także
+      wtedy, gdy filtr zwrócił dwanaście zadań. Drobiazg, ale uczy nieprawdziwego
+      modelu tego, co widać na ekranie — a przy filtrze po roczniku łatwo uwierzyć,
+      że coś zostało schowane.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="bash">{% if tasks|length &gt;= 200 %}
+  &lt;p class="small"&gt;Lista ucięta do 200 pozycji — do pracy służy przycisk…&lt;/p&gt;
+{% endif %}</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="k rozw" id="k7">
+    <div class="k-head">
+      <span class="knum">7</span>
+      <h3>Import wewnątrz funkcji sugeruje cykl, którego nie ma</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/stats.py:65 — <code>collect()</code></p>
+
+    <p>
+      <code>from correction import db</code> stoi w ciele funkcji. Taki zapis czyta
+      się jako „inaczej byłby cykl importów" — a cyklu tu nie ma:
+      <code>db</code> nie wie nic o <code>stats</code>. Następna osoba spędzi kilka
+      minut, szukając zależności, której nie ma.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      <p>Przenieść import na górę pliku. Jeśli kiedyś cykl powstanie, wróci tu razem z komentarzem, który go tłumaczy.</p>
+    </div>
+  </div>
+
+  <div class="k rozw" id="k8">
+    <div class="k-head">
+      <span class="knum">8</span>
+      <h3>Dowolna strona otwarta w przeglądarce może zmienić korpus</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/app.py — <code>task_save()</code></p>
+
+    <p>
+      Ekran przyjmuje zwykły formularz <code>POST</code> bez sprawdzania, skąd
+      przyszedł. Dopóki działa, każda inna strona otwarta w tej samej przeglądarce
+      może wysłać żądanie na <code>localhost:8600</code> i zatwierdzić albo odrzucić
+      zadanie. Nie ma tu sesji ani ciasteczek do ukradzenia — jedyną szkodą jest
+      zmiana korpusu, ale to akurat jest cały majątek A2.
+    </p>
+    <p>
+      Prawdopodobieństwo jest niskie i nie jest to błąd w kodzie, tylko brak
+      założenia. Do decyzji: przyjąć ryzyko (narzędzie żyje trzy tygodnie na jednej
+      maszynie) albo dołożyć trzy linijki.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić, jeśli decyzja brzmi „dołożyć"</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python"># Przeglądarki wysyłają Sec-Fetch-Site przy każdym żądaniu od 2023 r.
+# „same-origin" znaczy: to nasz własny formularz, a nie cudza strona.
+if request.headers.get("sec-fetch-site", "same-origin") != "same-origin":
+    raise HTTPException(403, "żądanie spoza ekranu korekty")</pre></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="num">03 — ZGODNOŚĆ Z PLANEM</span>
+    <h2>Czy kod robi to, co plan zapowiadał</h2>
+    <p class="sec-sub">
+      Punkty z <code>docs/plan-A2.md</code>, sekcje G2.1.1–G2.1.3. Odstępstwa są
+      opisane w samym planie, w miejscach, których dotyczą — plan jest aktualny.
+    </p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="id">Punkt</th><th>Zapowiedź</th><th>Stan</th></tr></thead>
+      <tbody>
+        <tr><td class="id">G2.1.1</td><td>Migracja: status per zadanie, dziennik, widok <code>corpus_task</code></td>
+            <td><span class="tag st-ok">zrobione</span> migracja 0004, komplet</td></tr>
+        <tr><td class="id">G2.1.1</td><td>Ochrona przed rerunem: pomijanie kluczy po korekcie, jawna zgoda</td>
+            <td><span class="tag st-ok">zrobione</span> bramka w ładowarce + osobna na <code>--wyczysc</code>; widziana na czerwono</td></tr>
+        <tr><td class="id">G2.1.1</td><td>Test na to zachowanie</td>
+            <td><span class="tag st-ok">zrobione</span> <code>test_rerun_guard.py</code>, 4 testy</td></tr>
+        <tr><td class="id">G2.1.2</td><td>Widok listy z filtrem i wejściem „następne do korekty"</td>
+            <td><span class="tag st-ok">zrobione</span></td></tr>
+        <tr><td class="id">G2.1.2</td><td>Render strony PDF obok formularza</td>
+            <td><span class="tag st-ok">zrobione</span> pypdfium2; sprawdzone na prawdziwym kluczu</td></tr>
+        <tr><td class="id">G2.1.2</td><td>Edycja kryteriów, warunków, zapisów, wymagań</td>
+            <td><span class="tag st-ok">zrobione</span> plus wersje i odpowiedzi wzorcowe</td></tr>
+        <tr><td class="id">G2.1.2</td><td>Wszystko w jednej transakcji: zmiany + status + dziennik</td>
+            <td><span class="tag st-ok">zrobione</span> <code>con.transaction()</code>, wycofanie sprawdzone testem</td></tr>
+        <tr><td class="id">G2.1.2</td><td>Aktualizacja <code>document.ingest_status</code> po komplecie rozstrzygnięć</td>
+            <td><span class="tag st-istot">nie</span> kolumna zostaje na <code>new</code>; nic jej dziś nie czyta, ale plan to zapowiadał — dług do zapisania albo do zrobienia w G2.2</td></tr>
+        <tr><td class="id">G2.1.2</td><td>Zadanie w Taskfile i port w <code>.env</code></td>
+            <td><span class="tag st-ok">zrobione</span></td></tr>
+        <tr><td class="id">G2.1.3</td><td>Odsetek zatwierdzeń bez poprawki, czas, prognoza</td>
+            <td><span class="tag st-ok">zrobione</span> na ekranie i w <code>task correction:report</code></td></tr>
+        <tr><td class="id">G2.4.2</td><td>Ręczne dociągnięcie ramki wycinka <em>(plan przypisuje do G2.4, nie G2.1)</em></td>
+            <td><span class="tag st-rozw">poza zakresem</span> słusznie — wchodzi razem z G2.4</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <p>
+      <strong>Jedyny rozjazd z planem</strong> to <code>document.ingest_status</code>:
+      plan mówił, że akcja w ekranie ma go aktualizować, gdy klucz ma komplet
+      rozstrzygnięć. Kolumna istnieje od migracji 0001 i stoi na <code>new</code> dla
+      wszystkich 78 kluczy. Dziś nie czyta jej nic, więc to nie jest błąd działania —
+      ale jest to obietnica planu, której kod nie spełnia, a takie rzeczy najlepiej
+      albo domknąć, albo skreślić z planu.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="num">04 — CO JEST DOBRE</span>
+    <h2>Rzeczy warte utrzymania przy kolejnych zmianach</h2>
+  </div>
+
+  <ul class="plain">
+    <li>
+      <b>Status wychodzi z porównania z bazą, nie z kliknięcia.</b> Jeden przycisk
+      „Zatwierdź", a o tym, czy zapisać <code>approved</code> czy <code>corrected</code>,
+      decyduje diff formularza. Dzięki temu pomiaru S6/S8 nie da się przekłamać —
+      i to jest właściwa kolejność myślenia: najpierw uczciwość pomiaru, potem wygoda.
+      Nie rozbijać tego na dwa przyciski przy pierwszej prośbie o „szybsze zatwierdzanie".
+    </li>
+    <li>
+      <b>Bramka stoi tam, gdzie ginie praca.</b> Ochrona siedzi w
+      <code>_wyczysc_klucz</code>, tuż przed <code>DELETE</code>, a nie w runnerze —
+      więc obowiązuje każdą drogę do kasowania. Runner dokłada zapytanie wstępne
+      wyłącznie dla oszczędności czasu, nie dla poprawności. Ten podział warto
+      zachować przy dokładaniu kolejnych wejść do ładowarki.
+    </li>
+    <li>
+      <b>Przeprowadzka niczego nie zepsuła.</b> Po dołożeniu kolumny
+      <code>task.page</code> liczby korpusu zgadzają się z sondą co do rekordu:
+      1436 zadań, 2062 punkty, 1574 wersje, 3315 kryteriów, 4379 warunków,
+      514 zapisów, 772 reguły. Sprawdzone zapytaniem, nie założone.
+    </li>
+    <li>
+      <b>Przynależność wiersza sprawdza SQL, a nie założenie o localhoście.</b>
+      Klauzula <code>OWNERSHIP</code> jest wpisana raz i wstrzykiwana do każdego
+      <code>UPDATE</code> i <code>DELETE</code>. To dobry nawyk w narzędziu, o którym
+      łatwo powiedzieć „przecież to tylko localhost".
+    </li>
+    <li>
+      <b>Wartownik importu w testach wskazał na to, czego naprawdę potrzeba.</b>
+      Pomyłka (<code>httpx</code> zamiast <code>httpx2</code>) pomijała trzynaście
+      testów jako jedno <code>skipped</code> przy zielonym wyniku — i została złapana
+      po liczbie testów, nie po kolorze. Warto pilnować tej liczby dalej.
+    </li>
+    <li>
+      <b>Mediana zamiast średniej w prognozie.</b> Decyzja o zaworze z G2.2.2 stoi
+      na tej liczbie, a jeden formularz zostawiony na noc potrafi przewrócić średnią
+      o rząd wielkości. Długie sesje są policzone osobno i widoczne, nie ukryte.
+    </li>
+  </ul>
+</section>
+
+<footer>
+  <p>Przegląd wykonany wg <code>.claude/skills/code-review</code>.</p>
+  <p>
+    Zakres: <code>git diff main...HEAD</code> — 4 commity, 26 plików, +3106 / −15.
+    Plan odniesienia: <code>docs/plan-A2.md</code>, sekcje G2.1.1–G2.1.3.
+  </p>
+  <p>
+    Sprawdzone uruchomieniem: <code>task test:python</code> (100 testów, 2 xfail),
+    <code>task test:dotnet</code> (29), <code>task test:web</code> (21),
+    <code>task test:contract</code>; przebiegi <code>task ingest</code> z kluczem
+    po korekcie i z całym rocznikiem po korekcie (dowody przy komentarzu 1);
+    zapytania liczące korpus; render strony PDF przez działający ekran.
+  </p>
+  <p>
+    Poza zakresem: CI GitHuba — zadania nie wystartowały,
+    bo konto ma zablokowane Actions („recent account payments have failed"),
+    więc <strong>nie wiadomo, czy pakiet przechodzi na Linuksie</strong>;
+    wielkość liter w ścieżkach i zakończenia linii sprawdza właśnie CI.
+    Nie sprawdzano zachowania ekranu przy dwóch osobach edytujących to samo
+    zadanie naraz — narzędzie jest z założenia jednoosobowe.
+  </p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+  function esc(s) { return s.replace(/[&<>]/g, function (c) { return ESC[c]; }); }
+
+  var RULES = {
+    python: [
+      ['com',  /#[^\n]*/],
+      ['str',  /(?:[rbfu]{0,2})(?:"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/],
+      ['kw',   /\b(?:def|class|return|if|elif|else|for|while|with|as|import|from|try|except|finally|raise|yield|lambda|not|and|or|in|is|None|True|False|pass|assert|del|async|await|global|nonlocal)\b/],
+      ['fn',   /@[A-Za-z_][\w.]*|\b[A-Za-z_]\w*(?=\()/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    yaml: [
+      ['com',  /#[^\n]*/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['fn',   /^[ \t]*(?:-[ \t]+)?[A-Za-z_][\w.\/-]*(?=[ \t]*:)/],
+      ['kw',   /\b(?:true|false|null|yes|no)\b/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    sql: [
+      ['com',  /--[^\n]*/],
+      ['str',  /'(?:[^']|'')*'/],
+      ['kw',   /\b(?:CREATE|TABLE|INDEX|VIEW|COLLATION|SELECT|FROM|WHERE|JOIN|LEFT|INNER|ON|GROUP|ORDER|BY|HAVING|INSERT|INTO|VALUES|UPDATE|DELETE|SET|RETURNING|CONFLICT|DO|NOTHING|NOT|NULL|PRIMARY|FOREIGN|KEY|REFERENCES|UNIQUE|CHECK|DEFAULT|CONSTRAINT|CASCADE|AND|OR|IN|AS|IF|EXISTS|BETWEEN|PROVIDER|LOCALE|COLLATE|BEGIN|COMMIT|DISTINCT|COUNT|SUM|ARRAY_AGG|LIMIT|LEAST)\b/i],
+      ['type', /\b(?:text|integer|smallint|bigint|serial|smallserial|boolean|date|timestamptz|numeric|jsonb|char|varchar)\b/i],
+      ['num',  /\b\d+\b/]
+    ],
+    bash: [
+      ['com',  /#[^\n]*/],
+      ['ann',  /^\$/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['kw',   /\b(?:if|then|elif|else|fi|for|in|do|done|while|case|esac|function|return|exit|test|echo|cd|export|local)\b/],
+      ['num',  /(?:^|[ \t])-{1,2}[A-Za-z][\w-]*|\b\d+\b/]
+    ],
+    conf: [
+      ['com',  /#[^\n]*/],
+      ['kw',   /^!/],
+      ['fn',   /^[A-Za-z_][A-Za-z0-9_]*(?==)/],
+      ['str',  /(?<==)[^\n]+/]
+    ],
+    out: [
+      ['ann',  /←[^\n]*|^\$/],
+      ['str',  /"[^"]*"|'[^']*'/],
+      ['num',  /\b\d+\b/]
+    ]
+  };
+
+  function podswietl(kod, jezyk) {
+    var reguly = RULES[jezyk];
+    if (!reguly) { return esc(kod); }
+    var wzor = reguly.map(function (r, i) {
+      return '(?<g' + i + '>' + r[1].source + ')';
+    }).join('|');
+    var re;
+    try {
+      re = new RegExp(wzor, 'gm');
+    } catch (e) {
+      return esc(kod);
+    }
+    var wynik = '', koniec = 0, m;
+    while ((m = re.exec(kod)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      wynik += esc(kod.slice(koniec, m.index));
+      var klasa = null;
+      for (var i = 0; i < reguly.length; i++) {
+        if (m.groups['g' + i] !== undefined) { klasa = reguly[i][0]; break; }
+      }
+      wynik += '<span class="t-' + klasa + '">' + esc(m[0]) + '</span>';
+      koniec = m.index + m[0].length;
+    }
+    return wynik + esc(kod.slice(koniec));
+  }
+
+  var bloki = document.querySelectorAll('pre[data-lang]');
+  for (var i = 0; i < bloki.length; i++) {
+    try {
+      bloki[i].innerHTML = podswietl(bloki[i].textContent, bloki[i].dataset.lang);
+    } catch (e) { }
+  }
+})();
+</script>

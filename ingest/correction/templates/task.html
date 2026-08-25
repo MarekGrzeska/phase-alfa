@@ -130,6 +130,13 @@
             <input name="criterion.{{ c.id }}.label" value="{{ c.label or '' }}"
                    placeholder="etykieta progu, np. pełne rozwiązanie" size="34">
             <label class="del"><input type="checkbox" name="delete.criterion.{{ c.id }}" value="1"> usuń próg</label>
+            {# Ostrzeżenie, nie więz: schemat świadomie na to pozwala, bo taki zapis
+               stoi w prawdziwym kluczu CKE (OMAP-900-2105, literówka komisji).
+               Chodzi o to, żeby człowiek nie zrobił tego samego przez pomyłkę. #}
+            {% if c.points is not none and c.points|int > task.max_points|int %}
+              <span class="tag" style="color:var(--warn);border-color:var(--warn)"
+                    title="Sekcja SPÓJNOŚĆ w raporcie ingestu też to pokaże">próg ponad pulą zadania</span>
+            {% endif %}
           </div>
           <textarea name="criterion.{{ c.id }}.description" rows="2"
                     placeholder="treść progu, gdy klucz nie wypunktowuje warunków">{{ c.description or '' }}</textarea>

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from statistics import median
 
+from correction import db
+
 # Formularz otwarty i porzucony na noc wchodzi do dziennika jako „praca".
 # Mediana jest odporna na takie wiersze i to ona jest tu liczbą wiodącą;
 # suma stoi obok jako rachunek brutto, świadomie zawyżony.
@@ -62,8 +64,6 @@ def forecast(pending: int, median_seconds: float) -> dict:
 
 def collect(cur) -> dict:
     """Komplet liczb S8 — stan, czasy, prognoza, rozbicie na roczniki."""
-    from correction import db
-
     counts = db.counts_by_status(cur)
     status = status_summary(counts)
 

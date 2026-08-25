@@ -52,6 +52,13 @@ OWNERSHIP = {
         " (SELECT id FROM criterion WHERE task_id = %(task)s))",
 }
 
+# Usuwać wolno mniej, niż wolno edytować. Wersji zadania nie ma na tej liście
+# świadomie: kasowanie jej pociąga kaskadą odpowiedzi wzorcowe i wycinki graficzne
+# (`asset` wisi na `task_version`), a sama powstaje w ingeście i tam się ją poprawia.
+# Dopóki obie listy były tym samym słownikiem, ręcznie doklejone pole
+# `delete.version.N` działało, choć żaden szablon go nie tworzy.
+DELETABLE = ("answer", "criterion", "condition", "expression")
+
 # Prefiks pola w formularzu → (tabela, kolumny). `criterion.12.points`
 # adresuje kolumnę `points` wiersza 12 tabeli `criterion`.
 EDITABLE = {
@@ -382,7 +389,8 @@ def _rows_to_vanish(cur, task_id: int, form: Mapping[str, str]) -> dict[str, set
     walidacja szukałaby ich w bazie, nie znajdowała i zgłaszała jako cudze,
     czyli usunięcie progu nie mogłoby się nigdy udać.
     """
-    skips = {prefix: _deleted_ids(form, prefix) for prefix in EDITABLE}
+    skips = {prefix: (_deleted_ids(form, prefix) if prefix in DELETABLE else set())
+             for prefix in EDITABLE}
     if skips["version"]:
         cur.execute("SELECT id FROM model_answer WHERE task_version_id = ANY(%s)",
                     (list(skips["version"]),))
@@ -402,7 +410,8 @@ def _delete_rows(cur, task_id: int, form: Mapping[str, str],
                  deleted: dict[str, int]) -> None:
     # Kasowanie idzie PRZED walidacją reszty: pole wymagane, puste w wierszu
     # skazanym na usunięcie, nie ma prawa blokować zapisu.
-    for prefix, (table, _) in EDITABLE.items():
+    for prefix in DELETABLE:
+        table = EDITABLE[prefix][0]
         ids = _deleted_ids(form, prefix)
         if not ids:
             continue
@@ -575,6 +584,33 @@ def add_expression(cur, task_id: int, condition_id: int) -> None:
 
 # ------------------------------------------------------------ rozstrzygnięcie
 
+def refresh_document_status(cur, task_id: int) -> None:
+    """`document.ingest_status` idzie za stanem zadań klucza.
+
+    Plan A2 zapowiadał to przy G2.1.2, a kolumna stała na `new` niezależnie od
+    tego, ile zadań przeszło przez ekran. Nic jej dziś nie czyta, ale to ona
+    odpowiada na pytanie „które klucze są domknięte" — i lepiej, żeby odpowiadała
+    prawdę od pierwszego dnia, niż żeby ktoś w G2.3 oparł na niej raport partii.
+
+    `parsed` znaczy „parser przeszedł, korekta trwa", `approved` — komplet
+    rozstrzygnięć z czymkolwiek użytecznym w środku, `rejected` — klucz odrzucony
+    w całości.
+    """
+    cur.execute(
+        """UPDATE document d SET ingest_status = CASE
+               WHEN EXISTS (SELECT 1 FROM task t
+                            WHERE t.marking_scheme_id = d.id
+                              AND t.review_status = 'pending') THEN 'parsed'
+               WHEN EXISTS (SELECT 1 FROM task t
+                            WHERE t.marking_scheme_id = d.id
+                              AND t.review_status IN ('approved', 'corrected'))
+                    THEN 'approved'
+               ELSE 'rejected' END
+           WHERE d.id = (SELECT marking_scheme_id FROM task WHERE id = %s)""",
+        (task_id,),
+    )
+
+
 def was_corrected(cur, task_id: int) -> bool:
     """Czy ten rekord był już kiedyś poprawiany ręcznie — wprost z dziennika."""
     cur.execute(
@@ -614,8 +650,15 @@ def decide(cur, task_id: int, action: str, started_at, changes: dict,
         (status, status, task_id),
     )
     cur.execute(
+        # LEAST(..., now()): `started_at` powstaje na zegarze HOSTA, `finished_at`
+        # na zegarze bazy. Więz CHECK (finished_at >= started_at) jest więc
+        # założeniem o dwóch zegarach, nie o kolejności zdarzeń — a zegar maszyny
+        # wirtualnej Dockera potrafi zostać w tyle po uśpieniu laptopa. Przycięcie
+        # gubi wtedy jeden pomiar czasu, zamiast wywrócić rozstrzygnięcie, którego
+        # treść była w porządku.
         """INSERT INTO correction_event (task_id, action, started_at, fields_changed)
-           VALUES (%s, %s, %s, %s)""",
+           VALUES (%s, %s, LEAST(%s, now()), %s)""",
         (task_id, event, started_at, Jsonb(changes) if changed_now else None),
     )
+    refresh_document_status(cur, task_id)
     return status
