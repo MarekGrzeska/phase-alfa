@@ -6,8 +6,8 @@
   <span class="tag {{ task.review_status }}">{{ STATUS_LABELS[task.review_status] }}</span>
 {% endblock %}
 {% block actions %}
-  {% if nav.previous %}<a href="/task/{{ nav.previous }}">← poprzednie</a>{% endif %}
-  {% if nav.next %}<a href="/task/{{ nav.next }}">następne →</a>{% endif %}
+  {% if nav.previous %}<a href="/task/{{ nav.previous }}{% if scope_query %}?{{ scope_query }}{% endif %}">← poprzednie</a>{% endif %}
+  {% if nav.next %}<a href="/task/{{ nav.next }}{% if scope_query %}?{{ scope_query }}{% endif %}">następne →</a>{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -36,10 +36,10 @@
              alt="strona {{ page }} klucza {{ task.code }}">
         <p class="small" style="margin:.5rem 0 0">
           {% if page > 1 %}
-            <a href="/task/{{ task.id }}?page={{ page - 1 }}&amp;started_at={{ started_at }}">← strona {{ page - 1 }}</a>
+            <a href="/task/{{ task.id }}?page={{ page - 1 }}&amp;started_at={{ started_at }}{% if scope_query %}&amp;{{ scope_query }}{% endif %}">← strona {{ page - 1 }}</a>
           {% endif %}
           {% if not document_pages or page < document_pages %}
-            <a href="/task/{{ task.id }}?page={{ page + 1 }}&amp;started_at={{ started_at }}">strona {{ page + 1 }} →</a>
+            <a href="/task/{{ task.id }}?page={{ page + 1 }}&amp;started_at={{ started_at }}{% if scope_query %}&amp;{{ scope_query }}{% endif %}">strona {{ page + 1 }} →</a>
           {% endif %}
           <span class="mono">{{ task.document_path }}</span>
         </p>
@@ -85,6 +85,12 @@
        i przekierowuje). Bez tego zadanie poprawione, a zatwierdzone dopiero po
        dołożeniu progu, liczyłoby się jako trafienie parsera. #}
     {% if edited_before %}<input type="hidden" name="edited_before" value="1">{% endif %}
+    {# Zakres pracy jedzie z formularzem, bo po zapisie ekran skacze na `/next`:
+       bez tego pilot kończy się na pierwszym zadaniu, a drugie kliknięcie
+       wyprowadza korektora do najstarszego czekającego klucza. #}
+    {% for name, value in scope.items() if value is not none %}
+      <input type="hidden" name="{{ name }}" value="{{ value }}">
+    {% endfor %}
 
     <div class="card">
       <h2>Zadanie</h2>

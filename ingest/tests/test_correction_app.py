@@ -63,10 +63,10 @@ def task(con) -> dict:
         )
         requirement = cur.fetchone()["id"]
         cur.execute(
-            "INSERT INTO document (segment, year, code, session, kind, kind_source, "
-            "url, path, pages) VALUES ('e8', 2025, 'OMAP', '2025-05-01', "
-            "'marking_scheme', 'suffix', 'test://app', 'OMAP-100-2505-zasady.pdf', 30) "
-            "RETURNING id"
+            "INSERT INTO document (segment, year, code, variants, session, kind, "
+            "kind_source, url, path, pages) VALUES ('e8', 2025, 'OMAP', '100', "
+            "'2025-05-01', 'marking_scheme', 'suffix', 'test://app', "
+            "'OMAP-100-2505-zasady.pdf', 30) RETURNING id"
         )
         document = cur.fetchone()["id"]
         cur.execute(
@@ -460,3 +460,54 @@ def test_nastepne_do_korekty_prowadzi_do_zadania(client, con, task):
 
     response = client.get("/next", follow_redirects=False)
     assert response.headers["location"] == "/", "nie ma czego korygować, a ekran wysyła w zadanie"
+
+
+@pytest.fixture
+def klucz_z_innego_rocznika(con, task) -> int:
+    """Zadanie z innego rocznika i wariantu — wcześniejsze w kolejności arkuszy."""
+    with con.cursor() as cur:
+        cur.execute(
+            "INSERT INTO document (segment, year, code, variants, session, kind, "
+            "kind_source, url, path, pages) VALUES ('e8', 2019, 'OMAP', '700', "
+            "'2019-04-01', 'marking_scheme', 'suffix', 'test://obok', "
+            "'OMAP-700-1904-zasady.pdf', 20) RETURNING id"
+        )
+        document = cur.fetchone()["id"]
+        cur.execute(
+            "INSERT INTO task (marking_scheme_id, number, position, max_points, kind, "
+            "page) VALUES (%s, '1', 1, 1, 'closed', 3) RETURNING id",
+            (document,),
+        )
+        return cur.fetchone()["id"]
+
+
+def test_nastepne_do_korekty_zostaje_w_zakresie(client, task, klucz_z_innego_rocznika):
+    """Pilot G2.2 pracuje na jednym roczniku, a w bazie leży osiem.
+
+    Bez zakresu „następne do korekty" wyprowadza korektora do najstarszego
+    czekającego klucza — czyli pilot kończy się na pierwszym zadaniu.
+    """
+    bez_zakresu = client.get("/next", follow_redirects=False)
+    assert bez_zakresu.headers["location"] == f"/task/{klucz_z_innego_rocznika}"
+
+    w_zakresie = client.get("/next?year=2025&variant=100", follow_redirects=False)
+    assert w_zakresie.headers["location"] == f"/task/{task['id']}?year=2025&variant=100"
+
+
+def test_zapis_nie_gubi_zakresu(client, con, task):
+    """Zakres przeżywa POST: rozstrzygnięcie wraca do `/next` TEGO SAMEGO rocznika."""
+    response = _post(client, task, action="approve", year="2025", variant="100",
+                     **_full(task))
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/next?year=2025&variant=100"
+
+
+def test_lista_filtruje_po_wariancie(client, task, klucz_z_innego_rocznika):
+    tylko_700 = client.get("/?variant=700")
+    assert f"/task/{klucz_z_innego_rocznika}" in tylko_700.text
+    assert f"/task/{task['id']}" not in tylko_700.text
+
+    tylko_100 = client.get("/?variant=100")
+    assert f"/task/{task['id']}" in tylko_100.text
+    assert f"/task/{klucz_z_innego_rocznika}" not in tylko_100.text

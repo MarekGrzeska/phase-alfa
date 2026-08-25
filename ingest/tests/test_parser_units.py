@@ -77,8 +77,8 @@ def _wiersz(**pola):
 
 def test_filtr_rocznika_odcina_pozostale_roczniki():
     """Pilot G2.2 jedzie na jednym roczniku — reszta korpusu ma zostać nietknięta."""
-    assert run.pasuje(_wiersz(), "zasady_oceniania", (), (), {"2025"}, ())
-    assert not run.pasuje(_wiersz(rocznik="2024"), "zasady_oceniania",
+    assert run.matches(_wiersz(), "zasady_oceniania", (), (), {"2025"}, ())
+    assert not run.matches(_wiersz(rocznik="2024"), "zasady_oceniania",
                           (), (), {"2025"}, ())
 
 
@@ -89,19 +89,19 @@ def test_filtr_wariantu_znajduje_zeszyt_zadan_mimo_litery_wersji():
     arkusza: spis zeszytów wychodził pusty, a treści zadań nie miał kto dowieźć.
     """
     zeszyt = _wiersz(typ="arkusz", warianty="100,X")
-    assert run.pasuje(zeszyt, "arkusz", (), (), (), {"100"})
-    assert not run.pasuje(_wiersz(typ="arkusz", warianty="700,X"), "arkusz",
+    assert run.matches(zeszyt, "arkusz", (), (), (), {"100"})
+    assert not run.matches(_wiersz(typ="arkusz", warianty="700,X"), "arkusz",
                           (), (), (), {"100"})
 
 
 def test_pusty_filtr_znaczy_wszystko_ale_typ_obowiazuje():
-    assert run.pasuje(_wiersz(rocznik="2019", warianty="800"),
+    assert run.matches(_wiersz(rocznik="2019", warianty="800"),
                       "zasady_oceniania", (), (), (), ())
-    assert not run.pasuje(_wiersz(typ="karta_odpowiedzi"),
+    assert not run.matches(_wiersz(typ="karta_odpowiedzi"),
                           "zasady_oceniania", (), (), (), ())
 
 
 def test_wariant_bazowy_znosi_brak_kolumny():
-    assert run.wariant_bazowy("100,X") == "100"
-    assert run.wariant_bazowy("") == ""
-    assert run.wariant_bazowy(None) == ""
+    assert run.base_variant("100,X") == "100"
+    assert run.base_variant("") == ""
+    assert run.base_variant(None) == ""

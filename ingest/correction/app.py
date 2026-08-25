@@ -48,6 +48,22 @@ def _started_at(raw: str | None) -> datetime:
     return min(parsed, now)
 
 
+def _scope(year: str = "", code: str = "", variant: str = "") -> dict:
+    """Zakres pracy — rocznik, kod, wariant. Puste pole znaczy „cały korpus".
+
+    Zakres jedzie w adresie i w ukrytych polach formularza, bo przeżywa
+    przekierowanie na `/next`: pilot G2.2 ma zostać w swoim roczniku,
+    a nie wyprowadzić korektora do pierwszego czekającego klucza z 2019 r.
+    """
+    return {"year": int(year) if year.isdigit() else None,
+            "code": code or None,
+            "variant": variant or None}
+
+
+def _scope_query(scope: dict) -> str:
+    return urlencode({k: v for k, v in scope.items() if v is not None})
+
+
 def _friendly(exc: psycopg.Error) -> str:
     """Więz bazy → zdanie dla człowieka. Więzy zostają ostre, komunikaty nie."""
     table = exc.diag.table_name or ""
@@ -107,9 +123,10 @@ def _overlay(task: dict, form: Mapping[str, str]) -> None:
 
 def _render_task(request: Request, cur, task: dict, started_at: datetime,
                  errors: list[str], page: int | None = None,
-                 edited_before: bool = False,
+                 edited_before: bool = False, scope: dict | None = None,
                  status_code: int = 200) -> HTMLResponse:
     source = db.page_source(cur, task["id"]) or {}
+    scope = scope or _scope()
     return templates.TemplateResponse(
         request,
         "task.html",
@@ -124,6 +141,8 @@ def _render_task(request: Request, cur, task: dict, started_at: datetime,
             "page": page or task["page"],
             "document_pages": source.get("pages"),
             "edited_before": edited_before,
+            "scope": scope,
+            "scope_query": _scope_query(scope),
         },
         status_code=status_code,
     )
@@ -132,49 +151,55 @@ def _render_task(request: Request, cur, task: dict, started_at: datetime,
 # ----------------------------------------------------------------------- trasy
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, status: str = "", year: str = "",
-          code: str = "") -> HTMLResponse:
-    # Wszystkie trzy filtry przyjmują TEKST i puste znaczy „wszystkie" — bo tak
+def index(request: Request, status: str = "", year: str = "", code: str = "",
+          variant: str = "") -> HTMLResponse:
+    # Wszystkie filtry przyjmują TEKST i puste znaczy „wszystkie" — bo tak
     # wygląda opcja „wszystkie" w formularzu obok. Przy `year: int | None`
     # własny formularz tej strony wracał z 422, a `status` spoza listy z 400:
-    # jedyny sposób na filtrowanie był ustawić wszystkie trzy naraz.
+    # jedyny sposób na filtrowanie był ustawić wszystkie naraz.
     if status and status not in db.STATUSES:
         raise HTTPException(400, f"nieznany status: {status}")
+    scope = _scope(year, code, variant)
     with db.connect() as con, con.cursor() as cur:
-        selected = {"status": status or None,
-                    "year": int(year) if year.isdigit() else None,
-                    "code": code or None}
         return templates.TemplateResponse(
             request,
             "index.html",
             {
                 "numbers": stats.collect(cur),
-                "tasks": db.list_tasks(cur, **selected),
+                "tasks": db.list_tasks(cur, status=status or None, **scope),
                 "options": db.filters(cur),
-                "selected": selected,
-                "next_id": db.next_pending(cur),
+                "selected": {"status": status or None, **scope},
+                "scope_query": _scope_query(scope),
+                "next_id": db.next_pending(cur, **scope),
             },
         )
 
 
 @app.get("/next")
-def next_task() -> RedirectResponse:
+def next_task(year: str = "", code: str = "", variant: str = "") -> RedirectResponse:
     """Wejście do pracy: pierwsze nierozstrzygnięte zadanie w kolejności arkuszy."""
+    scope = _scope(year, code, variant)
     with db.connect() as con, con.cursor() as cur:
-        task_id = db.next_pending(cur)
-    return RedirectResponse(f"/task/{task_id}" if task_id else "/", status_code=303)
+        task_id = db.next_pending(cur, **scope)
+    query = _scope_query(scope)
+    if task_id is None:
+        return RedirectResponse(f"/?{query}" if query else "/", status_code=303)
+    return RedirectResponse(f"/task/{task_id}" + (f"?{query}" if query else ""),
+                            status_code=303)
 
 
 @app.get("/task/{task_id}", response_class=HTMLResponse)
 def task_form(request: Request, task_id: int, started_at: str | None = None,
-              page: int | None = None, edited_before: str = "") -> HTMLResponse:
+              page: int | None = None, edited_before: str = "",
+              year: str = "", code: str = "", variant: str = "") -> HTMLResponse:
     with db.connect() as con, con.cursor() as cur:
         task = db.load_task(cur, task_id)
         if task is None:
             raise HTTPException(404, f"nie ma zadania {task_id}")
         return _render_task(request, cur, task, _started_at(started_at),
                             errors=[], page=page,
-                            edited_before=edited_before == "1")
+                            edited_before=edited_before == "1",
+                            scope=_scope(year, code, variant))
 
 
 @app.get("/task/{task_id}/page.png")
@@ -216,6 +241,9 @@ async def task_save(request: Request, task_id: int):
     # zapis i przekierowanie). Bez tego zadanie poprawione, a zatwierdzone
     # dopiero po dołożeniu progu, wchodziło do statystyki jako trafienie parsera.
     edited_before = str(form.get("edited_before") or "") == "1"
+    scope = _scope(str(form.get("year") or ""), str(form.get("code") or ""),
+                   str(form.get("variant") or ""))
+    scope_query = _scope_query(scope)
 
     con = db.connect()
     try:
@@ -238,11 +266,14 @@ async def task_save(request: Request, task_id: int):
                     target = f"/task/{task_id}?" + urlencode(
                         {"started_at": started_at.isoformat(),
                          "edited_before": "1",
-                         **({"page": shown_page} if shown_page else {})})
+                         **({"page": shown_page} if shown_page else {}),
+                         **{k: v for k, v in scope.items() if v is not None}})
                 else:
                     db.decide(cur, task_id, action, started_at, changes,
                               edited_before=edited_before)
-                    target = f"/task/{task_id}" if action == "reopen" else "/next"
+                    target = (f"/task/{task_id}" if action == "reopen" else "/next")
+                    if scope_query:
+                        target += f"?{scope_query}"
         except (db.ValidationError, psycopg.IntegrityError, psycopg.DataError) as exc:
             messages = (exc.messages if isinstance(exc, db.ValidationError)
                         else [_friendly(exc)])
@@ -253,7 +284,7 @@ async def task_save(request: Request, task_id: int):
                 _overlay(task, form)
                 return _render_task(request, cur, task, started_at, messages,
                                     page=shown_page, edited_before=edited_before,
-                                    status_code=422)
+                                    scope=scope, status_code=422)
         return RedirectResponse(target, status_code=303)
     finally:
         con.close()
