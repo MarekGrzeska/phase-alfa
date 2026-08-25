@@ -1,0 +1,1011 @@
+<title>Przegląd kodu — G1.3 backend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+  /* kolory składni — osobne od semantycznych, żeby zmiana jednych nie ruszała drugich */
+  --t-kw:#8B3E8F; --t-str:#2C7355; --t-com:#6B7C79;
+  --t-num:#B0651A; --t-fn:#2B5C86; --t-type:#0E5B4F; --t-ann:#9E2E2E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+    --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+    --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+  --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:68ch}
+h1,h2,h3,.tag,th,.knum{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:0 0 .3rem;text-wrap:balance}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:52px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-kryt{color:var(--crit)} .n-istot{color:var(--warn)}
+.n-drob{color:var(--accent)} .n-rozw{color:var(--info)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-kryt{background:var(--crit-soft);color:var(--crit)}
+.st-istot{background:var(--warn-soft);color:var(--warn)}
+.st-drob{background:var(--accent-soft);color:var(--accent)}
+.st-rozw{background:var(--info-soft);color:var(--info)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+/* karta komentarza */
+.k{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px 22px;border-left:3px solid var(--rule);box-shadow:var(--shadow);
+  margin:0 0 16px;scroll-margin-top:20px}
+.k.kryt{border-left-color:var(--crit)}
+.k.istot{border-left-color:var(--warn)}
+.k.drob{border-left-color:var(--accent)}
+.k.rozw{border-left-color:var(--info)}
+.k-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+.knum{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+  color:var(--ink-3);min-width:1.6rem}
+.k h3{flex:1 1 18ch;margin:0}
+.k-gdzie{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-3);
+  margin:0 0 .9rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule-soft)}
+.k p{font-size:.95rem;color:var(--ink-2);margin-bottom:.75em}
+.k p:last-child{margin-bottom:0}
+.fix{font-size:.92rem;color:var(--ink);border-top:1px solid var(--rule-soft);
+  padding-top:.8rem;margin-top:1rem}
+.fix b{font-family:Archivo,sans-serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:.4rem}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+/* kolorowanie składni — klasy nadaje skrypt na dole dokumentu */
+.t-kw{color:var(--t-kw);font-weight:600}
+.t-str{color:var(--t-str)}
+.t-com{color:var(--t-com);font-style:italic}
+.t-num{color:var(--t-num)}
+.t-fn{color:var(--t-fn)}
+.t-type{color:var(--t-type)}
+.t-ann{color:var(--t-ann);font-weight:600}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">przegląd kodu · 25.08.2026 · feat/g1.3-backend</span>
+  <h1>G1.3 — szkielet C#, kontrakt, skład blobów</h1>
+  <p class="lede">
+    Granice modułów są egzekwowane testem i obie kluczowe bramki widziano na czerwono —
+    to jest zrobione dobrze i zostaje. <strong>Ale trzy rzeczy trzeba naprawić przed
+    scaleniem</strong>, bo wszystkie należą do tej samej rodziny: <em>bramka albo pole
+    konfiguracji twierdzi, że coś sprawdza, a nie sprawdza</em>. <code>BLOB_ROOT</code>
+    nie działa mimo obietnicy w dwóch plikach, <code>/health</code> zwraca 500 przy
+    literówce w porcie, a bramka dryfu potrafi zaświecić zielono bez regeneracji
+    czegokolwiek.
+  </p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n n-kryt">3</span><span class="metric-l">krytyczne</span></div>
+    <div class="metric"><span class="metric-n n-istot">7</span><span class="metric-l">istotne</span></div>
+    <div class="metric"><span class="metric-n n-drob">4</span><span class="metric-l">drobne</span></div>
+    <div class="metric"><span class="metric-n n-rozw">2</span><span class="metric-l">do rozważenia</span></div>
+    <div class="metric"><span class="metric-n">48</span><span class="metric-l">plików · 2026 linii</span></div>
+  </div>
+</header>
+
+<div class="callout" style="border-left-color:var(--ok)">
+  <p>
+    <strong>Uwaga 14 jest już naprawiona</strong> (commit <code>3cf423e</code>): identyfikatory
+    w kliencie TS przemianowane na angielskie. Reszta czeka na decyzję — dokument opisuje
+    stan z chwili przeglądu.
+  </p>
+</div>
+
+<!-- ============ SPIS ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">01 — SPIS</span>
+    <h2>Szesnaście uwag, od najważniejszej</h2>
+    <p class="sec-sub">Można iść od góry i przestać w dowolnym momencie. Pierwsze trzy blokują scalenie; 4–7 dotyczą bramek, które są słabsze, niż mówią o sobie w komentarzach.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="n">#</th><th>Stopień</th><th>Rzecz</th><th>Plik</th></tr></thead>
+      <tbody>
+        <tr><td class="n"><a href="#k1">1</a></td><td><span class="tag st-kryt">krytyczny</span></td><td><code>BLOB_ROOT</code> nie działa, choć dwa pliki obiecują, że działa</td><td class="id">CorpusModule.cs:28</td></tr>
+        <tr><td class="n"><a href="#k2">2</a></td><td><span class="tag st-kryt">krytyczny</span></td><td>Literówka w porcie bazy daje 500 ze stack trace zamiast <code>degraded</code></td><td class="id">PostgresDatabaseProbe.cs:40</td></tr>
+        <tr><td class="n"><a href="#k3">3</a></td><td><span class="tag st-kryt">krytyczny</span></td><td>Bramka dryfu potrafi przejść, nie generując niczego</td><td class="id">Taskfile.yml:136</td></tr>
+        <tr><td class="n"><a href="#k4">4</a></td><td><span class="tag st-istot">istotny</span></td><td><code>sslmode=require</code> z <code>DATABASE_URL</code> jest po cichu wyrzucany</td><td class="id">DatabaseConnectionString.cs:58</td></tr>
+        <tr><td class="n"><a href="#k5">5</a></td><td><span class="tag st-istot">istotny</span></td><td>Sito „biblioteka do PDF-ów" nie widzi tego, co obiecuje jego komentarz</td><td class="id">ModuleBoundaries.cs:118</td></tr>
+        <tr><td class="n"><a href="#k6">6</a></td><td><span class="tag st-istot">istotny</span></td><td>Test wymagający bazy nigdy się nie pomija — świeci czerwono i kłamie w komunikacie</td><td class="id">RequiresDatabaseFactAttribute.cs:15</td></tr>
+        <tr><td class="n"><a href="#k7">7</a></td><td><span class="tag st-istot">istotny</span></td><td><code>Contracts</code> przepuści nieużyty pakiet NuGet</td><td class="id">ModuleBoundaries.cs:62</td></tr>
+        <tr><td class="n"><a href="#k8">8</a></td><td><span class="tag st-istot">istotny</span></td><td>CI nie uruchamia typechecku TypeScriptu w ogóle</td><td class="id">ci.yml:139</td></tr>
+        <tr><td class="n"><a href="#k9">9</a></td><td><span class="tag st-istot">istotny</span></td><td><code>Klucz.Api</code> ma Npgsql, którego nie używa, i nikt go nie pilnuje</td><td class="id">Klucz.Api.csproj:25</td></tr>
+        <tr><td class="n"><a href="#k10">10</a></td><td><span class="tag st-istot">istotny</span></td><td><code>task setup</code> nie sprawdza wersji SDK, o której mówi w komunikacie</td><td class="id">Taskfile.yml:30</td></tr>
+        <tr><td class="n"><a href="#k11">11</a></td><td><span class="tag st-drob">drobny</span></td><td>Port Azurite wpisany dwa razy — dokładnie ta pułapka, którą naprawiono przy bazie</td><td class="id">.env.example:42</td></tr>
+        <tr><td class="n"><a href="#k12">12</a></td><td><span class="tag st-drob">drobny</span></td><td><code>db:reset</code> kasuje też wolumen Azurite, a pyta tylko o korpus</td><td class="id">Taskfile.yml:65</td></tr>
+        <tr><td class="n"><a href="#k13">13</a></td><td><span class="tag st-drob">drobny</span></td><td>Port API zaszyty w trzech plikach wersjonowanych</td><td class="id">launchSettings.json:8</td></tr>
+        <tr><td class="n"><a href="#k14">14</a></td><td><span class="tag st-drob">drobny</span></td><td>Klient TS po polsku — reguła „bez wyjątków" z wyjątkiem od pierwszego dnia</td><td class="id">client.ts:14</td></tr>
+        <tr><td class="n"><a href="#k15">15</a></td><td><span class="tag st-rozw">do rozważenia</span></td><td>Pole <code>version</code> w <code>/health</code> zawsze zwróci <code>1.0.0.0</code></td><td class="id">Program.cs:33</td></tr>
+        <tr><td class="n"><a href="#k16">16</a></td><td><span class="tag st-rozw">do rozważenia</span></td><td><code>/openapi/v1.json</code> jest wystawiony także poza Development</td><td class="id">Program.cs:24</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <p>
+      <strong>Wspólny motyw uwag 1–7.</strong> Kod robi mniej, niż mówi o sobie w komentarzu
+      albo w README. To najgorszy rodzaj długu w projekcie, który stawia na bramki: bramka,
+      która nie sprawdza tego, co deklaruje, jest gorsza od braku bramki — bo daje spokój.
+      Osiem z tych ustaleń potwierdziłem uruchomieniem, nie lekturą; wydruki są w kartach.
+    </p>
+  </div>
+</section>
+
+<!-- ============ KOMENTARZE ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">02 — UWAGI</span>
+    <h2>Po kolei</h2>
+    <p class="sec-sub">Każda uwaga: co jest nie tak, co się przez to stanie, gdzie to jest i jak to naprawić.</p>
+  </div>
+
+  <!-- 1 -->
+  <div class="k kryt" id="k1">
+    <div class="k-head">
+      <span class="knum">1</span>
+      <h3><code>BLOB_ROOT</code> nie działa, choć dwa pliki obiecują, że działa</h3>
+      <span class="tag st-kryt">krytyczny</span>
+    </div>
+    <p class="k-gdzie">backend/src/Klucz.Corpus/CorpusModule.cs:28 — <code>configuration["Blob:Root"] ?? configuration["BLOB_ROOT"] ?? "data/blob"</code></p>
+
+    <p>
+      Pierwszy człon tej alternatywy <strong>zawsze</strong> coś zwraca, bo
+      <code>Blob:Root</code> stoi w <code>appsettings.json</code>. Drugi człon nie wykona
+      się nigdy. Zmienna <code>BLOB_ROOT</code> jest więc martwa — mimo że
+      <code>.env.example</code> i <code>backend/README.md</code> mówią wprost, że to nią
+      nadpisuje się korzeń składu.
+    </p>
+    <p>
+      Gorzej: <strong>ten sam commit usunął z <code>.env.example</code> uczciwe ostrzeżenie</strong>
+      „żaden kod jeszcze tego nie czyta" i zastąpił je zdaniem „czyta go <code>DiskBlobStore</code>
+      w backendzie". Dokumentacja przeszła z prawdy do nieprawdy.
+    </p>
+    <p>
+      Kiedy ugryzie: gdy ktoś przestawi <code>BLOB_ROOT</code> w <code>.env</code> — bo korpus
+      przenosi się na inny dysk albo obok repozytorium. Python zacznie pisać wycinki w nowym
+      miejscu, a C# dalej będzie czytał <code>&lt;repo&gt;/data/blob</code>. Korpus rozjeżdża
+      się na dwie lokalizacje, po cichu.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — konfiguracja z ustawionym BLOB_ROOT</div>
+      <div class="ev-b"><pre data-lang="out">BLOB_ROOT=PROOF/from-env
+
+Blob:Root  = "data/blob"          ← z appsettings.json
+BLOB_ROOT  = "PROOF/from-env"     ← ze środowiska
+WYBRANE    = "data/blob"          ← pierwszy człon ?? wygrywa zawsze</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Odwrócić kolejność — zmienna środowiskowa ma nadpisywać plik, nie odwrotnie —
+      albo usunąć <code>Blob:Root</code> z <code>appsettings.json</code>, skoro wartość
+      domyślna i tak stoi w kodzie:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">var blobRoot = configuration["BLOB_ROOT"] ?? configuration["Blob:Root"] ?? "data/blob";</pre></div>
+      </div>
+      Do tego test kompozycji, który sprawdza <strong>gdzie</strong> stanął korzeń, a nie
+      tylko że usługa się zarejestrowała. Dzisiejszy
+      <code>Composition_registers_database_probe_and_blob_store</code> przechodzi niezależnie
+      od tego, na co wskazuje ścieżka.
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="k kryt" id="k2">
+    <div class="k-head">
+      <span class="knum">2</span>
+      <h3>Literówka w porcie bazy daje 500 ze stack trace zamiast <code>degraded</code></h3>
+      <span class="tag st-kryt">krytyczny</span>
+    </div>
+    <p class="k-gdzie">backend/src/Klucz.Corpus/Infrastructure/PostgresDatabaseProbe.cs:40 — filtr <code>catch</code></p>
+
+    <p>
+      Filtr łapie <code>NpgsqlException</code>, <code>TimeoutException</code>
+      i <code>InvalidOperationException</code>. Nie łapie tych wyjątków, które rzuca
+      <em>składanie adresu</em>: <code>FormatException</code> z <code>int.Parse(DB_PORT)</code>
+      i <code>UriFormatException</code> z <code>new Uri(DATABASE_URL)</code>. A adres jest
+      składany leniwie, czyli dokładnie w środku tego <code>try</code> — tyle że przy
+      odczycie <code>_connectionString.Value</code>, poza jego zasięgiem.
+    </p>
+    <p>
+      Skutek: literówka w <code>.env</code> zamienia <code>/health</code> w HTTP 500
+      z pełnym stack trace w treści odpowiedzi. Monitoring widzi „API leży", choć API stoi
+      i tylko konfiguracja jest zła. To łamie wprost kontrakt zapisany w
+      <code>IDatabaseProbe</code> („Nie rzuca — zwraca fałsz") i cały sens tego endpointu.
+    </p>
+    <p>
+      Dodatkowo <code>Lazy</code> z <code>ExecutionAndPublication</code> <strong>zapamiętuje
+      wyjątek na stałe</strong>: nawet po poprawieniu zmiennej w środowisku proces będzie
+      zwracał 500 aż do restartu.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — API uruchomione z DB_PORT=5432x</div>
+      <div class="ev-b"><pre data-lang="out">$ curl -s http://127.0.0.1:5014/health
+HTTP 500
+
+System.FormatException: The input string '5432x' was not in a correct format.
+   at Klucz.Corpus.Infrastructure.DatabaseConnectionString.FromEnvironment(...)
+   at Klucz.Corpus.Infrastructure.PostgresDatabaseProbe.IsAliveAsync(...)
+   at Program.&lt;Main&gt;$(String[] args)          ← 500 zamiast {"status":"degraded"}</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Objąć <code>try</code> także odczyt adresu i rozszerzyć filtr o błędy konfiguracji:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="python">try
+{
+    var connectionString = _connectionString.Value;   // teraz w środku try
+    await using var connection = new NpgsqlConnection(connectionString);
+    ...
+}
+catch (Exception e) when (e is NpgsqlException or TimeoutException
+                            or InvalidOperationException or FormatException
+                            or UriFormatException or ArgumentException)</pre></div>
+      </div>
+      Osobno warto zamienić <code>int.Parse</code> na <code>int.TryParse</code> z komunikatem
+      wskazującym zmienną — „DB_PORT ma być liczbą, a jest <code>5432x</code>" prowadzi do
+      przyczyny, a <code>FormatException</code> nie.
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="k kryt" id="k3">
+    <div class="k-head">
+      <span class="knum">3</span>
+      <h3>Bramka dryfu potrafi przejść, nie generując niczego</h3>
+      <span class="tag st-kryt">krytyczny</span>
+    </div>
+    <p class="k-gdzie">Taskfile.yml:136 — <code>openapi:generate</code> opiera regenerację na <code>dotnet build</code></p>
+
+    <p>
+      MSBuild jest przyrostowy: gdy projekt jest aktualny, pomija cel generujący dokument
+      OpenAPI. Bramka wykonuje wtedy <code>git diff</code> na plikach, których nikt w tym
+      przebiegu nie odtworzył — i zawsze zobaczy zgodność.
+    </p>
+    <p>
+      Kiedy ugryzie: gdy artefakt wróci do starszej wersji <em>bez</em> zmiany kodu —
+      <code>git checkout -- backend/artifacts/openapi.json</code>, rozwiązanie konfliktu
+      merge'a po złej stronie, <code>git stash</code>. Bramka powie „kontrakt się zgadza",
+      choć w repozytorium leży stary kontrakt. Przy okazji <code>pnpm run generate</code>
+      wygeneruje wtedy <code>schema.d.ts</code> ze starego <code>openapi.json</code>,
+      więc oba pliki będą spójne… ze sobą, nie z kodem.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — dwa razy build, plik nie wraca</div>
+      <div class="ev-b"><pre data-lang="out">$ echo '{"info":{"title":"RECZNIE ZEPSUTY"}}' &gt; backend/artifacts/openapi.json
+$ dotnet build backend/src/Klucz.Api/Klucz.Api.csproj
+Kompilacja powiodła się.
+$ cat backend/artifacts/openapi.json
+{"info":{"title":"RECZNIE ZEPSUTY"}}       ← nie odtworzony
+
+$ rm backend/artifacts/openapi.json
+$ dotnet build backend/src/Klucz.Api/Klucz.Api.csproj
+Kompilacja powiodła się.
+$ ls backend/artifacts/openapi.json
+brak pliku                                 ← build „powiódł się" bez artefaktu</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Wymusić pełne przejście celu w zadaniu, które ma <em>generować</em>:
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="yaml">openapi:generate:
+  cmds:
+    # --no-incremental, bo MSBuild pomija generację dokumentu, gdy projekt jest
+    # aktualny — a wtedy bramka dryfu porównuje plik sam ze sobą.
+    - dotnet build backend/src/Klucz.Api/Klucz.Api.csproj --no-incremental
+    - pnpm -C web --filter @klucz/api-client run generate</pre></div>
+      </div>
+      Warto też dopisać do bramki asercję, że plik <strong>istnieje i jest świeższy</strong>
+      niż początek zadania — inaczej „nie wygenerowano" wygląda tak samo jak „nie ma zmian".
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="k istot" id="k4">
+    <div class="k-head">
+      <span class="knum">4</span>
+      <h3><code>sslmode=require</code> z <code>DATABASE_URL</code> jest po cichu wyrzucany</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">backend/src/Klucz.Corpus/Infrastructure/DatabaseConnectionString.cs:58 — <code>FromUrl</code></p>
+
+    <p>
+      Konwersja czyta z adresu host, port, bazę i dane logowania. Query string ignoruje
+      w całości — a to w nim jadą parametry połączenia, w tym <code>sslmode</code>.
+      Npgsql dostaje adres bez tej informacji i używa domyślnego
+      <code>SslMode=Prefer</code>: spróbuje szyfrować, ale <strong>zgodzi się na
+      połączenie nieszyfrowane</strong>, jeśli serwer tak powie.
+    </p>
+    <p>
+      <code>.env.example</code> opisuje <code>DATABASE_URL</code> jako sposób wskazania bazy
+      <em>innej niż deweloperska</em> — czyli w praktyce produkcyjnej albo zdalnej. Tam
+      <code>sslmode=require</code> jest zwykle jedynym zabezpieczeniem transportu.
+      Ta ścieżka nie ma ani jednego testu.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem</div>
+      <div class="ev-b"><pre data-lang="out">wejście : "postgresql://klucz:tajne@db.example.com:5432/klucz?sslmode=require"
+wyjście : "Host=db.example.com;Port=5432;Database=klucz;Username=klucz;Password=tajne"
+SslMode : Prefer                          ← wymaganie szyfrowania zniknęło</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Przepisać parametry z <code>uri.Query</code> do buildera — albo, jeśli obsługa całego
+      query jest teraz zbędna, <strong>odrzucić adres z nieobsłużonymi parametrami</strong>
+      zamiast je zjadać. Cicha utrata parametru bezpieczeństwa jest gorsza niż błąd startu.
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="k istot" id="k5">
+    <div class="k-head">
+      <span class="knum">5</span>
+      <h3>Sito „biblioteka do PDF-ów" nie widzi tego, co obiecuje jego komentarz</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">backend/tests/Klucz.ArchitectureTests/ModuleBoundaries.cs:118 — „drugie sito"</p>
+
+    <p>
+      Komentarz mówi: „pakiet mógł wejść tranzytywnie, bez wpisu w csproj". Sito używa
+      <code>GetReferencedAssemblies()</code>, które zwraca <strong>wyłącznie referencje
+      faktycznie użyte w kodzie</strong> — kompilator nie emituje nieużytych. Pakiet
+      tranzytywny, którego nikt jeszcze nie zawołał, jest niewidoczny.
+    </p>
+    <p>
+      Pierwsze sito też jest słabsze, niż wygląda: dopasowuje podciąg „pdf" w linii csproj,
+      więc przepuszcza <code>itext7</code> i <code>Docnet.Core</code> — dwie najpopularniejsze
+      biblioteki PDF dla .NET, które nie mają „pdf" w nazwie. Nie czyta też
+      <code>Directory.Packages.props</code>, gdzie od tego commita stoją wszystkie wersje.
+    </p>
+    <p>
+      To jest test pilnujący <strong>najważniejszej reguły projektu</strong> (DECYZJE.md:
+      C# nigdy nie otwiera PDF-a). Jest tańszy i słabszy, niż mówi o sobie w komentarzu.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — referencje assembly po buildzie</div>
+      <div class="ev-b"><pre data-lang="out">Klucz.Api     -&gt; Klucz.Contracts, Klucz.Corpus, Klucz.Grading, Klucz.Learning,
+                 Microsoft.OpenApi, System.Text.Json
+                 ← BEZ Npgsql, mimo PackageReference w Klucz.Api.csproj
+
+Klucz.Grading -&gt; Microsoft.Extensions.Configuration.Abstractions,
+                 Microsoft.Extensions.DependencyInjection.Abstractions, System.Runtime
+                 ← BEZ Klucz.Contracts, mimo ProjectReference</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Czytać <code>obj/project.assets.json</code> — po <code>restore</code> zawiera pełne
+      domknięcie tranzytywne, także pakietów nieużytych w kodzie. Porównywać z listą znanych
+      bibliotek PDF (<code>itext7</code>, <code>PdfPig</code>, <code>Docnet.Core</code>,
+      <code>QuestPDF</code>, <code>PDFsharp</code>, <code>Syncfusion.Pdf</code>), a nie
+      z podciągiem „pdf".
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="k istot" id="k6">
+    <div class="k-head">
+      <span class="knum">6</span>
+      <h3>Test wymagający bazy nigdy się nie pomija — świeci czerwono i kłamie w komunikacie</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">backend/tests/Klucz.Tests/RequiresDatabaseFactAttribute.cs:15</p>
+
+    <p>
+      Atrybut pomija test, gdy <code>DB_HOST</code> nie jest <em>ustawione</em>. Ale
+      <code>Taskfile.yml</code> ma <code>dotenv: ['.env']</code>, więc pod
+      <code>task test</code> ta zmienna jest ustawiona <strong>zawsze</strong> — niezależnie
+      od tego, czy kontener z bazą stoi. Mechanizm opisany w docstringu („Bez niej POMIJANY —
+      z widocznym powodem") nie zachodzi nigdy w normalnym przebiegu.
+    </p>
+    <p>
+      Skutek jest gorszy niż brak pominięcia. Deweloper, który zapomniał <code>task up</code>,
+      dostaje czerwony test z komunikatem <em>„baza stoi (task up), a health check jej nie
+      widzi"</em> — czyli zdanie twierdzące dokładną odwrotność stanu faktycznego. Szukanie
+      błędu zacznie od health checku, który jest sprawny.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — DB_HOST ustawione, baza nieosiągalna</div>
+      <div class="ev-b"><pre data-lang="out">$ DB_HOST=127.0.0.1 DB_PORT=1 dotnet test --filter Live_database_yields_ok
+  Niepowodzenie Klucz.Tests.HealthTests.Live_database_yields_ok
+   baza stoi (`task up`), a health check jej nie widzi
+Niepowodzenie! — niepowodzenie: 1, pominięto: 0        ← miało być: pominięto 1</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Pomijać na podstawie <strong>próby połączenia</strong>, nie obecności zmiennej —
+      krótki <code>NpgsqlConnection.Open</code> z sekundowym timeoutem w konstruktorze
+      atrybutu. A komunikat asercji przepisać tak, żeby opisywał to, co widać:
+      „baza pod <code>DB_HOST:DB_PORT</code> nie odpowiada — uruchom <code>task up</code>".
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="k istot" id="k7">
+    <div class="k-head">
+      <span class="knum">7</span>
+      <h3><code>Contracts</code> przepuści nieużyty pakiet NuGet</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">backend/tests/Klucz.ArchitectureTests/ModuleBoundaries.cs:62</p>
+
+    <p>
+      Ten sam mechanizm co w uwadze 5: test czyta <code>GetReferencedAssemblies()</code>,
+      więc widzi tylko to, czego kod faktycznie używa. Dopisanie
+      <code>&lt;PackageReference Include="Newtonsoft.Json" /&gt;</code> do
+      <code>Klucz.Contracts.csproj</code> przechodzi bez protestu — a pakiet od tego momentu
+      płynie tranzytywnie do <strong>wszystkich</strong> modułów, czyli dzieje się dokładnie
+      to, przed czym broni komentarz nad tym testem.
+    </p>
+    <p>
+      Czerwono zrobi się dopiero przy commicie, który tego pakietu użyje. Wtedy granica jest
+      już przekroczona i test przestaje być granicą, a staje się protokołem z wypadku.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Sprawdzać deklaracje, nie użycie: przeczytać <code>&lt;PackageReference&gt;</code>
+      z <code>Klucz.Contracts.csproj</code> (tak jak robi to pierwsze sito PDF) albo listę
+      bibliotek z <code>project.assets.json</code>.
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="k istot" id="k8">
+    <div class="k-head">
+      <span class="knum">8</span>
+      <h3>CI nie uruchamia typechecku TypeScriptu w ogóle</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">.github/workflows/ci.yml:139 — zadanie <code>kontrakt</code></p>
+
+    <p>
+      Zadanie <code>kontrakt</code> regeneruje dokument i typy, po czym robi
+      <code>git diff</code>. Nie kompiluje ani jednej linii TypeScriptu. <code>task test:web</code>,
+      który to robi, nie jest wołany w żadnym zadaniu CI.
+    </p>
+    <p>
+      Scenariusz: zmieniasz nazwę DTO z <code>HealthResponse</code> na <code>ApiHealth</code>,
+      regenerujesz, commitujesz oba pliki. Bramka dryfu przechodzi — bo pliki <em>są</em>
+      zgodne z kodem. A ręcznie pisany <code>client.ts</code>, który odwołuje się do
+      <code>components["schemas"]["HealthResponse"]</code>, przestaje się kompilować i nikt
+      się o tym nie dowie aż do G1.4. CLAUDE.md mówi: „CI jest jedynym źródłem prawdy
+      o zielonym buildzie".
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Dopisać krok po regeneracji — wtedy jedno zadanie sprawdza dwie rzeczy: że kontrakt
+      się zgadza i że klient dalej się kompiluje.
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="yaml">- name: Typecheck klienta
+  run: pnpm -C web -r typecheck</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="k istot" id="k9">
+    <div class="k-head">
+      <span class="knum">9</span>
+      <h3><code>Klucz.Api</code> ma Npgsql, którego nie używa, i nikt go nie pilnuje</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">backend/src/Klucz.Api/Klucz.Api.csproj:25 · test w ModuleBoundaries.cs:73</p>
+
+    <p>
+      Dwie rzeczy naraz. Po pierwsze: <code>Klucz.Api</code> deklaruje pakiet Npgsql, którego
+      nie używa (potwierdzone — nie ma go w referencjach assembly). Po drugie i ważniejsze:
+      test <code>No_module_touches_the_database_directly</code> sprawdza
+      <code>Klucz.Grading</code>, <code>Klucz.Learning</code> i typy <code>Klucz.Corpus</code>
+      spoza <code>Infrastructure</code> — a <code>Klucz.Api</code> nie jest sprawdzany wcale.
+    </p>
+    <p>
+      Razem znaczy to, że <code>new NpgsqlConnection(...)</code> dopisane wprost
+      w <code>Program.cs</code> skompiluje się i przejdzie wszystkie bramki — mimo że
+      <code>backend/README.md</code> obiecuje, że <code>Infrastructure/</code> to JEDYNE
+      miejsce z Npgsql. Pakiet w csproj jest zaproszeniem, żeby to zrobić.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Usunąć <code>PackageReference</code> z <code>Klucz.Api.csproj</code> i dopisać
+      <code>Klucz.Api</code> do pętli w teście. Kompozycja nie potrzebuje sterownika bazy —
+      dostaje gotowy port z <code>Contracts</code>.
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="k istot" id="k10">
+    <div class="k-head">
+      <span class="knum">10</span>
+      <h3><code>task setup</code> nie sprawdza wersji SDK, o której mówi w komunikacie</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">Taskfile.yml:30 — <code>dotnet --version</code> wołane z korzenia repozytorium</p>
+
+    <p>
+      <code>global.json</code> leży w <code>backend/</code>, a polecenie wykonuje się
+      w korzeniu — gdzie żadne przypięcie nie obowiązuje. Sprawdzenie przechodzi z dowolnym
+      zainstalowanym SDK, choć jego własny komunikat mówi „BRAK: .NET SDK — wersja
+      w backend/global.json".
+    </p>
+    <p>
+      Skutek: deweloper z SDK 9 słyszy od <code>task setup</code> „komplet dla G1.1-G1.3",
+      a <code>task test:dotnet</code> wywala mu się na „compatible .NET SDK not found".
+      Sprawdzenie, które nie sprawdza, jest gorsze niż jego brak — bo przenosi diagnozę
+      o pół godziny do przodu.
+    </p>
+
+    <div class="ev">
+      <div class="ev-h">sprawdzone przebiegiem — global.json przypięty do niedostępnego SDK</div>
+      <div class="ev-b"><pre data-lang="out">$ dotnet --version                 # z korzenia repozytorium
+10.0.202                           ← kod 0, setup mówi KOMPLET
+
+$ cd backend &amp;&amp; dotnet --version   # tam, gdzie leży global.json
+Nie można znaleźć zgodnego zestawu .NET SDK</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      <div class="ev">
+        <div class="ev-b"><pre data-lang="yaml">- cmd: '(cd backend &amp;&amp; dotnet --version) &gt; /dev/null || (echo "BRAK: .NET SDK w wersji z backend/global.json" &amp;&amp; exit 1)'</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="k drob" id="k11">
+    <div class="k-head">
+      <span class="knum">11</span>
+      <h3>Port Azurite wpisany dwa razy — dokładnie ta pułapka, którą naprawiono przy bazie</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">.env.example:42 — <code>AZURITE_CONNECTION_STRING</code> wobec <code>BLOB_PORT</code> trzy linijki wyżej</p>
+
+    <p>
+      <code>BLOB_PORT</code> ma komentarz „numer stoi TYLKO tutaj", a zaraz pod nim stoi
+      gotowy adres z zaszytym <code>10000</code>. To ta sama sytuacja, którą sekcja bazy
+      w tym samym pliku opisuje jako <em>naprawioną</em>: „Numer portu stał wcześniej
+      w <code>.env</code> dwa razy — raz dla Dockera, raz w gotowym adresie".
+    </p>
+    <p>
+      Kto ma zajęty port 10000 — a zajmuje go każde inne Azurite na maszynie — postąpi wedle
+      komentarza i ustawi <code>BLOB_PORT=10001</code>. Docker przemapuje kontener, a adres
+      w connection stringu zostanie stary. Objaw („brak połączenia") nie prowadzi do przyczyny.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Składać <code>BlobEndpoint</code> z <code>BLOB_PORT</code> w kodzie — tak jak adres
+      bazy jest składany z <code>DB_PORT</code>. Do czasu, aż jakikolwiek kod będzie tego
+      connection stringa czytał (G2.4), wystarczy dopisać w komentarzu, że obie liczby
+      zmienia się razem.
+    </div>
+  </div>
+
+  <!-- 12 -->
+  <div class="k drob" id="k12">
+    <div class="k-head">
+      <span class="knum">12</span>
+      <h3><code>db:reset</code> kasuje też wolumen Azurite, a pyta tylko o korpus</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">Taskfile.yml:65 — <code>docker compose down -v</code> po dodaniu usługi <code>blob</code></p>
+
+    <p>
+      <code>-v</code> kasuje wszystkie wolumeny projektu, więc od tego commita także
+      <code>klucz-blobdata</code>. Pytanie potwierdzające mówi wyłącznie o wolumenie
+      z korpusem. Dziś strata jest zerowa (emulator stoi pusty), ale prompt uczy
+      nieprawdziwego modelu tego, co robi polecenie.
+    </p>
+    <p>
+      Od G2.4 dojdzie gorsza asymetria: reset czyści bazę, ale zostawia pliki PNG
+      w <code>&lt;repo&gt;/data/blob</code>, bo tam pisze <code>DiskBlobStore</code>.
+      Po resecie na dysku leżą wycinki, do których nie prowadzi żaden wiersz
+      <code>asset.path</code> — a ponowny ingest nadpisze je po cichu
+      (<code>FileMode.Create</code>).
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      Teraz: rozszerzyć tekst pytania o wolumen emulatora. Przy G2.4: dołożyć czyszczenie
+      <code>data/blob</code> — narzędziem, nie <code>rm</code> w Taskfile (CLAUDE.md zabrania
+      operacji na plikach w tym pliku, bo na Windows tych poleceń nie ma).
+    </div>
+  </div>
+
+  <!-- 13 -->
+  <div class="k drob" id="k13">
+    <div class="k-head">
+      <span class="knum">13</span>
+      <h3>Port API zaszyty w trzech plikach wersjonowanych</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">launchSettings.json:8 · Taskfile.yml:156 (echo w <code>task dev</code>) · backend/README.md:8</p>
+
+    <p>
+      CLAUDE.md, tabela wieloplatformowości: „Zaszyte porty → port hosta z konfiguracji
+      (<code>DB_PORT</code>), nigdy w pliku wersjonowanym". Repozytorium trzyma tej reguły
+      dla bazy i dla Azurite, ale port API stoi na sztywno jako <code>5014</code> w trzech
+      miejscach naraz.
+    </p>
+    <p>
+      Sprawdzone: <code>launchSettings.json</code> wygrywa nawet z jawnym
+      <code>ASPNETCORE_URLS</code> — proces uruchomiony z <code>ASPNETCORE_URLS=…:5199</code>
+      i tak wstał na 5014. Deweloper z zajętym portem nie ma gdzie tego zmienić bez edycji
+      pliku w repozytorium, a <code>task dev</code> i README będą mu wypisywać nieprawdziwy
+      adres.
+    </p>
+
+    <div class="fix">
+      <b>Jak naprawić</b>
+      <code>API_PORT</code> w <code>.env</code>, <code>dotnet run --urls</code> składane
+      z tej zmiennej w <code>task dev</code>, a echo i README biorą tę samą wartość.
+    </div>
+  </div>
+
+  <!-- 14 -->
+  <div class="k drob" id="k14">
+    <div class="k-head">
+      <span class="knum">14</span>
+      <h3>Klient TS po polsku — reguła „bez wyjątków" z wyjątkiem od pierwszego dnia</h3>
+      <span class="tag st-drob">drobny</span>
+      <span class="tag st-ok">naprawione</span>
+    </div>
+    <p class="k-gdzie">web/packages/api-client/src/client.ts:14, :22, :24 · index.ts:1-2</p>
+
+    <p>
+      Commit <code>b32b84b</code> dopisał do CLAUDE.md zasadę 4 („Cały kod — po angielsku.
+      Bez wyjątków") i przemianował C# oraz plan. TypeScript został po polsku:
+      <code>utworzKlienta</code>, <code>StanZdrowia</code>, <code>KlientApi</code>.
+    </p>
+    <p>
+      Koszt nie jest kosmetyczny: <code>apps/web</code> z G1.4 budowałoby się na tych
+      nazwach, więc przemianowanie później dotknęłoby każdego pliku importującego klienta.
+      Naprawione w <code>3cf423e</code>: <code>createApiClient</code>,
+      <code>HealthStatus</code>, <code>ApiClient</code>.
+    </p>
+  </div>
+
+  <!-- 15 -->
+  <div class="k rozw" id="k15">
+    <div class="k-head">
+      <span class="knum">15</span>
+      <h3>Pole <code>version</code> w <code>/health</code> zawsze zwróci <code>1.0.0.0</code></h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">backend/src/Klucz.Api/Program.cs:33 · HealthResponse.cs:16</p>
+
+    <p>
+      Wersja assembly nie jest nigdzie ustawiana — ani w <code>Directory.Build.props</code>,
+      ani w CI — więc <code>Assembly.GetName().Version</code> to stała. Pole opisane jako
+      „Wersja zbudowanego API" nie odróżnia żadnych dwóch buildów.
+    </p>
+    <p>
+      Pytanie do decyzji: stemplować wersję przy buildzie (tag gita albo SHA commita
+      w <code>InformationalVersion</code>), czy wyrzucić pole z kontraktu? Drugie jest tańsze
+      teraz i droższe potem — pole jest w <code>required</code> w OpenAPI, więc usunięcie go
+      po tym, jak ktoś zacznie na nim polegać, złamie klienta.
+    </p>
+  </div>
+
+  <!-- 16 -->
+  <div class="k rozw" id="k16">
+    <div class="k-head">
+      <span class="knum">16</span>
+      <h3><code>/openapi/v1.json</code> jest wystawiony także poza Development</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">backend/src/Klucz.Api/Program.cs:24 — <code>app.MapOpenApi()</code> bez warunku</p>
+
+    <p>
+      Sprawdzone: dokument odpowiada 200 również przy <code>ASPNETCORE_ENVIRONMENT=Production</code>.
+      W alfie, która chodzi na jednym komputerze, to nie jest problem — a bywa wygodne.
+    </p>
+    <p>
+      Decyzja jest na później i sprowadza się do pytania: czy pełny opis API ma być publiczny
+      po wdrożeniu? Jeśli nie, standardowe <code>if (app.Environment.IsDevelopment())</code>
+      wystarczy. Zapisuję to teraz, żeby nie okazało się niespodzianką przy pierwszym wdrożeniu.
+    </p>
+  </div>
+</section>
+
+<!-- ============ ZGODNOŚĆ Z PLANEM ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">03 — ZGODNOŚĆ Z PLANEM</span>
+    <h2>Czy kod robi to, co zapowiadał <code>docs/plan-A1.md</code></h2>
+    <p class="sec-sub">Punkty G1.3.1 – G1.3.3.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Punkt planu</th><th>Stan</th><th>Uwaga</th></tr></thead>
+      <tbody>
+        <tr><td class="id">G1.3.1 · solution, pięć projektów src/, dwa tests/</td><td><span class="tag st-ok">zrobione</span></td><td>Plus <code>Directory.Packages.props</code>, którego plan nie przewidywał — wersje pakietów w jednym miejscu; audyt NuGeta od razu złapał lukę w <code>Microsoft.OpenApi 2.0.0</code></td></tr>
+        <tr><td class="id">G1.3.1 · Directory.Build.props, global.json</td><td><span class="tag st-ok">zrobione</span></td><td>Nullable, <code>TreatWarningsAsErrors</code>, SDK przypięty. Ale <code>task setup</code> tego przypięcia nie sprawdza — <a href="#k10">uwaga 10</a></td></tr>
+        <tr><td class="id">G1.3.1 · pięć testów architektury</td><td><span class="tag st-istot">częściowo</span></td><td>Wszystkie pięć istnieje i dwa widziano na czerwono. Dwa z nich sprawdzają mniej, niż deklarują — uwagi <a href="#k5">5</a> i <a href="#k7">7</a>; <code>Klucz.Api</code> nie jest objęty regułą o bazie (<a href="#k9">9</a>)</td></tr>
+        <tr><td class="id">G1.3.1 · nielegalny import zapala test</td><td><span class="tag st-ok">zrobione</span></td><td>Sprawdzone świadomie, oba warianty (import modułu, pakiet PDF) — wydruki w <code>backend/README.md</code></td></tr>
+        <tr><td class="id">G1.3.1 · minimal API + health check</td><td><span class="tag st-istot">częściowo</span></td><td>Endpoint rozdziela stan procesu i bazy, ale przewraca się na błędzie konfiguracji — <a href="#k2">uwaga 2</a></td></tr>
+        <tr><td class="id">G1.3.1 · trzy metody <code>Add*</code></td><td><span class="tag st-ok">zrobione</span></td><td><code>Program.cs</code> woła trzy linijki i nie zna wnętrza modułów</td></tr>
+        <tr><td class="id">G1.3.2 · dokument przy buildzie, wersjonowany</td><td><span class="tag st-ok">zrobione</span></td><td><code>backend/artifacts/openapi.json</code> w repo; OpenAPI 3.1.1</td></tr>
+        <tr><td class="id">G1.3.2 · klient TS (openapi-typescript + openapi-fetch)</td><td><span class="tag st-ok">zrobione</span></td><td>Ręcznie pisany tylko cienki <code>client.ts</code>, zgodnie z planem</td></tr>
+        <tr><td class="id">G1.3.2 · bramka dryfu łamie build</td><td><span class="tag st-kryt">nie</span></td><td>Bramka istnieje i była widziana na czerwono, ale ma dziurę: potrafi przejść bez regeneracji — <a href="#k3">uwaga 3</a>. CI nie kompiluje przy tym TypeScriptu (<a href="#k8">8</a>)</td></tr>
+        <tr><td class="id">G1.3.3 · port <code>IBlobStore</code> bez <code>FileInfo</code></td><td><span class="tag st-ok">zrobione</span></td><td>Sygnatury czyste; nazwy po angielsku po poprawce z <code>b32b84b</code> (plan podawał je po polsku i został poprawiony)</td></tr>
+        <tr><td class="id">G1.3.3 · korzeń z konfiguracji <code>Blob:Root</code></td><td><span class="tag st-kryt">nie</span></td><td>Działa <code>Blob:Root</code>, nie działa <code>BLOB_ROOT</code> — <a href="#k1">uwaga 1</a></td></tr>
+        <tr><td class="id">G1.3.3 · ochrona przed wyjściem poza korzeń</td><td><span class="tag st-ok">zrobione</span></td><td>Cztery przypadki w testach, w tym katalog obok o podobnej nazwie</td></tr>
+        <tr><td class="id">G1.3.3 · test integracyjny zapisu i odczytu</td><td><span class="tag st-ok">zrobione</span></td><td>Plus wykryta przy okazji niespójność portu (brak pliku dawał dwa różne wyjątki)</td></tr>
+        <tr><td class="id">G1.3.3 · <code>AzureBlobStore</code> nie w alfie</td><td><span class="tag st-rozw">plan nieaktualny</span></td><td>Plan mówi „nie w alfie" i tak zostaje, ale doszło Azurite w <code>docker-compose</code> — emulator, żeby dało się to sprawdzić lokalnie, zanim zapadnie decyzja. Warto dopisać do planu</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ CO JEST DOBRE ============ -->
+<section>
+  <div class="sec-head">
+    <span class="num">04 — CO JEST DOBRE</span>
+    <h2>Warte utrzymania przy kolejnych zmianach</h2>
+  </div>
+
+  <ul class="plain">
+    <li><b>Obie bramki widziane na czerwono, z zapisanym sposobem powtórzenia.</b> To jest
+      różnica między testem architektury a deklaracją architektury. Wydruki w
+      <code>backend/README.md</code> pozwalają komuś innemu powtórzyć dowód, zamiast wierzyć
+      na słowo.</li>
+    <li><b>Leniwe rozwiązywanie adresu bazy.</b> Odkrycie, że generator OpenAPI startuje całą
+      aplikację przy buildzie, jest nieoczywiste, a wniosek — „build nie ma prawa wymagać
+      bazy" — trafił do komentarza razem z powodem. Dokładnie ten rodzaj wiedzy, który za pół
+      roku ratuje przed „uproszczeniem" z powrotem do sprawdzania w <code>AddCorpus</code>.</li>
+    <li><b>Audyt pakietów jako błąd, nie ostrzeżenie.</b> <code>TreatWarningsAsErrors</code>
+      plus centralne wersje zatrzymały build na luce w <code>Microsoft.OpenApi</code>
+      w pierwszym dniu istnienia projektu. Wersja została podniesiona, nie wyciszona.</li>
+    <li><b><code>/health</code> rozdzielający proces i bazę.</b> Dwa pola zamiast jednego „OK"
+      i jawne uzasadnienie w komentarzu. Przy pierwszej awarii to jest różnica między
+      „coś nie działa" a „baza nie odpowiada".</li>
+    <li><b>Test, który złapał niespójność portu.</b> Brak pliku dawał raz
+      <code>FileNotFoundException</code>, raz <code>DirectoryNotFoundException</code> —
+      i to wyszło z testu napisanego <em>przed</em> obejrzeniem implementacji, a nie po.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Przegląd wykonany wg <code>.claude/skills/code-review</code>. Zakres:
+    <code>git diff main...HEAD</code> na <code>feat/g1.3-backend</code> — commity
+    <code>796f3e5</code>, <code>56ca766</code>, <code>b32b84b</code>, <code>3cf423e</code>;
+    48 plików, +2026 linii.</p>
+  <p>Sprawdzone uruchomieniem: <code>dotnet build</code> i <code>dotnet test</code> (5 testów
+    architektury + 14 zachowania, zielone) · shadowing <code>BLOB_ROOT</code> przez
+    <code>Blob:Root</code> · <code>/health</code> pod <code>DB_PORT=5432x</code> (HTTP 500) ·
+    zgubione <code>sslmode=require</code> · <code>GetReferencedAssemblies()</code> bez Npgsql
+    dla <code>Klucz.Api</code> · pominięta generacja <code>openapi.json</code> po skasowaniu
+    artefaktu · <code>Live_database_yields_ok</code> kończący się czerwono zamiast pominięciem ·
+    <code>dotnet --version</code> z korzenia wobec <code>backend/</code> ·
+    <code>ASPNETCORE_URLS</code> przegrywający z <code>launchSettings.json</code>.</p>
+  <p>Poza zakresem: zachowanie na macOS (sprawdzane tylko na Windows) ·
+    <code>web/pnpm-lock.yaml</code> (282 linie, nieczytane wiersz po wierszu) ·
+    wydajność Azurite i jego zachowanie pod obciążeniem · przebieg CI na GitHubie
+    (workflow czytany, nie uruchomiony — pierwsze uruchomienie będzie na tym PR-ze).</p>
+</footer>
+
+</div>
+<script>
+/* Kolorowanie składni bez żadnej biblioteki — dokument ma zostać samodzielny.
+ *
+ * Użycie:  <pre data-lang="python">…</pre>
+ * Języki:  python · yaml · sql · bash · conf · out (wydruk z konsoli)
+ *
+ * Jak działa: reguły każdego języka sklejane są w JEDEN regex z grupami
+ * nazwanymi, więc tekst jest przechodzony raz, a pierwsza pasująca reguła
+ * wygrywa. Dlatego komentarze i napisy stoją na początku listy — inaczej
+ * słowo kluczowe wewnątrz napisu zostałoby pokolorowane osobno.
+ *
+ * Bez skryptu (albo przy jego błędzie) blok zostaje zwykłym tekstem —
+ * czytelnym, tylko czarno-białym.
+ */
+(function () {
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+  function esc(s) { return s.replace(/[&<>]/g, function (c) { return ESC[c]; }); }
+
+  // UWAGA: wewnątrz reguł tylko grupy nieprzechwytujące (?:...) —
+  // zwykły nawias rozjechałby numerację grup w sklejonym wyrażeniu.
+  var RULES = {
+    python: [
+      ['com',  /#[^\n]*/],
+      ['str',  /(?:[rbfu]{0,2})(?:"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/],
+      ['kw',   /\b(?:def|class|return|if|elif|else|for|while|with|as|import|from|try|except|finally|raise|yield|lambda|not|and|or|in|is|None|True|False|pass|assert|del|async|await|global|nonlocal)\b/],
+      ['fn',   /@[A-Za-z_][\w.]*|\b[A-Za-z_]\w*(?=\()/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    yaml: [
+      ['com',  /#[^\n]*/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['fn',   /^[ \t]*(?:-[ \t]+)?[A-Za-z_][\w.\/-]*(?=[ \t]*:)/],
+      ['kw',   /\b(?:true|false|null|yes|no)\b/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    sql: [
+      ['com',  /--[^\n]*/],
+      ['str',  /'(?:[^']|'')*'/],
+      ['kw',   /\b(?:CREATE|TABLE|INDEX|VIEW|COLLATION|SELECT|FROM|WHERE|JOIN|LEFT|INNER|ON|GROUP|ORDER|BY|HAVING|INSERT|INTO|VALUES|UPDATE|DELETE|SET|RETURNING|CONFLICT|DO|NOTHING|NOT|NULL|PRIMARY|FOREIGN|KEY|REFERENCES|UNIQUE|CHECK|DEFAULT|CONSTRAINT|CASCADE|AND|OR|IN|AS|IF|EXISTS|BETWEEN|PROVIDER|LOCALE|COLLATE|BEGIN|COMMIT|DISTINCT|COUNT|SUM|ARRAY_AGG|LIMIT)\b/i],
+      ['type', /\b(?:text|integer|smallint|bigint|serial|smallserial|boolean|date|timestamptz|numeric|jsonb|char|varchar)\b/i],
+      ['num',  /\b\d+\b/]
+    ],
+    bash: [
+      ['com',  /#[^\n]*/],
+      ['ann',  /^\$/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['kw',   /\b(?:if|then|elif|else|fi|for|in|do|done|while|case|esac|function|return|exit|test|echo|cd|export|local)\b/],
+      ['num',  /(?:^|[ \t])-{1,2}[A-Za-z][\w-]*|\b\d+\b/]
+    ],
+    conf: [
+      ['com',  /#[^\n]*/],
+      ['kw',   /^!/],
+      ['fn',   /^[A-Za-z_][A-Za-z0-9_]*(?==)/],
+      ['str',  /(?<==)[^\n]+/]
+    ],
+    out: [
+      ['ann',  /←[^\n]*|^\$/],
+      ['str',  /"[^"]*"|'[^']*'/],
+      ['num',  /\b\d+\b/]
+    ]
+  };
+
+  function podswietl(kod, jezyk) {
+    var reguly = RULES[jezyk];
+    if (!reguly) { return esc(kod); }
+    var wzor = reguly.map(function (r, i) {
+      return '(?<g' + i + '>' + r[1].source + ')';
+    }).join('|');
+    var re;
+    try {
+      re = new RegExp(wzor, 'gm');
+    } catch (e) {
+      return esc(kod);           // starsza przeglądarka — zostaje zwykły tekst
+    }
+    var wynik = '', koniec = 0, m;
+    while ((m = re.exec(kod)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      wynik += esc(kod.slice(koniec, m.index));
+      var klasa = null;
+      for (var i = 0; i < reguly.length; i++) {
+        if (m.groups['g' + i] !== undefined) { klasa = reguly[i][0]; break; }
+      }
+      wynik += '<span class="t-' + klasa + '">' + esc(m[0]) + '</span>';
+      koniec = m.index + m[0].length;
+    }
+    return wynik + esc(kod.slice(koniec));
+  }
+
+  var bloki = document.querySelectorAll('pre[data-lang]');
+  for (var i = 0; i < bloki.length; i++) {
+    try {
+      bloki[i].innerHTML = podswietl(bloki[i].textContent, bloki[i].dataset.lang);
+    } catch (e) { /* blok zostaje zwykłym tekstem — lepsze niż pusty */ }
+  }
+})();
+</script>
