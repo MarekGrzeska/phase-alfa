@@ -1,14 +1,4 @@
-"""Mirror — przebieg na sucho i domyślny korzeń.
-
-Plan G1.2.3 zamyka się zdaniem „zrobione, gdy `task mirror -- --dry-run`
-przechodzi". Dopóki tej flagi nie było, kryterium odbioru zostawało zdaniem
-w planie, którego nie dało się uruchomić.
-
-Testy chodzą bez mirrora i bez sieci: budują własny korzeń w katalogu
-tymczasowym, z jednym wierszem spisu wskazującym na nieistniejący plik.
-Gdyby przebieg na sucho jednak sięgnął po sieć, adres `127.0.0.1:1` odmówi
-połączenia natychmiast, a plik i tak nie powstanie — i to sprawdza asercja.
-"""
+"""Mirror — przebieg na sucho i domyślny korzeń."""
 
 from __future__ import annotations
 
@@ -75,13 +65,7 @@ def test_dry_run_to_alias_tylko_raportu(korzen: Path):
 
 
 def test_domyslny_korzen_to_ten_sam_katalog_co_u_parsera(monkeypatch, tmp_path: Path):
-    """Mirror musi zwozić tam, gdzie parser szuka.
-
-    Domyślny `--katalog` wskazywał katalog skryptu. Dopóki skrypt leżał
-    w korzeniu repozytorium `cke-mirror`, było to poprawne; po awansie do
-    `ingest/mirror/` mirror budował korpus w `ingest/mirror/data/`, a
-    `task ingest` szukał go w korzeniu repo i mówił „brak urls.tsv".
-    """
+    """Mirror musi zwozić tam, gdzie parser szuka."""
     monkeypatch.setenv("MIRROR_ROOT", ".")
     from sciezki import korzen_mirrora
     assert korzen_mirrora() == KORZEN_REPO

@@ -1,25 +1,6 @@
 #!/usr/bin/env python3
-"""
-cke_mirror.py — jeden skrypt: buduje strukturę katalogów, zwozi arkusze CKE,
+"""cke_mirror.py — jeden skrypt: buduje strukturę katalogów, zwozi arkusze CKE,
 pokazuje postęp i wypisuje raport z wykonania.
-
-    task mirror                                # cały rdzeń (~2 500 plików, ~2,6 GB)
-    task mirror -- --filtr matematyka          # sam zakres K2 (190 plików, ~130 MB)
-    task mirror -- --segment e8 --rocznik 2026
-    task mirror -- --tylko-spis                # inwentarz bez pobierania PDF-ów
-    task mirror -- --dry-run                   # nic nie pobiera: raport z tego, co leży na dysku
-
-Bez Taskfile'a: `uv run python -m mirror.cke_mirror ...` z katalogu `ingest/`.
-Uruchamianie przez ścieżkę (`python ingest/mirror/cke_mirror.py`) ustawia
-`sys.path` na katalog pliku i import `sciezki` się sypie.
-
-Zakres = "rdzeń Klucza": egzamin ósmoklasisty 2019-2026, matura Formuła 2023
-(2023-2026), matura Formuła 2015 (2015-2023). Poza rdzeniem świadomie zostają
-egzamin zawodowy, eksternistyczny, stara matura, gimnazjalny i sprawdzian.
-
-Skrypt jest idempotentny: plik już obecny w mirrorze jest pomijany, więc to samo
-wywołanie służy do pierwszego zrzutu i do dosypywania plików nowej sesji.
-Bez zależności zewnętrznych — sama biblioteka standardowa Pythona 3.9+.
 """
 
 from __future__ import annotations
@@ -41,19 +22,13 @@ from urllib.parse import quote, unquote, urljoin, urlsplit
 
 from sciezki import korzen_mirrora
 
-# Raport rysuje ramki znakami Unicode, a Windows przy przekierowaniu stdout do
-# pliku wybiera kodowanie strony kodowej (cp1250) i wywala się na nich — czyli
-# dokładnie w wywołaniu z crona albo z CI, które README obiecuje. Wymuszamy UTF-8.
+# Windows przy przekierowaniu stdout wybiera cp1250 i wywala się na ramkach raportu.
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Konfiguracja zakresu
-# ─────────────────────────────────────────────────────────────────────────────
 
-# robots.txt na cke.gov.pl przepuszcza wyłącznie "User-agent: Scrapy"
-# (wszystkim pozostałym daje Disallow: /), więc tak się przedstawiamy.
+# robots.txt na cke.gov.pl przepuszcza wyłącznie "User-agent: Scrapy".
 UA = "Scrapy/2.11 (+cke-mirror; one-off mirror of public exam papers)"
 
 SEGMENTS = {
@@ -80,33 +55,12 @@ COLUMNS = ["segment", "rocznik", "rocznik_w_sciezce", "podkatalog", "plik",
            "kod", "warianty", "sesja", "typ", "zrodlo_typu", "wzorzec",
            "url", "sciezka_lokalna"]
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Taksonomia nazw plików
-#
-#   OMAP - 100 - 2305 - zasady .pdf
-#     │      │      │      └── typ dokumentu
-#     │      │      └───────── sesja: rok + miesiąc
-#     │      └──────────────── wariant arkusza (100 = standardowy)
-#     └─────────────────────── egzamin + przedmiot (O = ósmoklasisty, MA = matematyka)
-#
-# Sufiks typu to konwencja dopiero od ~2022. Rocznik 2019 koduje typ prefiksem
-# nazwy (Arkusz_…, Zasady_oceniania_…), a roczniki 2020-2021 i cała Formuła 2015
-# — katalogiem (…/zasady_oceniania/…, …/odpowiedzi/…). Czytamy wszystkie trzy
-# źródła i zapisujemy w kolumnie `zrodlo_typu`, z którego pochodzi wynik.
-#
-# Trzy rzeczy, przez które pierwszy przebieg zgubił sesję w 31% wierszy:
-#   1. Separator sufiksu bywa podkreśleniem albo kropką (…-152_transkrypcja.pdf,
-#      …-202.nuty.pdf), a nie tylko myślnikiem — dzielenie po "-" tego nie widzi.
-#   2. Słownik sufiksów nie znał nazw używanych w innych latach: `zeszyt-zadan`
-#      (E8 od 2024), `model` (Formuła 2015 mówi tak na zasady oceniania),
-#      `karta-rozwiazan`, `mapa`, `nuty`, `przykłady nutowe`.
-#   3. Formuła 2015 koduje sesję trzema znakami — `152` to maj 2015, `162n` to
-#      maj 2016 — a nie czterema jak `2505`. Do tego token sesji nie zawsze jest
-#      ostatni (MJA-P1_1P-172-A.pdf), więc szukamy go od prawej, nie na końcu.
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Taksonomia nazw plików ───────────────────────────────────────────────────
+#   OMAP-100-2305-zasady.pdf → kod (egzamin+przedmiot), wariant, sesja, typ.
+# Sufiks typu to konwencja dopiero od ~2022: rocznik 2019 koduje typ prefiksem,
+# a 2020-2021 i Formuła 2015 — katalogiem. `zrodlo_typu` mówi, skąd wynik.
 
-# Sufiks typu: jeden regex zamiast dzielenia po "-", bo separator bywa "_" i "."
-# a same nazwy sufiksów są dwuczłonowe. Kolejność ma znaczenie — dłuższe pierwsze.
+# Jeden regex zamiast dzielenia po "-": separator bywa "_" i ".". Dłuższe pierwsze.
 SUFFIX_PATTERNS = [
     (r"zasady[-_. ]oceniania", "zasady_oceniania"),
     (r"zasady", "zasady_oceniania"),
@@ -146,15 +100,10 @@ PATH_HINTS = [
 HREF_RE = re.compile(r'''href\s*=\s*["']([^"']+\.pdf)["']''', re.IGNORECASE)
 YEAR_SEG_RE = re.compile(r"^(?:19|20)\d{2}$")
 
-# Dwa schematy sesji. Nowy (E8, Formuła 2023): RRMM — 2505 = maj 2025.
-# Stary (Formuła 2015): RRT — 152 = 2015, termin 2; sufiks literowy (152n) bywa
-# doklejony. Ograniczenia zakresów są tym, co odróżnia sesję od wariantu:
-# wszystkie warianty arkusza kończą się zerem (100, 400, 660, 900), więc termin
-# 1-3 ich nie łapie, a rok 15-30 odsiewa przypadkowe czterocyfrowe tokeny.
+# Dwa schematy: RRMM (2505 = maj 2025) i RRT Formuły 2015 (152 = 2015, termin 2).
+# Ograniczenia zakresów odróżniają sesję od wariantu — warianty kończą się zerem.
 SESSION_NEW_RE = re.compile(r"^(\d{2})(\d{2})$")
 SESSION_OLD_RE = re.compile(r"^(\d{2})([1-3])[a-z]?$", re.IGNORECASE)
-# Termin egzaminu Formuły 2015 → miesiąc. W kopalni występuje wyłącznie termin 2
-# (maj); pozostałe dwa są w mapie, żeby nie wywrócić się na pliku spoza próby.
 F2015_TERM_MONTH = {"1": "01", "2": "05", "3": "06"}
 
 
@@ -181,8 +130,8 @@ def parse_filename(name: str, url_path: str = "") -> dict:
             stem = stem[len(prefix):]
             break
 
-    # Sufiks typu odcinamy ze stemu, zanim podzielimy go na tokeny — inaczej
-    # „…-2405-zeszyt-zadan" wygląda jak nazwa bez sesji z trzema wariantami.
+    # Sufiks odcinamy przed podziałem na tokeny — inaczej „…-2405-zeszyt-zadan" wygląda
+    # jak nazwa bez sesji z trzema wariantami.
     if not meta["typ"]:
         m = SUFFIX_RE.search(stem)
         if m:
@@ -197,8 +146,7 @@ def parse_filename(name: str, url_path: str = "") -> dict:
     tokens = stem.split("-")
     meta["kod"] = tokens[0] if tokens else stem
     if len(tokens) >= 2:
-        # Sesja szukana od prawej, nie na końcu: MJA-P1_1P-172-A.pdf ma po niej
-        # jeszcze token wariantu. Wariantem jest wszystko poza kodem i sesją.
+        # Sesja szukana od prawej, nie na końcu: MJA-P1_1P-172-A.pdf ma po niej wariant.
         idx = next((i for i in range(len(tokens) - 1, 0, -1)
                     if parse_session(tokens[i])), None)
         if idx is not None:
@@ -222,12 +170,7 @@ def parse_filename(name: str, url_path: str = "") -> dict:
 
 
 def normalize_url(href: str, page_url: str) -> str:
-    """Absolutny https URL, ze ścieżką bezpieczną dla klienta HTTP.
-
-    Strony rocznikowe mieszają href-y względne i absolutne http://cke.gov.pl,
-    a garść nazw na serwerze zawiera spacje i polskie znaki — bez enkodowania
-    klient odrzuca URL zanim wyśle żądanie.
-    """
+    """Absolutny https URL, ze ścieżką bezpieczną dla klienta HTTP."""
     parts = urlsplit(urljoin(page_url, href.strip()))
     path = quote(unquote(parts.path), safe="/%:@!$&'()*+,;=~")
     host = "cke.gov.pl" if parts.netloc in ("cke.gov.pl", "www.cke.gov.pl") else parts.netloc
@@ -236,20 +179,12 @@ def normalize_url(href: str, page_url: str) -> str:
 
 
 def local_path(raw_dir: Path, url: str, segment: str) -> Path:
-    """data/raw/<segment>/<rok>/<przedmiot>/<plik>.pdf
-
-    Kotwicą jest segment rocznika, nie katalog główny — CKE trzyma część plików
-    pod wariantami markera (np. /_EGZAMIN_MATURALNY/2026/mniejszosci/…).
-    """
+    """data/raw/<segment>/<rok>/<przedmiot>/<plik>.pdf"""
     parts = [unquote(p) for p in urlsplit(url).path.split("/") if p]
     idx = next((i for i, p in enumerate(parts) if YEAR_SEG_RE.match(p)), None)
     tail = parts[idx:] if idx is not None else parts[-3:]
     return raw_dir / segment / Path(*[p for p in tail if p != "formula_od_2015"])
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Układ katalogów
-# ─────────────────────────────────────────────────────────────────────────────
 
 class Layout:
     def __init__(self, root: Path):
@@ -269,10 +204,6 @@ class Layout:
             d.mkdir(parents=True, exist_ok=True)
         return created
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Pasek postępu
-# ─────────────────────────────────────────────────────────────────────────────
 
 class Progress:
     """Jedna linia odświeżana w miejscu na TTY; poza TTY — rzadkie linie w logu."""
@@ -342,10 +273,6 @@ class Progress:
         return f"{sec // 60}m{sec % 60:02d}s" if sec >= 60 else f"{sec:>2d}s"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Krok 1 — spis
-# ─────────────────────────────────────────────────────────────────────────────
-
 def fetch_text(url: str, timeout: int = 60) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -353,8 +280,7 @@ def fetch_text(url: str, timeout: int = 60) -> str:
 
 
 def collect_inventory(lay: Layout, quiet: bool = False) -> tuple[list[dict], list[dict]]:
-    """Pobiera strony rocznikowe i zwraca (wiersze spisu, statystyki stron).
-    Nie pobiera żadnego PDF-a — kompletność da się ocenić z samej listy URL-i."""
+    """Pobiera strony rocznikowe i zwraca (wiersze spisu, statystyki stron)."""
     pages = [(seg, y, cfg["page"].format(year=y))
              for seg, cfg in SEGMENTS.items() for y in cfg["years"]]
     bar = Progress(len(pages), "spis  ", quiet)
@@ -431,10 +357,6 @@ def read_inventory(lay: Layout) -> list[dict]:
         return list(csv.DictReader(fh, delimiter="\t"))
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Krok 2 — zwózka
-# ─────────────────────────────────────────────────────────────────────────────
-
 def download_one(lay: Layout, row: dict, force: bool, retries: int = 3) -> dict:
     dest = lay.root / row["sciezka_lokalna"]
     if dest.exists() and dest.stat().st_size > 0 and not force:
@@ -501,10 +423,6 @@ def download_all(lay: Layout, rows: list[dict], jobs: int, force: bool,
             w.writerow([stamp, r["status"], r["bajty"], r["plik"], r["url"], r["blad"]])
     return results, elapsed
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Krok 3 — raport
-# ─────────────────────────────────────────────────────────────────────────────
 
 def human(n: float) -> str:
     for unit, div in (("GB", 1 << 30), ("MB", 1 << 20), ("kB", 1 << 10)):
@@ -640,18 +558,13 @@ def print_report(lay: Layout, rep: dict, results: list[dict] | None,
     print(f"\nRaport: {(lay.reports / 'kompletnosc.md').relative_to(lay.root)}\n{line}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Mirror arkuszy CKE: struktura katalogów + zwózka + raport.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Przykład: task mirror -- --filtr matematyka --jobs 8")
-    # Korzeń bierzemy z tego samego miejsca co parser (`MIRROR_ROOT` z .env,
-    # ścieżka względna liczona od korzenia repo). Domyślna wartość „katalog
-    # skryptu" była poprawna, dopóki skrypt leżał w korzeniu repozytorium
-    # cke-mirror; po awansie do ingest/mirror/ zwoziłaby korpus do
-    # ingest/mirror/data/, czyli tam, gdzie `task ingest` go nie szuka.
+    # Korzeń z tego samego miejsca co parser (`MIRROR_ROOT`). Domyślne „katalog
+    # skryptu" zwoziłoby korpus do ingest/mirror/data/, gdzie `task ingest` nie patrzy.
     ap.add_argument("--katalog", type=Path, default=None,
                     help="korzeń mirrora (domyślnie MIRROR_ROOT z .env, "
                          "względnie do korzenia repozytorium)")

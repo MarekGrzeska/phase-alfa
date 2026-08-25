@@ -1,36 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Parser kluczy CKE — słownik nagłówków zamiast jednego regexu.
+"""Parser kluczy CKE — słownik nagłówków zamiast jednego regexu."""
 
-`probe_load.py` dowiódł, że schemat udźwignie dane, ale robił to jednym
-zestawem wzorców dopasowanym do klucza matematyki E8 z 2025 r. Na pełnym
-zakresie ten zestaw się rozsypuje, bo CKE przebudowała dokument cztery razy.
-Zmierzone na 75 kluczach matematyki E8 i 19 maturalnych:
-
-    Zadanie 1. (0–1)            93 pliki    nagłówek z pulą punktów
-    Zadanie 1. (2 pkt)           1 plik     OMAP-Q00-1904 — pula w innej formie
-    2 punkty – pełne rozwiązanie 75 kluczy  próg nagłówkiem (E8)
-    Zdający otrzymuje …… 2 pkt    4 klucze  próg z punktacją na końcu linii
-    „lub" samotne w linii         8 plików  rocznik 2019
-    „LUB" samotne w linii        67 plików  roczniki 2020+
-    „ALBO"                       19 kluczy  cała matematyka maturalna
-    Rozwiązanie – wersja X | Y   25 plików  bliźniaki E8
-    Rozwiązanie / Wersja A | B   15 kluczy  bliźniaki matury od 2023 r.
-
-Stąd `SLOWNIK`: nazwy sekcji i separatory wiszą przy dialekcie, a nie
-w ciele parsera. Rozpoznanie dialektu jest pomiarem na tekście dokumentu,
-nie zgadywaniem po nazwie pliku — ta sama sesja potrafi mieć dwa układy
-(OMAP-800 kontra OMAP-100 z tego samego maja).
-
-    from parsers.omap_e8.parser import czytaj_klucz
-    k = czytaj_klucz("data/raw/e8/2025/matematyka/OMAP-100-2505-zasady.pdf")
-    k.dialekt, len(k.zadania), k.ostrzezenia
-
-Wynik jest w kształcie `schema.sql`: `formy`, `zadania` z `kryteria` →
-`warunki` → `zapisy`, `odpowiedzi` per wersja, `reguly` przekrojowe.
-Ładuje go `loader.py`: przez `run.py` (75 kluczy, raport pokrycia) albo przez
-`tests/test_corpus_load.py` (jeden klucz, ze sprawdzianem liczb).
-"""
 from __future__ import annotations
 
 import os
@@ -42,23 +13,12 @@ from typing import Dict, List, Optional, Sequence, Tuple
 from pdf import reconstruct
 from pdf.layout import open_pdf
 
-# =============================================================================
-# SŁOWNIK NAGŁÓWKÓW — jedno miejsce na to, czym roczniki i egzaminy się różnią
-# =============================================================================
-
-# Nagłówek zadania w dwóch formach naraz: „(0–2)" we wszystkich kluczach poza
-# OMAP-Q00-1904, który podaje pulę jako „(2 pkt)". Numer bywa dwuczłonowy —
-# matura numeruje podpunkty („Zadanie 33.1."), E8 nie.
 RE_ZADANIE = re.compile(
     r"Zadanie\s+(\d+(?:\.\d+)*)\.\s*\(\s*(?:0\s*[–—−-]\s*(\d+)|(\d+)\s*pkt)\s*\)")
 
-# Kod formy: E8 „OMAP-100-2505", matura „MMAP-P0-100" (poziom przed wariantem,
-# sesja tylko w E8). Drugi człon zjada opcjonalny poziom, żeby wariant matury
-# nie gubił „P0" — bez tego MMAP-P0-100 i MMAP-R0-100 są tą samą formą.
+# Drugi człon zjada opcjonalny poziom: bez tego MMAP-P0-100 i MMAP-R0-100 to jedna forma.
 RE_FORMA = re.compile(r"\b([A-Z]{4})-((?:[A-Z]\d-)?[A-Z0-9]{3})(?:-(\d{4}))?\b")
 
-# Bliźniaki deklarowane przy formie: „(wersje arkusza X i Y)" w E8,
-# „(wersje arkusza: A i B)" w maturze.
 RE_WERSJE = re.compile(r"wersj\w*\s+arkusza:?\s+([A-Z])\s+i\s+([A-Z])", re.I)
 
 RE_TERMIN = re.compile(r"Termin\s*egzaminu:\s*(\d{1,2})\s+(\w+)\s+(\d{4})")
@@ -66,10 +26,7 @@ MIESIACE = {"stycznia": 1, "lutego": 2, "marca": 3, "kwietnia": 4, "maja": 5,
             "czerwca": 6, "lipca": 7, "sierpnia": 8, "września": 9,
             "października": 10, "listopada": 11, "grudnia": 12}
 
-# Reżim wymagań stoi w podpisie tabeli wymagań i NIE WOLNO go zgadywać z roku
-# publikacji: klucze 2021–2024 sprawdzają okrojony zakres pandemiczny, a te
-# z 2025 i 2026 — podstawę z 2024 r. pod dwiema różnymi nazwami sekcji.
-# Kolejność ma znaczenie: wzorce szczegółowe przed ogólnymi.
+# Reżim z podpisu tabeli, nie z roku publikacji. Wzorce szczegółowe przed ogólnymi.
 REZIMY = (
     (re.compile(r"Wymagania egzaminacyjne\s+(\d{4})(?:\s+i\s+(\d{4}))?"), None),
     (re.compile(r"Podstawa programowa\s*\^?\(?\d*\)?\s*2012"), "pp2012"),
@@ -78,24 +35,16 @@ REZIMY = (
     (re.compile(r"Podstawa programowa"), "pp-akt"),
 )
 
-# Odsyłacz do przypisu stoi ZA podpisem tabeli („Podstawa programowa 2012¹",
-# „Wymagania egzaminacyjne 2021¹"), a w przypisie stoi akt prawny. To on jest
-# prawdziwą tożsamością reżimu — podpis bywa dla tego samego aktu różny:
-# osiem kluczy z 2023 r. pisze „Wymagania egzaminacyjne 2023 i 2024",
-# a dziewiąty „Wymagania egzaminacyjne 2023".
+# Tożsamością reżimu jest akt z przypisu — ten sam akt bywa podpisany różnie.
 RE_ODSYLACZ = re.compile(r"\s*\^?\(?(\d{1,2})\)?")
-# Przypisy stoją jeden za drugim w tym samym bloku, więc treść musi się kończyć
-# przed odsyłaczem następnego — inaczej przypis nr 1 zjada nr 2 i wymaganiu
-# z podstawy 2017 przypisuje się Dziennik Ustaw z 2012 r.
+# Treść kończy się przed odsyłaczem następnego przypisu: inaczej nr 1 zjada nr 2.
 _MARKER = r"\^?\d{1,2}\s*(?:Rozporządzenie|Załącznik)"
 RE_PRZYPIS_TRESC = re.compile(
     r"(?:^|\s)\^?(\d{1,2})\s*((?:Rozporządzenie|Załącznik).{20,600}?)"
     r"(?=\s" + _MARKER + r"|\n|\Z)", re.S)
 RE_DZIENNIK = re.compile(r"Dz\.\s*U\.[^)]{0,60}poz\.\s*\d+[^)]{0,20}")
 
-# „pp-akt" znaczy „obowiązująca podstawa" — który to rok, mówi przypis pod
-# tabelą, a nie nagłówek. Dz.U. 2024 poz. 996 to podstawa dla szkoły
-# podstawowej, poz. 1019 — dla liceum; obie wchodzą w życie w 2024 r.
+# Rok mówi przypis, nie nagłówek: poz. 996 to szkoła podstawowa, 1019 — liceum.
 DZIENNIKI = (
     (re.compile(r"poz\.\s*996"), "pp2024"),
     (re.compile(r"poz\.\s*1019"), "pp2024"),
@@ -104,15 +53,9 @@ DZIENNIKI = (
 )
 
 
-# Próg punktowy ma w korpusie trzy postacie i każda należy do innego układu:
-#
-#   2 punkty – pełne rozwiązanie            nagłówek; E8, zadania otwarte
-#   1 pkt – odpowiedź poprawna.             w linii z opisem; E8 zamknięte, matura 2023+
-#   Zdający otrzymuje ......... 2 p.        punktacja NA KOŃCU; matura do 2022
-#
-# Klasy znaków rozdzielających są zawężone do spacji i tabulatora celowo:
-# `\s*` obejmuje znak nowej linii, więc „2 punkty" z pustym ogonem zjadało
-# następny wiersz i pierwszy warunek progu lądował w polu `etykieta`.
+# Trzy postacie progu: nagłówek (E8 otwarte), w linii z opisem (E8 zamknięte,
+# matura 2023+) i punktacja na końcu linii (matura do 2022). Rozdzielacze bez
+# `\s*`, bo obejmuje nową linię i zjadało pierwszy warunek do pola `etykieta`.
 RE_PROG_NAGLOWEK = re.compile(r"^[ \t]*(\d+)[ \t]+punkt(?:y|ów)?\b[ \t]*(.*)$", re.M)
 RE_PROG_LINIA = re.compile(r"^[ \t]*(\d+)[ \t]*pkt\b[ \t]*[–—−-]?[ \t]*(.*)$", re.M)
 RE_PROG_ZDAJACY = re.compile(
@@ -135,15 +78,9 @@ class Dialekt:
     reguly_punkt: re.Pattern          # jak wypunktowana jest jedna reguła
     koniec_zadan: re.Pattern          # gdzie kończy się część zadaniowa
     pagina: re.Pattern                # żywa pagina do odcięcia
-    # 'dzial-punkt' — dział rzymski albo arabski, po nim punkt („V. … Uczeń: 3)")
-    # 'jawna'       — ścieżka wpisana wprost przy wymaganiu („I.4)", „R11.1)")
     sciezka_szczegolowa: str
 
 
-# Żywa pagina powtarza się na każdej stronie i po sklejeniu stron ląduje
-# w środku zdania z kryterium („…poprawnych zależności Strona 12 z 26 Zasady
-# oceniania rozwiązań zadań między liczbą plakatów…"). Bez odcięcia wchodzi
-# do korpusu jako część treści kryterium.
 _PAGINA_WSPOLNA = (r"Strona\s+\d+\s+z\s+\d+"
                    r"|Zasady oceniania rozwiązań zadań")
 PAGINA_E8 = re.compile(
@@ -155,29 +92,19 @@ PAGINA_MATURA = re.compile(
 
 SLOWNIK: Dict[str, Dialekt] = {
 
-    # ── E8, rocznik 2019 ────────────────────────────────────────────────────
-    # Pierwszy rocznik egzaminu. Progi mają formę nagłówka, warunki rozdziela
-    # MAŁE „lub", zadania zamknięte nie mają w ogóle sekcji kryteriów (sam
-    # nagłówek „Rozwiązanie" i litera), a tabela wymagań ma cztery kolumny,
-    # bo klucz mapuje zadanie na dwie podstawy programowe naraz.
+    # Rocznik 2019: tabela wymagań ma cztery kolumny, bo klucz mapuje zadanie na dwie podstawy.
     "e8-2019": Dialekt(
         kod="e8-2019",
         etykieta="E8 · rocznik 2019 (dwie podstawy, separator „lub”)",
         egzamin="e8",
         progi=((RE_PROG_NAGLOWEK, False), (RE_PROG_LINIA, True)),
-        # W 2019 r. separator warunków bywa pisany obiema wielkościami liter
-        # (14 wystąpień „lub" na 2 „LUB" w OMAP-Q00-1904), więc bierzemy oba.
-        # Od 2020 r. zostaje samo „LUB" i tam małe „lub" samotne w linii jest
-        # już tylko efektem zawinięcia wiersza.
         alternatywa=re.compile(r"\n\s*(?:LUB|lub)\s*,?\s*\n"),
         zapis=re.compile(r"\n\s*(?:albo)\s*,?\s*\n|\s{3,}(?:albo)\s{3,}"),
-        # `Uwag[ai]` a nie `Uwagi?`: to drugie NIE dopasowuje słowa „Uwaga",
-        # bo `i?` obcina się do „Uwag" i zostaje wisząca litera. Sekcja pod
-        # zadaniem bywa w obu liczbach i przy liczbie pojedynczej jej treść
-        # wchodziła w całości do kryterium za 0 punktów.
         odpowiedzi=("solo",),
         rozwiazania=re.compile(r"Przykładowe rozwiązani\w*(?:[^\n]*)"),
         sposob=re.compile(r"^\s*(I{1,3}V?|VI{0,3})\s+sposób", re.M),
+        # `Uwag[ai]`, nie `Uwagi?`: to drugie obcina się do „Uwag" i nie łapie „Uwaga",
+        # a wtedy treść sekcji wchodzi w całości do kryterium za 0 pkt.
         uwagi_zadania=re.compile(r"\n\s*Uwag[ai][.:]?\s*\n"),
         reguly_naglowek=re.compile(r"^\s*Uwagi ogólne:?\s*$", re.M),
         reguly_punkt=re.compile(r"•\s*(.{20,600}?)(?=\n\s*•|\n\s*\n)", re.S),
@@ -186,12 +113,6 @@ SLOWNIK: Dict[str, Dialekt] = {
         sciezka_szczegolowa="dzial-punkt",
     ),
 
-    # ── E8, roczniki 2020–2026 ──────────────────────────────────────────────
-    # Układ, który przeżył zmianę podstawy programowej i pandemię. Różnice
-    # wewnątrz tego przedziału (bliźniaki X/Y, sekcja „Uwagi ogólne", reżim
-    # wymagań, etap edukacyjny przy wymaganiu szczegółowym) NIE są osobnymi
-    # dialektami — parser mierzy je w każdym pliku z osobna, bo w tej samej
-    # sesji jedne warianty je mają, a inne nie.
     "e8-2020": Dialekt(
         kod="e8-2020",
         etykieta="E8 · roczniki 2020–2026 (separator „LUB”)",
@@ -210,17 +131,8 @@ SLOWNIK: Dict[str, Dialekt] = {
         sciezka_szczegolowa="dzial-punkt",
     ),
 
-    # ── Matura, dokument od 2023 r. (formuły 2015 i 2023) ───────────────────
-    # Obie formuły maturalne od sesji 2023 dostały ten sam układ dokumentu —
-    # różni je numeracja wymagań, nie budowa klucza. Trzy rzeczy łamią tu
-    # parser E8:
-    #   • bliźniaki nazywają się „Wersja A" i „Wersja B", nie X i Y,
-    #   • warunki rozdziela „ALBO", a nie „LUB",
-    #   • po ostatnim zadaniu stoi ANEKS z zasadami dla osób z dyskalkulią,
-    #     w którym nagłówki „Zadanie 14." NIE mają puli punktów. Bez markera
-    #     końca aneks dokleja się do ostatniego zadania i wnosi do niego
-    #     drugi próg „2 pkt" — czyli dokładnie ten błąd, który w E8 złapał
-    #     UNIQUE (zadanie_id, punkty) na sekcji reguł przekrojowych.
+    # Matura: aneks dla osób z dyskalkulią powtarza nagłówki „Zadanie 14." bez puli punktów —
+    # bez markera końca dokleja się do ostatniego zadania i łamie UNIQUE (task, points).
     "matura": Dialekt(
         kod="matura",
         etykieta="Matura · dokument od 2023 r. (progi „N pkt”, separator „ALBO”)",
@@ -243,32 +155,14 @@ SLOWNIK: Dict[str, Dialekt] = {
         sciezka_szczegolowa="jawna",
     ),
 
-    # ── Matura, dokument do 2022 r. ─────────────────────────────────────────
-    # Formuła 2015 przed ujednoliceniem dokumentów. Zmierzone na sześciu
-    # kluczach EMAP z lat 2021–2023: układ zmienia się w SESJI 2023, nie wraz
-    # z formułą — EMAP-P0-100-2305 ma już nowy, a EMAP-P0-100-2205 stary.
-    # Różnica, która wywraca parsowanie kryteriów: punktacja progu stoi na
-    # KOŃCU linii, za wielokropkiem wiodącym.
-    #
-    #     Zdający otrzymuje  ...................................  2 pkt
-    #     gdy:
-    #     • wypisze wszystkie zdarzenia elementarne […]
-    #     ALBO
-    #     • poda liczbę wszystkich zdarzeń elementarnych […]
-    #
-    # Wzorzec „N pkt na początku linii" nie trafia tu ANI RAZU, więc bez
-    # osobnego dialektu klucz wchodzi do korpusu z zadaniami otwartymi bez
-    # jednego kryterium — i nic tego nie zgłasza.
+    # Do 2022 r. punktacja progu stoi na KOŃCU linii, więc bez osobnego dialektu zadania
+    # otwarte wchodzą do korpusu bez kryteriów, po cichu.
     "matura-2015": Dialekt(
         kod="matura-2015",
         etykieta="Matura · dokument do 2022 r. (progi „Zdający otrzymuje … N pkt”)",
         egzamin="matura",
-        # Trzeci wzorzec progu to punktacja etapowa zadań za 5–7 punktów
-        # („2 punkty zdający otrzymuje, gdy zapisze nierówność…"). Bez niego
-        # zadanie 11 z EMAP-R0-100-2105 (0–5) wchodzi do korpusu bez ani
-        # jednego kryterium. UWAGA: etapy powtarzają tę samą punktację
-        # (1 punkt w etapie II i w etapie III), a `UNIQUE (zadanie_id, punkty)`
-        # przepuszcza tylko pierwszy — model nie ma jeszcze pojęcia „etap".
+        # Trzeci wzorzec to punktacja etapowa zadań za 5–7 punktów. Etapy powtarzają tę
+        # samą punktację, a UNIQUE (task, points) bierze tylko pierwszy — nie ma pojęcia „etap".
         progi=((RE_PROG_ZDAJACY, False), (RE_PROG_NAGLOWEK, True),
                (RE_PROG_LINIA, True)),
         alternatywa=re.compile(r"\n\s*ALBO\s*,?\s*\n"),
@@ -277,8 +171,7 @@ SLOWNIK: Dict[str, Dialekt] = {
         rozwiazania=re.compile(r"Przykładow\w+ (?:pełn\w+ )?rozwiązani\w*(?:[^\n]*)"),
         sposob=re.compile(r"^\s*Sposób\s+(\d+|I{1,3}V?|VI{0,3})\.?", re.M),
         uwagi_zadania=re.compile(r"\n\s*Uwag[ai][.:]?\s*\n"),
-        # Reguły przekrojowe stoją tu bez nagłówka „Uwagi ogólne" — wprowadza
-        # je tytuł sekcji zadań otwartych, a zaraz po nim idzie lista numerowana.
+        # Bez nagłówka „Uwagi ogólne" — wprowadza je tytuł sekcji zadań otwartych.
         reguly_naglowek=re.compile(r"^\s*ZADANIA OTWARTE[^\n]*$", re.M),
         reguly_punkt=re.compile(r"^\s*\d+\.\s*(.{20,600}?)(?=\n\s*\d+\.\s|\n\s*\n)",
                                 re.S | re.M),
@@ -293,41 +186,21 @@ SLOWNIK: Dict[str, Dialekt] = {
 
 
 def wykryj_dialekt(tekst: str, nazwa: str = "") -> Dialekt:
-    """Który układ dokumentu — mierzone na tekście, nie zgadywane z nazwy.
-
-    Nazwa pliku mówi tylko, czym plik miał być. OMAP-800 i OMAP-100 z tej
-    samej sesji mają inny zestaw sekcji, a rocznik 2019 różni się od 2020
-    bardziej niż 2020 od 2026 — więc rozstrzyga zawartość.
-    """
+    """Który układ dokumentu — mierzone na tekście, nie zgadywane z nazwy."""
     if "Egzamin maturalny" in tekst[:4000] or re.search(r"^[EM]M[A-Z]{2}-", nazwa):
-        # Układ maturalny rozstrzyga postać progu, bo tylko ona łamie parser.
-        # Wielokropek wiodący przed punktacją występuje w 6 kluczach do 2022 r.
-        # i w żadnym późniejszym.
+        # Wielokropek przed punktacją jest w 6 kluczach do 2022 r. i w żadnym późniejszym.
         if RE_PROG_ZDAJACY.search(tekst):
             return SLOWNIK["matura-2015"]
         return SLOWNIK["matura"]
-    # Rozstrzyga żywa pagina, a nie separator warunków. Separator wygląda na
-    # oczywistą cechę rocznika i nią nie jest: OMAP-Q00-1904 ma 2 warunki
-    # rozdzielone wielkim „LUB" przy 14 małych „lub" w tym samym roczniku.
-    # Nagłówek strony rozdziela roczniki bez wyjątku — 0 z 8 plików z 2019 r.
-    # i 67 z 67 późniejszych.
+    # Pagina, a nie separator warunków: rocznik 2019 miesza „LUB" z „lub" (0/8 w 2019, 67/67 dalej).
     if re.search(r"Egzamin ósmoklasisty z .{3,40}?[-–—] termin .{3,30}?\d{4} r\.", tekst):
         return SLOWNIK["e8-2020"]
     return SLOWNIK["e8-2019"]
 
 
-# =============================================================================
-# WZORCE WSPÓLNE
-# =============================================================================
-
-# Po literze wersji bywa odsyłacz do przypisu („wersja Y²" — „Odpowiedzi
-# w wersji Y dotyczą wyłącznie arkusza OMAP-100-2505"). W płaskim tekście był
-# niewidoczny, bo cyfra przypisu zlewała się z tłem; ujawniła go dopiero
-# rekonstrukcja potęg — i zerwała zakotwiczony regex.
+# Odsyłacz przy literze wersji („wersja Y²") ujawniła dopiero rekonstrukcja potęg.
 _PRZYPIS = r"(?:\^\(?[\d,]*\)?)?"
-# Litera wersji NIE jest wpisana na sztywno: E8 ma bliźniaki X i Y, a matura
-# formuły 2015 do 2022 r. używa dokładnie tego samego nagłówka z literami
-# A i B. Jeden czytnik zamiast dwóch prawie identycznych.
+# Litera nie jest wpisana na sztywno: E8 ma X i Y, matura A i B, nagłówek ten sam.
 RE_ODP_WERSJE = re.compile(
     r"Rozwiązanie\s*[–—−-]\s*wersja\s*([A-Z])" + _PRZYPIS + r"\s*\n"
     r"\s*Rozwiązanie\s*[–—−-]\s*wersja\s*([A-Z])" + _PRZYPIS + r"\s*\n(.+?)(?:\n\s*\n|\Z)",
@@ -337,42 +210,23 @@ RE_ODP_AB = re.compile(
     r"\s*Wersja\s+([A-Z])" + _PRZYPIS + r"\s*\n(.+?)(?:\n\s*\n|\Z)", re.S)
 RE_ODP_SOLO = re.compile(r"^[ \t]*Rozwiązanie[ \t]*$\n(.+?)(?:\n\s*\n|\Z)", re.M | re.S)
 
-# Odpowiedź wieloczęściowa: „1.1. TAK" / „1.2. NIE". Zmierzone w OMAP-Q00-1904
-# i w kluczach z podpunktami — bez tego oba wiersze sklejają się w jedną
-# odpowiedź „1.1. TAK 1.2. NIE", której nie da się porównać z pracą ucznia.
+# Bez tego oba wiersze sklejają się w „1.1. TAK 1.2. NIE".
 RE_PODPUNKT = re.compile(r"^\s*(\d+(?:\.\d+)+)\.?\s+(.+?)\s*$")
 
-# Ile pierwszych wierszy tabeli może zająć nagłówek z podpisem reżimu. Cztery
-# to zmierzone maksimum (OMAP-Q00-2004: nagłówek zadania, pusty wiersz, podpis
-# podstawy, nazwy kolumn), piąty jest zapasem.
 WIERSZE_NAGLOWKA = 5
 
-# Dział wymagań szczegółowych numeruje się cyfrą rzymską w podstawie z 2017 r.
-# i ARABSKĄ w podstawie z 2012 r. („12. Obliczenia praktyczne. Uczeń:").
-# Klucze 2019 i 2020 niosą obie naraz, więc wzorzec musi brać obie — inaczej
-# połowa mapy braków tych roczników przepada bez śladu w logu.
+# Dział numeruje się rzymską w podstawie 2017 i ARABSKĄ w 2012; 2019 i 2020 niosą obie.
 RE_DZIAL = re.compile(r"([IVX]+|\d+)\.\s+([^:]{3,90}?)\.\s*(?:Uczeń|Zdający):")
 RE_PUNKT = re.compile(r"(\d+)\)\s+(.{5,}?)(?=\s+\d+\)|$)")
-# Ścieżka wymagania maturalnego ma cztery notacje w korpusie i wszystkie
-# oznaczają to samo miejsce w dokumencie wymagań:
-#   I.1)  VI.5)  XIII.R1)   — formuła 2023 i formuła 2015 od sesji 2023
-#   1.3)  10.2)  R1.2)  G1.6)  — formuła 2015 do 2022 („G" = III etap)
+# Cztery notacje o tym samym miejscu: I.1) i XIII.R1) — formuła 2023; 1.3), G1.6) — 2015.
 _SCIEZKA_JAWNA = r"(?:[IVX]+|[GR]?\d+)(?:\.(?:[A-Z]?\d+|R\d+))?"
 RE_PUNKT_JAWNY = re.compile(
     r"\b(%s)\)\s+(.{5,}?)(?=\s+%s\)|$)" % (_SCIEZKA_JAWNA, _SCIEZKA_JAWNA))
-# Etap edukacyjny bywa zapisany na cztery sposoby w JEDNYM pliku: „KLASY IV–VI",
-# „Klasy IV–VI", „KLASY VII I VIII" (spójnik wersalikiem) i sam zakres
-# „VII-VIII" bez słowa. Zmierzone w kluczu OMAP-100-1904 — wszystkie cztery,
-# na sąsiednich stronach. Wzorzec bierze wszystkie, bo etap zgubiony przy
-# jednym zadaniu rozdziela ten sam punkt podstawy na dwa byty w mapie braków.
+# Cztery zapisy etapu w JEDNYM pliku (OMAP-100-1904); zgubiony rozdziela punkt podstawy na dwa byty.
 RE_ETAP = re.compile(
     r"((?:KLASY|Klasy)\s+[IVX]+(?:\s*[–—-]\s*[IVX]+)?(?:\s+[iI]\s+[IVX]+)?"
     r"|\b(?:IV\s*[–—-]\s*VI|VII\s*[–—-]\s*VIII)\b)")
 
-
-# =============================================================================
-# WYNIK PARSOWANIA — kształt z schema.sql
-# =============================================================================
 
 @dataclass
 class Zadanie:
@@ -381,8 +235,7 @@ class Zadanie:
     kolejnosc: int
     typ: str
     strona: Optional[int] = None
-    # Lista, nie pojedynczy rekord: klucze 2019 i 2020 mapują zadanie na dwie
-    # podstawy programowe naraz i mają po jednym wymaganiu ogólnym na każdą.
+    # Lista, bo klucze 2019 i 2020 mapują zadanie na dwie podstawy naraz.
     ogolne: List[dict] = field(default_factory=list)
     szczegolowe: List[dict] = field(default_factory=list)
     odpowiedzi: Dict[Optional[str], List[Tuple[Optional[str], str]]] = field(default_factory=dict)
@@ -405,10 +258,6 @@ class Klucz:
     ostrzezenia: List[str] = field(default_factory=list)
 
 
-# =============================================================================
-# CZYTANIE
-# =============================================================================
-
 def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     """Klucz oceniania → rekordy w kształcie `schema.sql`."""
     strony: List[str] = []
@@ -419,28 +268,15 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
         for page in doc:
             strony.append(reconstruct.page_text(page, pomin_przypisy=True))
             naglowki += [(len(strony) - 1, y) for y in _pozycje_naglowkow(page)]
-            # Przypisy wypadają z treści, ale nie z dokumentu: to w nich stoi
-            # numer Dziennika Ustaw, po którym poznajemy, KTÓRA podstawa
-            # programowa obowiązuje. Nagłówek tabeli mówi tylko „Podstawa
-            # programowa", bez roku.
+            # To w przypisach stoi numer Dz.U., po którym poznajemy obowiązującą podstawę.
             odciete = reconstruct.przypisy(page.chars)
             if odciete:
                 stopki.append(_tekst_stopki(
                     [c for c in page.chars if id(c) in odciete]))
-            # Wymagania podstawy stoją w tabeli — także w kluczu matematyki,
-            # nie tylko angielskiego. W płaskim tekście kolumny sklejają się
-            # linia po linii („IV. Rozumowanie i argumentacja. KLASY IV–VI"),
-            # więc czytamy je z siatki, nie regexem. Tabela zagnieżdżona
-            # wewnątrz komórki (matura, lewa kolumna bywa wykrywana osobno)
-            # nie ma w nagłówku słowa „Wymagani" i odpada tu sama.
+            # Z SIATKI tabeli, nie regexem: w płaskim tekście kolumny sklejają się linia po linii.
             for t in page.tables:
-                # Nagłówek „Wymaganie ogólne | Wymaganie szczegółowe" stoi
-                # w pierwszym wierszu tylko wtedy, gdy tabela nie ma podpisu.
-                # W roczniku 2019 pierwszy wiersz zajmuje „Podstawa programowa
-                # 2012 | Podstawa programowa 2017", a w OMAP-Q00-2004 ramka
-                # obejmuje też nagłówek zadania i pusty wiersz — nagłówek
-                # kolumn jest tam czwarty. Szukanie w samym wierszu zerowym
-                # gubiło wymagania 21 zadań rocznika 2019 i 6 zadań Q00.
+                # Nagłówek kolumn nie zawsze jest w wierszu zerowym — w 2019 r. stoi tam podpis
+                # podstawy. Szukanie w samym zerowym gubiło wymagania 21 zadań.
                 head = " ".join(" ".join(r) for r in t.rows[:WIERSZE_NAGLOWKA])
                 if "Wymagani" in head:
                     tabele.append((len(strony) - 1, t.bbox[1], t))
@@ -456,9 +292,6 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     if not k.formy:
         k.ostrzezenia.append("nagłówek bez formy arkusza")
 
-    # Mapa „offset w sklejonym tekście → indeks strony": zadanie tniemy
-    # z tekstu, a numer strony jest potrzebny przy rekordzie `zadanie_wersja`
-    # (i przy ręcznej korekcie — bez niego nie ma jak wrócić do oryginału).
     granice = []
     acc = 0
     for s in strony:
@@ -507,25 +340,13 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     return k
 
 
-# Tabela wymagań stoi ZARAZ pod nagłówkiem swojego zadania, ale „zaraz" jest
-# stwierdzeniem o UKŁADZIE STRONY, nie o kolejności w strumieniu tekstu.
-# Parowanie kolejnością zawodzi na dwa sposoby, oba zmierzone w korpusie:
-# zadanie bez tabeli (EMAP-R0-100-2205 zad. 5) przesuwa całą resztę o jeden,
-# a strona bez zadania (trzy strony rozwiązań przykładowych) — o tyle, ile
-# tabel na niej stanęło. Skutek jest ten sam i cichy: zadanie z cudzym
-# wymaganiem podstawy, czyli fałszywa mapa braków.
-#
-# Rozstrzygamy współrzędnymi: tabela należy do NAJBLIŻSZEGO nagłówka nad nią.
+# Tabela należy do NAJBLIŻSZEGO nagłówka nad nią. Parowanie kolejnością przesuwa
+# resztę, gdy zadanie nie ma tabeli — cicho, bo zadanie dostaje cudze wymaganie.
 TOL_TABELI = 6.0     # ramka tabeli bywa tuż nad nagłówkiem, gdy go obejmuje
 
 
 def _tekst_stopki(znaki) -> str:
-    """Przypisy jako tekst — z odstępami odtworzonymi z odległości między glifami.
-
-    Nie idzie tu o czytelność, tylko o to, żeby „Dz.U. 2024, poz. 996" dało się
-    znaleźć wzorcem: w tych plikach odstęp bywa pozycjonowaniem, a nie znakiem
-    spacji, i bez tego cały przypis skleja się w jeden wyraz.
-    """
+    """Przypisy jako tekst — z odstępami odtworzonymi z odległości między glifami."""
     znaki = sorted(znaki, key=lambda c: (round(c.cy), c.x0))
     out, poprzedni = [], None
     for c in znaki:
@@ -538,7 +359,6 @@ def _tekst_stopki(znaki) -> str:
 
 
 def _pozycje_naglowkow(page) -> List[float]:
-    """Górne krawędzie wierszy „Zadanie N. (0–M)" na stronie."""
     wiersze: Dict[int, list] = {}
     for c in page.chars:
         wiersze.setdefault(round(c.y0 / reconstruct.LINE_TOL), []).append(c)
@@ -552,10 +372,7 @@ def _pozycje_naglowkow(page) -> List[float]:
 
 
 def _sparuj_tabele(naglowki, tabele, ile_zadan: int):
-    """Tabela wymagań → indeks zadania, po współrzędnych na stronie."""
     if len(naglowki) < ile_zadan:
-        # Nagłówek rozjechany na dwa wiersze albo strona bez warstwy tekstowej.
-        # Wracamy do parowania kolejnością, ale mówimy o tym wprost.
         przypisane = {i: t for i, (_, _, t) in enumerate(tabele) if i < ile_zadan}
         return przypisane, ("nagłówków w układzie strony %d, zadań %d — "
                             "tabele wymagań sparowane kolejnością"
@@ -580,13 +397,6 @@ def _pierwsze_zadanie(tekst: str) -> int:
 
 
 def _tnij_zadania(tekst: str, dial: Dialekt) -> List[Tuple[int, int, str, int]]:
-    """Granice zadań: (start ciała, koniec ciała, numer, pula punktów).
-
-    Ostatnie zadanie kończy się tam, gdzie zaczyna się aneks — a nie na końcu
-    pliku. W maturze aneks („Ocena prac osób ze stwierdzoną dyskalkulią")
-    powtarza nagłówki `Zadanie 14.` BEZ puli punktów i wnosi własne progi;
-    doklejony do ostatniego zadania łamie UNIQUE (zadanie_id, punkty).
-    """
     trafienia = list(RE_ZADANIE.finditer(tekst))
     if not trafienia:
         return []
@@ -602,14 +412,8 @@ def _tnij_zadania(tekst: str, dial: Dialekt) -> List[Tuple[int, int, str, int]]:
 
 
 def _rezimy(tekst: str, dial: Dialekt, stopki: str = "") -> List[dict]:
-    """Reżimy wymagań zadeklarowane w kluczu — bywają dwa naraz.
-
-    Klucze 2019 i 2020 mapują KAŻDE zadanie na dwie podstawy programowe
-    jednocześnie (2012 i 2017), bo rocznik był przejściowy. Wpisanie tylko
-    jednej z nich gubi połowę mapy braków.
-    """
-    # Przypis rocznika 2019 ma 10,0 pkt przy bazie 11,0, więc nie wpada
-    # w blok cięty ze strony — szukamy i tam, i w treści.
+    """Reżimy wymagań zadeklarowane w kluczu — bywają dwa naraz."""
+    # Przypis rocznika 2019 nie wpada w blok cięty ze strony — szukamy w obu miejscach.
     przypisy = {nr: " ".join(t.split())
                 for nr, t in RE_PRZYPIS_TRESC.findall(stopki + "\n" + tekst)}
     out, widziane = [], set()
@@ -631,7 +435,6 @@ def _rezimy(tekst: str, dial: Dialekt, stopki: str = "") -> List[dict]:
             if pelny in widziane:
                 continue
             widziane.add(pelny)
-            # akt prawny z przypisu, na który wskazuje odsyłacz przy podpisie
             odsylacz = RE_ODSYLACZ.match(tekst, m.end())
             przypis = przypisy.get(odsylacz.group(1)) if odsylacz else None
             dziennik = RE_DZIENNIK.search(przypis) if przypis else None
@@ -652,14 +455,7 @@ def _termin(naglowek: str) -> Optional[str]:
 
 
 def _formy(naglowek: str) -> List[dict]:
-    """Formy arkusza z nagłówka — sedno relacji N:M.
-
-    Jeden klucz OMAP-100-2505 deklaruje sześć form, a forma 100 ma dwa
-    zeszyty zadań (wersje X i Y). Deklaracja bliźniaków stoi w nawiasie przy
-    tej formie, której dotyczy, więc czytamy ją linia po linii — przypisanie
-    wersji do pierwszej formy z brzegu myli się wszędzie tam, gdzie bliźniaki
-    ma forma inna niż pierwsza.
-    """
+    """Formy arkusza z nagłówka — sedno relacji N:M."""
     formy, widziane = [], set()
     for linia in naglowek.split("\n"):
         wersje = RE_WERSJE.search(linia)
@@ -683,21 +479,12 @@ def _parsuj_zadanie(numer: str, punkty: int, body: str, kolejnosc: int,
     odpowiedzi = _odpowiedzi(body, dial)
     rozwiazania, i_rozw = _rozwiazania(body, dial)
 
-    # Sekcja kryteriów kończy się tam, gdzie zaczynają się przykładowe
-    # rozwiązania albo uwagi do zadania. Uwagi to reguła TEGO zadania,
-    # nie część progu 0 pkt — wpuszczone do kryterium wchodzą do korpusu
-    # jako warunek, którego nikt nie zapisał w kluczu.
-    # Sekcja kryteriów zaczyna się nagłówkiem „Zasady oceniania" — ale nie
-    # zawsze: gdy zadanie łamie się przez stronę, nagłówek potrafi zniknąć
-    # i progi zaczynają się wprost od „3 punkty – pełne rozwiązanie"
-    # (OMAP-700-2105 zad. 18, OMAP-800-2605 zad. 17 i cztery inne). Wtedy
-    # czytamy całe ciało zadania — próg punktowy jest na tyle charakterystyczny,
-    # że nie ma go czym pomylić, a brak kryteriów w zadaniu otwartym oznacza
-    # dziurę w korpusie, której nikt później nie zauważy.
+    # Nagłówek „Zasady oceniania" znika, gdy zadanie łamie się przez stronę — wtedy czytamy całe ciało.
     i_zas = body.find("Zasady oceniania")
     poczatek = i_zas if i_zas >= 0 else 0
     kryteria_txt = body[poczatek:i_rozw] if (i_rozw is not None and i_rozw > poczatek) \
         else body[poczatek:]
+    # Uwagi to reguła TEGO zadania, nie część progu 0 pkt.
     uwagi = []
     m_uw = dial.uwagi_zadania.search(kryteria_txt)
     if m_uw:
@@ -708,10 +495,7 @@ def _parsuj_zadanie(numer: str, punkty: int, body: str, kolejnosc: int,
 
     kryteria = _kryteria(kryteria_txt, dial)
 
-    # Typ zadania po budowie klucza, nie po liczbie punktów: OMAP-Q00-1904
-    # ma zadania zamknięte za 2 i 3 punkty (wieloczęściowe „1.1./1.2."),
-    # a klucz matury — otwarte za 1 punkt. Rozstrzyga obecność przykładowego
-    # rozwiązania: zadanie zamknięte go nie ma, bo nie ma czego pokazywać.
+    # Typ po budowie klucza, nie po punktach: rozstrzyga obecność rozwiązania.
     if not rozwiazania and odpowiedzi:
         typ = "zamkniete"
     elif punkty <= 2:
@@ -725,13 +509,7 @@ def _parsuj_zadanie(numer: str, punkty: int, body: str, kolejnosc: int,
 
 
 def _odpowiedzi(body: str, dial: Dialekt) -> Dict[Optional[str], List[Tuple[Optional[str], str]]]:
-    """Odpowiedzi wzorcowe per wersja arkusza.
-
-    Trzy układy w jednym korpusie: bliźniaki X/Y (E8 od 2020), bliźniaki
-    A/B (matura) i jedna odpowiedź bez wersji (warianty dostosowane oraz
-    cały rocznik 2019). Płaska ekstrakcja skleja kolumny bliźniaków w „BD AC"
-    i traci przypisanie — dlatego czytamy je z układu wierszy pod nagłówkiem.
-    """
+    """Odpowiedzi wzorcowe per wersja arkusza."""
     out: Dict[Optional[str], List[Tuple[Optional[str], str]]] = {}
     for czytnik in dial.odpowiedzi:
         if czytnik == "wersje":
@@ -754,24 +532,13 @@ def _odpowiedzi(body: str, dial: Dialekt) -> Dict[Optional[str], List[Tuple[Opti
 
 
 def _rozdziel_kolumny(blok: str, wersje: Sequence[str], out: dict) -> None:
-    """Wiersze pod nagłówkiem dwóch wersji → odpowiedź lewej i prawej kolumny.
-
-    Bliźniaki stoją obok siebie w tabeli, ale po sklejeniu wierszy wychodzą
-    jeden pod drugim: pierwszy wiersz to wersja X, drugi — Y. Przy zadaniu
-    wieloczęściowym wierszy jest 2·n i rozdziela je NUMER PODPUNKTU, a nie
-    połowa listy: podział na pół rozrzuca 1.1 i 1.2 jednej wersji na dwie
-    różne wersje, gdy tylko wierszy jest nieparzyście albo gdy druga wersja
-    w tym miejscu nic nie ma.
-    """
+    """Wiersze pod nagłówkiem dwóch wersji → odpowiedź lewej i prawej kolumny."""
     linie = [l.strip() for l in blok.split("\n") if l.strip()]
     if not linie:
         return
     z_podpunktami = [RE_PODPUNKT.match(l) for l in linie]
     if all(z_podpunktami) and len(linie) >= 2:
-        # Które to z kolei wystąpienie danego numeru — pierwsze należy do
-        # pierwszej wersji, drugie do drugiej. Wystąpienie ponad liczbę wersji
-        # znaczy, że tabela wygląda inaczej, niż zakłada ten kod: wtedy nie
-        # zgadujemy, tylko oddajemy je pierwszej wersji i to widać w bazie.
+        # Wystąpienie ponad liczbę wersji: nie zgadujemy, oddajemy pierwszej i to widać w bazie.
         widziane: dict[str, int] = {}
         for m in z_podpunktami:
             numer, tresc = m.group(1), m.group(2)
@@ -795,10 +562,6 @@ def _pozycje_odpowiedzi(blok: str) -> List[Tuple[Optional[str], str]]:
 
 
 def _rozwiazania(body: str, dial: Dialekt) -> Tuple[List[dict], Optional[int]]:
-    """Przykładowe rozwiązania autorstwa komisji — gotowy materiał few-shot.
-
-    Zwraca też offset początku sekcji, bo tam kończą się kryteria.
-    """
     m = dial.rozwiazania.search(body)
     if not m:
         return [], None
@@ -823,20 +586,11 @@ def _rozwiazania(body: str, dial: Dialekt) -> Tuple[List[dict], Optional[int]]:
 
 
 def _kryteria(txt: str, dial: Dialekt) -> List[dict]:
-    """Progi → warunki → zapisy równoważne, czyli trzy poziomy dysjunkcji.
-
-    Próg jest osiągnięty, gdy spełniony jest DOWOLNY warunek; warunek — gdy
-    uczeń zapisał DOWOLNY z zapisów równoważnych. Spłaszczenie tego do pola
-    tekstowego oznacza, że silnik dostanie akapit prozy zamiast listy
-    sprawdzalnych alternatyw.
-    """
+    """Progi → warunki → zapisy równoważne, czyli trzy poziomy dysjunkcji."""
     if not txt.strip():
         return []
-    # Zadania otwarte E8 mają próg nagłówkiem („2 punkty – pełne rozwiązanie"),
-    # zamknięte — w linii („1 pkt – odpowiedź poprawna."). Oba układy stoją
-    # w tym samym pliku, więc bierzemy oba i sortujemy po pozycji; duplikat
-    # na tej samej punktacji odsiewa `widziane`. Różnica nie jest kosmetyczna:
-    # ogon nagłówka to ETYKIETA progu, ogon linii — pierwszy WARUNEK.
+    # Oba układy progu stoją w tym samym pliku. Ogon nagłówka to ETYKIETA progu,
+    # ogon linii — pierwszy WARUNEK.
     progi = []
     for wzor, ogon_to_warunek in dial.progi:
         progi += [(m, ogon_to_warunek) for m in wzor.finditer(txt)]
@@ -858,17 +612,12 @@ def _kryteria(txt: str, dial: Dialekt) -> List[dict]:
             opis = _oczysc(w)
             if not opis:
                 continue
-            # „albo"/„lub" bywa spójnikiem w prozie („plakatów Basi lub
-            # Marka"), a nie separatorem zapisów równoważnych. Odróżnia je
-            # typografia: separator stoi samotnie w linii albo jest odsunięty
-            # kilkoma spacjami od obu wyrażeń; zwykły spójnik ma po jednej.
+            # „albo"/„lub" bywa spójnikiem w prozie; separator odróżnia typografia — stoi
+            # samotnie w linii albo jest odsunięty kilkoma spacjami.
             do_ciecia = re.sub(r"\((?:lub|albo)[^)]*\)", "", w)
             czesci = [_oczysc(c) for c in dial.zapis.split(do_ciecia)]
             czesci = [c for c in czesci if c]
-            # Pierwszy zapis nosi jeszcze prozę warunku („…pola czworokąta
-            # AECF, np. zapisanie P=15^2−…"). Granicą jest „np." — w kluczach
-            # CKE wprowadza ono zapis, a nie zdanie. Bez tego cięcia w tabeli
-            # `warunek_zapis` ląduje opis warunku udający wyrażenie.
+            # Granicą jest „np.", które w kluczach CKE wprowadza zapis, a nie zdanie.
             if czesci:
                 m_np = re.search(r",?\s*np\.\s*", czesci[0])
                 if m_np:
@@ -882,22 +631,11 @@ def _kryteria(txt: str, dial: Dialekt) -> List[dict]:
 
 
 def _oczysc(s: str) -> str:
-    """Jedna linia bez wypunktowania i bez nagłówka sekcji.
-
-    „Zasady oceniania" wypada tu, bo pierwszy próg zaczyna się w tym samym
-    kawałku tekstu co nagłówek sekcji i bez tego wchodziłby do treści warunku.
-    """
     return " ".join(s.split()).lstrip("•-– ").strip(" ,;").replace("Zasady oceniania", "").strip()
 
 
 def rodzaj_reguly(tresc: str) -> str:
-    """Rodzaj reguły przekrojowej — po treści zapisu, w języku dokumentu.
-
-    Publiczna, bo woła ją też ładowarka przy „Uwagach" pod pojedynczym zadaniem.
-    Druga kopia tych przesłanek w `loader.py` sprawdzała krótsze podciągi
-    (`tylko poprawny`, `dyskalkuli`) i przez to ten sam zapis dostawał inny typ
-    zależnie od tego, czy stał pod zadaniem, czy pod całym arkuszem.
-    """
+    """Rodzaj reguły przekrojowej — po treści zapisu, w języku dokumentu."""
     return ("rachunkowa" if "błęd" in tresc and "rachunkow" in tresc else
             "sam_wynik" if "tylko poprawny końcowy wynik" in tresc
                            or "tylko poprawny wynik" in tresc else
@@ -908,14 +646,6 @@ def rodzaj_reguly(tresc: str) -> str:
 
 
 def _reguly(tekst: str, dial: Dialekt) -> List[dict]:
-    """Sekcja reguł przekrojowych — „Uwagi ogólne".
-
-    To nie kryteria zadania, tylko reguły całego arkusza: błąd rachunkowy
-    obniża ocenę o 1 punkt, sam wynik w zadaniach 16–21 to 0 punktów,
-    11 tolerancji dla uczniów uprawnionych do dostosowanych zasad oceniania.
-    Działają PO ocenie wszystkich kryteriów naraz — w kroku `Compose`.
-    E8 wypunktowuje je kropką, matura numerem; stąd wzorzec przy dialekcie.
-    """
     m = dial.reguly_naglowek.search(tekst)
     if not m:
         return []
@@ -939,38 +669,21 @@ def _reguly(tekst: str, dial: Dialekt) -> List[dict]:
     return out
 
 
-# =============================================================================
-# WYMAGANIA PODSTAWY PROGRAMOWEJ
-# =============================================================================
+# ── WYMAGANIA PODSTAWY PROGRAMOWEJ ───────────────────────────────────────────
 
 def parsuj_wymagania(tab, dial: Dialekt,
                      rezimy: Sequence[str] = ()) -> Tuple[List[dict], List[dict]]:
-    """Wymagania z tabeli: (ogólne, [szczegółowe]).
-
-    Tabela ma dwie kolumny (ogólne | szczegółowe) albo cztery — roczniki 2019
-    i 2020 mapują zadanie na dwie podstawy programowe naraz i wtedy pary
-    kolumn powtarzają się obok siebie. Kolumny bierzemy z NAGŁÓWKA tabeli,
-    a nie z pozycji: „pierwsza i ostatnia" miesza wtedy wymaganie ogólne
-    z 2012 r. ze szczegółowym z 2017 r. i produkuje ścieżkę, której nie ma
-    w żadnym dokumencie.
-    """
+    """Wymagania z tabeli: (ogólne, [szczegółowe])."""
     if tab is None or not tab.rows:
-        # Puste listy, nie None: adnotacja obiecuje listy, a ładowarka iteruje
-        # po wyniku bez sprawdzania. `None` cofałoby cały klucz na TypeError.
+        # Puste listy, nie None: ładowarka iteruje po wyniku bez sprawdzania.
         return [], []
     pary = _kolumny(tab)
     ogolne: List[dict] = []
     szczegolowe = []
     for i_para, (i_og, i_sz) in enumerate(pary):
-        # Który reżim opisuje ta para kolumn. Podpis stoi nad nią tylko przy
-        # pierwszym zadaniu w dokumencie — dalej tabela zaczyna się od razu od
-        # „Wymaganie ogólne", więc kolejność par musi wystarczyć. Wymaganie bez
-        # reżimu jest bezużyteczne: ta sama ścieżka „V.3" znaczy co innego
-        # w podstawie z 2012 r., w wymaganiach pandemicznych i w podstawie
-        # z 2024 r., a mapa braków sumuje po ścieżce.
+        # Podpis stoi nad parą kolumn tylko przy pierwszym zadaniu, dalej musi wystarczyć kolejność.
         rezim = _rezim_kolumny(tab, i_og, i_sz)
         if rezim is not None:
-            # podpis niesie samą nazwę reżimu, lista dokumentu — z egzaminem
             pasujace = [r for r in rezimy if r.endswith(rezim)]
             rezim = pasujace[0] if pasujace else rezim
         if rezim is None:
@@ -981,17 +694,14 @@ def parsuj_wymagania(tab, dial: Dialekt,
             cells = [(c or "").strip() for c in row]
             if any("Wymagani" in c for c in cells) or not any(cells):
                 continue
-            # podpis reżimu i nagłówek zadania nie są treścią wymagania
             if any(re.match(r"(?:Podstawa programowa|Zadanie\s+\d)", c) for c in cells):
                 continue
             if i_og < len(cells):
                 lewa += " " + cells[i_og]
             if i_sz < len(cells):
                 prawa += " \n" + cells[i_sz]
-        # Numer wymagania ogólnego SZUKAMY, a nie kotwiczymy na początku
-        # komórki: w roczniku 2019 pierwszy wiersz tabeli to podpis („Podstawa
-        # programowa 2012"), więc kotwica nie trafia i wszystkie 21 zadań
-        # zostaje bez wymagania ogólnego.
+        # Numer wymagania ogólnego SZUKAMY, nie kotwiczymy: w 2019 r. pierwszy wiersz to
+        # podpis podstawy i kotwica gubiła wymagania wszystkich 21 zadań.
         m = re.search(r"\b([IVX]+)\.\s*(.+)", " ".join(lewa.split()))
         if m:
             ogolne.append({"sciezka": m.group(1), "tresc": m.group(2).strip()[:400],
@@ -999,7 +709,6 @@ def parsuj_wymagania(tab, dial: Dialekt,
         for sz in _szczegolowe(prawa, dial):
             sz["rezim"] = rezim
             szczegolowe.append(sz)
-    # ta sama ścieżka bywa w obu podstawach — deduplikacja po (etap, ścieżka)
     widziane, unikalne = set(), []
     for s in szczegolowe:
         k = (s["rezim"], s["etap"], s["sciezka"])
@@ -1016,7 +725,6 @@ def parsuj_wymagania(tab, dial: Dialekt,
 
 
 def _rezim_kolumny(tab, i_og: int, i_sz: int) -> Optional[str]:
-    """Podpis reżimu stojący nad parą kolumn („Podstawa programowa 2012")."""
     for row in tab.rows[:WIERSZE_NAGLOWKA]:
         cells = [(c or "").strip() for c in row]
         podpis = " ".join(cells[i_og:i_sz + 1]).strip()
@@ -1027,15 +735,12 @@ def _rezim_kolumny(tab, i_og: int, i_sz: int) -> Optional[str]:
             if m:
                 if kod is None:
                     return "wym%s" % "-".join(g for g in m.groups() if g)
-                # „Podstawa programowa" bez roku nie mówi która — rozstrzyga
-                # przypis pod tabelą, którego tu nie ma. Zwracamy brak
-                # rozpoznania, żeby zadziałało dopasowanie po kolejności.
+                # „Podstawa programowa" bez roku nie mówi która — brak rozpoznania włącza dopasowanie po kolejności.
                 return None if kod == "pp-akt" else kod
     return None
 
 
 def _kolumny(tab) -> List[Tuple[int, int]]:
-    """Pary (kolumna wymagań ogólnych, kolumna szczegółowych) z nagłówka."""
     for row in tab.rows[:WIERSZE_NAGLOWKA]:
         cells = [(c or "").strip() for c in row]
         og = [i for i, c in enumerate(cells) if re.match(r"Wymagani[ae]\s+ogóln", c)]
@@ -1048,24 +753,13 @@ def _kolumny(tab) -> List[Tuple[int, int]]:
 
 
 def _szczegolowe(prawa: str, dial: Dialekt) -> List[dict]:
-    """Wymagania szczegółowe z prawej kolumny.
-
-    Punkt należy do działu, który go POPRZEDZA, więc dział trzeba śledzić
-    w trakcie czytania, a nie brać pierwszy z brzegu. Etap edukacyjny stoi
-    śródtytułem („KLASY IV–VI") i obowiązuje aż do następnego — w kluczach
-    2021–2024 nie ma go wcale, bo wymagania pandemiczne były jedną listą.
-    Matura numeruje wymagania jawnie („I.4)", „XIII.R1)"), więc tam działu
-    nie ma czego śledzić.
-    """
     out = []
     etap = None
     for kawalek in RE_ETAP.split(prawa):
         k = " ".join(kawalek.split())
         if re.match(r"(?:KLASY|Klasy)\b", k) or re.fullmatch(
                 r"(?:IV|VII)\s*[–—-]\s*(?:VI|VIII)", k):
-            # „KLASY IV–VI" i „KLASY IV-VI" to ten sam etap; bez ujednolicenia
-            # myślnika UNIQUE w tabeli `wymaganie` zapisuje go dwa razy
-            # i mapa braków dzieli zadania między dwa byty widmo.
+            # Bez ujednolicenia myślnika UNIQUE zapisuje ten sam etap dwa razy.
             etap = re.sub(r"^(?:KLASY|Klasy)\s+", "", k)
             etap = re.sub(r"\s+[iI]\s+", "-", etap).replace(" ", "")
             for myslnik in "–—−":
@@ -1086,9 +780,7 @@ def _szczegolowe(prawa: str, dial: Dialekt) -> List[dict]:
     return out
 
 
-# =============================================================================
-# ZESZYT ZADAŃ — treść zadania i prostokąty rysunków
-# =============================================================================
+# ── ZESZYT ZADAŃ — treść zadania i prostokąty rysunków ────────────────────────
 
 def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> dict:
     """Treść zadań + zasoby graficzne, per numer zadania."""
@@ -1105,11 +797,7 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> dict:
                 out.setdefault(nr, {"tresc": " ".join(tresc.split())[:1500],
                                     "strona": page.number,
                                     "zasoby": []})
-                # Zadanie odwołujące się do grafiki — zmierzone 38% w E8.
-                # Numer zadania trafia się na dwóch stronach (kontynuacja albo
-                # powtórzony nagłówek), a treść bierzemy tylko z pierwszej —
-                # więc i zasób ma być jeden na stronę, nie jeden na trafienie.
-                # Inaczej to samo zadanie dostawało kilka identycznych wpisów.
+                # Numer zadania trafia się na dwóch stronach — zasób ma być jeden na stronę, nie jeden na trafienie.
                 strony_zasobow = {z["strona"] for z in out[nr]["zasoby"]}
                 if page.number not in strony_zasobow and re.search(
                         r"\b(diagram\w*|rysunk\w+|rysunek|wykres\w*|siatc\w+"
@@ -1117,8 +805,7 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> dict:
                     out[nr]["zasoby"].append({
                         "rodzaj": "diagram",
                         "strona": page.number,
-                        # UPROSZCZENIE: bbox to cała strona, nie wycinek wokół
-                        # rysunku — wykrywanie regionu grafiki to osobna robota.
+                        # UPROSZCZENIE: bbox to cała strona; wykrywanie regionu grafiki to osobna robota.
                         "bbox": [0, 0, page.width, page.height],
                     })
     return out

@@ -1,13 +1,4 @@
-"""Sprawdzian MODELU na jednym prawdziwym kluczu — następca sondy `probe_load.py`.
-
-`test_schema.py` sprawdza, czy więzy odrzucają złe dane. Ten plik odpowiada na
-inne pytanie: **czy model udźwignie prawdziwy dokument**. Robi to na jednym
-kluczu, za to z pełnym kompletem — sześć pytań, dla których ten model w ogóle
-powstał.
-
-Wymaga mirrora, więc pomija się, gdy go nie ma. Ładuje do OSOBNEJ bazy
-tymczasowej, żeby nie zadeptać korpusu deweloperskiego.
-"""
+"""Sprawdzian MODELU na jednym prawdziwym kluczu — następca sondy `probe_load.py`."""
 
 from __future__ import annotations
 
@@ -59,7 +50,6 @@ def _migruj(url: str) -> None:
 
 @pytest.fixture(scope="module")
 def baza_z_kluczem():
-    """Świeża baza + jeden klucz załadowany przez prawdziwą ładowarkę."""
     sciezka = os.path.join(korzen_mirrora(), KLUCZ)
     if not os.path.exists(sciezka):
         pytest.skip(f"brak mirrora: {sciezka}")
@@ -113,15 +103,12 @@ def test_liczby_zgadzaja_sie_z_sonda(baza_z_kluczem, tabela, ile):
 
 
 def test_jeden_klucz_obsluguje_wiele_form(baza_z_kluczem):
-    """Sedno modelu N:M. OMAP-100-2505 deklaruje sześć form arkusza —
-    „trójka plików" z „Kopalni CKE" nie miałaby tu gdzie stanąć."""
+    """Sedno modelu N:M. OMAP-100-2505 deklaruje sześć form arkusza —"""
     assert licznik(baza_z_kluczem, "exam_form") >= 6
 
 
 def test_blizniaki_maja_rozne_odpowiedzi_przy_wspolnych_kryteriach(baza_z_kluczem):
-    """Zadania 1–15 mają wersje X i Y z RÓŻNYMI odpowiedziami, a kryteria
-    wspólne. To jest powód, dla którego `criterion` wisi na `task`,
-    a `model_answer` na `task_version`."""
+    """Zadania 1–15 mają wersje X i Y z RÓŻNYMI odpowiedziami, a kryteria"""
     (ile,) = baza_z_kluczem.execute("""
         SELECT count(*) FROM (
             SELECT tv.task_id
@@ -133,8 +120,7 @@ def test_blizniaki_maja_rozne_odpowiedzi_przy_wspolnych_kryteriach(baza_z_klucze
 
 
 def test_mapa_brakow_liczy_sie_bez_zgadywania(baza_z_kluczem):
-    """Widok `tasks_per_requirement` jest testem schematu: jeśli da się go
-    wykonać i coś zwraca, model utrzymuje mapowanie na podstawę programową."""
+    """Widok `tasks_per_requirement` jest testem schematu: jeśli da się go"""
     wiersze = baza_z_kluczem.execute(
         "SELECT path, tasks FROM tasks_per_requirement ORDER BY tasks DESC LIMIT 5"
     ).fetchall()
@@ -143,9 +129,7 @@ def test_mapa_brakow_liczy_sie_bez_zgadywania(baza_z_kluczem):
 
 
 def test_kryteria_zachowuja_strukture_progow_i_alternatyw(baza_z_kluczem):
-    """Trzy poziomy dysjunkcji: próg → warunek → zapis równoważny.
-    Spłaszczenie do jednego pola tekstowego znaczy, że silnik dostanie akapit
-    prozy zamiast listy sprawdzalnych alternatyw."""
+    """Trzy poziomy dysjunkcji: próg → warunek → zapis równoważny."""
     (ile,) = baza_z_kluczem.execute("""
         SELECT count(*) FROM criterion c
         WHERE EXISTS (SELECT 1 FROM criterion_condition cc
@@ -160,23 +144,14 @@ def test_kryteria_zachowuja_strukture_progow_i_alternatyw(baza_z_kluczem):
 
 
 def test_reguly_przekrojowe_maja_zakres_zadan(baza_z_kluczem):
-    """„Uwagi ogólne" to reguły arkusza, nie kryteria zadania — działają
-    w kroku Compose, po ocenie wszystkich kryteriów naraz. Część obowiązuje
-    tylko na wycinku arkusza, stąd `tasks_from`/`tasks_to`."""
+    """„Uwagi ogólne" to reguły arkusza, nie kryteria zadania — działają"""
     (z_zakresem,) = baza_z_kluczem.execute(
         "SELECT count(*) FROM rule WHERE tasks_from IS NOT NULL").fetchone()
     assert z_zakresem > 0, "żadna reguła nie ma zakresu zadań"
 
 
 def test_drugi_przebieg_nie_dubluje_i_nie_pada(baza_z_kluczem):
-    """Ten sam klucz załadowany dwa razy ma dać ten sam korpus.
-
-    Baza jest TRWAŁA, więc drugi `task ingest` trafia na własne wiersze
-    z pierwszego. Dopóki `document` wstawiał się gołym INSERT-em, kończyło się
-    to `UniqueViolation` na `document_url_key` — i tak na każdym z 75 kluczy,
-    czyli zero wierszy i kod wyjścia 1, mimo że `run.py` obiecuje w docstringu
-    coś odwrotnego.
-    """
+    """Ten sam klucz załadowany dwa razy ma dać ten sam korpus."""
     from parsers.omap_e8 import loader
 
     przed = {t: licznik(baza_z_kluczem, t) for t in sorted(OCZEKIWANE)}

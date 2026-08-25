@@ -1,9 +1,4 @@
-"""Sprawdzian schematu: czy migracje dają bazę, na którą liczy reszta planu.
-
-Test celowo NIE jest listą tabel przepisaną z migracji — taki test przechodzi
-zawsze i nie mówi nic. Sprawdza dwie rzeczy, które da się zepsuć po cichu:
-więzy naprawdę odrzucają złe dane, a widoki dają się wykonać.
-"""
+"""Sprawdzian schematu: czy migracje dają bazę, na którą liczy reszta planu."""
 
 from __future__ import annotations
 
@@ -43,16 +38,7 @@ def polaczenie():
 
 @pytest.fixture
 def conn(polaczenie):
-    """Czysta transakcja na każdy test, cofana ZAWSZE — także po nieudanej asercji.
-
-    Wcześniej `conn.rollback()` stało w ostatniej linii testu, więc przy błędzie
-    w połowie nie wykonywało się wcale, a wyjście z bloku połączenia zatwierdzało
-    sztuczne rekordy do bazy deweloperskiej. Do tego kolejny test dziedziczył
-    przerwaną transakcję i czerwieniał bez własnej winy.
-
-    `finally` zamiast `conn.transaction()`, bo ten drugi wymagałby wyjścia
-    przez wyjątek `psycopg.Rollback`, a tu chodzi o cofnięcie bezwarunkowe.
-    """
+    """Czysta transakcja na każdy test, cofana ZAWSZE — także po nieudanej asercji."""
     try:
         yield polaczenie
     finally:
@@ -104,13 +90,7 @@ def test_kolacja_pl_icu_sortuje_po_polsku(conn):
 
 
 def test_wiez_kryterium_odrzuca_dwa_progi_o_tej_samej_punktacji(conn):
-    """To jest TEN więz, który złapał prawdziwy błąd w sondzie.
-
-    Sekcja reguł przekrojowych stoi między zadaniami, więc podział tekstu po
-    nagłówkach doklejał ją do zadania poprzedzającego, a jej zdanie
-    „…to otrzymuje 0 punktów" udawało drugi próg 0 pkt. Test pilnuje, żeby
-    ktoś tego więzu nie poluzował „bo parser się wywalał".
-    """
+    """To jest TEN więz, który złapał prawdziwy błąd w sondzie."""
     with conn.cursor() as cur:
         cur.execute(
             "INSERT INTO document (segment, year, code, kind, kind_source, url, path) "

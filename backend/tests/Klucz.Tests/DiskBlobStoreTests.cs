@@ -4,13 +4,6 @@ using Klucz.Corpus.Infrastructure;
 
 namespace Klucz.Tests;
 
-/// <summary>
-/// Skład blobów: zapis, odczyt i — najważniejsze — brak drogi na zewnątrz korzenia.
-/// </summary>
-/// <remarks>
-/// `..` w nazwie pliku nie jest scenariuszem z bajki, gdy nazwy biorą się z tekstu
-/// PDF-a. Te testy są tanie, a pilnują jedynej granicy, jaką ma ten skład.
-/// </remarks>
 public class DiskBlobStoreTests : IDisposable
 {
     private readonly string _root =
@@ -47,9 +40,6 @@ public class DiskBlobStoreTests : IDisposable
     [Fact]
     public async Task Returned_path_is_relative_and_uses_forward_slashes()
     {
-        // W bazie stoją ścieżki względne — absolutna albo z literą dysku zabija
-        // przenośność korpusu między maszynami, a separator w tył zabija ją
-        // między systemami.
         var path = await Store().SaveAsync("a/b/c.png", new MemoryStream([1, 2, 3]));
 
         Assert.Equal("a/b/c.png", path);
@@ -90,8 +80,6 @@ public class DiskBlobStoreTests : IDisposable
     [Fact]
     public async Task Sibling_directory_with_similar_name_is_not_inside_the_root()
     {
-        // `/data/blob-obcy` zaczyna się tak samo jak `/data/blob`. Bez separatora
-        // na końcu korzenia porównanie prefiksem przepuszczałoby cudzy katalog.
         await Assert.ThrowsAsync<ArgumentException>(
             () => Store().ExistsAsync("../" + Path.GetFileName(_root) + "-obcy/plik.png"));
     }
