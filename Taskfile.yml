@@ -27,7 +27,12 @@ tasks:
       - cmd: 'docker --version > /dev/null || (echo "BRAK: Docker" && exit 1)'
       - cmd: 'uv --version > /dev/null || (echo "BRAK: uv — https://docs.astral.sh/uv/" && exit 1)'
       - cmd: 'test -f .env || (echo "BRAK: .env — skopiuj z .env.example" && exit 1)'
-      - cmd: 'dotnet --version > /dev/null || (echo "BRAK: .NET SDK — wersja w backend/global.json" && exit 1)'
+      # `cd backend`, bo `global.json` lezy TAM, a nie w korzeniu. Wolane z korzenia
+      # `dotnet --version` przechodzilo z dowolnym zainstalowanym SDK — a wlasny
+      # komunikat mowil, ze sprawdza wersje z backend/global.json. Sprawdzenie,
+      # ktore nie sprawdza, przenosi diagnoze o pol godziny do przodu: setup mowil
+      # KOMPLET, a `task test:dotnet` wywalal sie na „compatible .NET SDK not found".
+      - cmd: '(cd backend && dotnet --version) > /dev/null || (echo "BRAK: .NET SDK w wersji z backend/global.json" && exit 1)'
       - cmd: 'node --version > /dev/null || (echo "BRAK: Node.js" && exit 1)'
       - cmd: 'pnpm --version > /dev/null || (echo "BRAK: pnpm — corepack enable pnpm" && exit 1)'
       - cmd: 'echo "OS={{OS}} ARCH={{ARCH}} — komplet dla G1.1-G1.3."'
@@ -58,9 +63,15 @@ tasks:
     dir: ingest
     cmds: ['{{.PY}} -m schema.migrate --status']
 
+  # `docker compose down -v` kasuje WSZYSTKIE wolumeny projektu, wiec od dolozenia
+  # Azurite takze `klucz-blobdata`. Pytanie ma wymieniac wszystko, co znika —
+  # prompt mowiacy o samym korpusie uczy nieprawdziwego modelu tego, co robi
+  # polecenie. Od G2.4 dojdzie asymetria: reset czysci baze, ale zostawia pliki PNG
+  # w `data/blob` (tam pisze DiskBlobStore) — dolozyc wtedy czyszczenie narzedziem,
+  # nie `rm` w tym pliku.
   db:reset:
-    desc: 'Baza od zera (UWAGA: kasuje wolumen z korpusem)'
-    prompt: Skasować wolumen z korpusem i postawić bazę od nowa?
+    desc: 'Baza od zera (UWAGA: kasuje wolumeny — korpus ORAZ dane Azurite)'
+    prompt: Skasować wolumeny (korpus w Postgresie ORAZ dane emulatora blobów) i postawić wszystko od nowa?
     cmds:
       - docker compose down -v
       - task: up
@@ -133,8 +144,19 @@ tasks:
     cmds:
       # Dokument powstaje przy buildzie (Microsoft.Extensions.ApiDescription.Server),
       # więc build JEST generacją — nie ma drugiej ścieżki, która mogłaby się rozjechać.
-      - dotnet build backend/src/Klucz.Api/Klucz.Api.csproj
+      #
+      # `--no-incremental`, bo MSBuild jest przyrostowy: gdy projekt jest aktualny,
+      # POMIJA cel generujący dokument. Bramka dryfu porównywała wtedy plik, którego
+      # nikt w tym przebiegu nie odtworzył — czyli sam ze sobą — i zawsze widziała
+      # zgodność. Wystarczyło, żeby artefakt wrócił do starszej wersji bez zmiany kodu
+      # (`git checkout --`, zła strona przy rozwiązywaniu konfliktu, `git stash`),
+      # a bramka mówiła „kontrakt się zgadza" o starym kontrakcie.
+      - dotnet build backend/src/Klucz.Api/Klucz.Api.csproj --no-incremental
+      # Asercja istnienia, bo „nie wygenerowano" wygląda dokładnie tak samo jak
+      # „nie ma zmian": skasowany artefakt też dawał build zakończony sukcesem.
+      - cmd: 'test -f backend/artifacts/openapi.json || (echo "BRAK ARTEFAKTU: build nie wygenerowal backend/artifacts/openapi.json" && exit 1)'
       - pnpm -C web --filter @klucz/api-client run generate
+      - cmd: 'test -f web/packages/api-client/src/schema.d.ts || (echo "BRAK ARTEFAKTU: generator nie wygenerowal web/packages/api-client/src/schema.d.ts" && exit 1)'
 
   openapi:check:
     desc: Bramka dryfu — kontrakt w repo musi się zgadzać z kodem
@@ -149,12 +171,18 @@ tasks:
           git diff --exit-code -- backend/artifacts/openapi.json web/packages/api-client/src/schema.d.ts || (echo "DRYF KONTRAKTU: openapi.json albo schema.d.ts rozjechaly sie z kodem. Zacommituj wynik: task openapi:generate" && exit 1)
 
   # ------------------------------------------------------------- development
+  # Port API bierze sie z `API_PORT` w `.env` — tak samo jak DB_PORT i BLOB_PORT.
+  # Stal wczesniej na sztywno w trzech plikach WERSJONOWANYCH naraz
+  # (launchSettings.json, echo ponizej, backend/README.md), wiec deweloper
+  # z zajetym 5014 nie mial gdzie go zmienic bez edycji repozytorium.
+  # `launchSettings.json` nie ma juz `applicationUrl`: wygrywalo ono nawet
+  # z jawnym ASPNETCORE_URLS, wiec zadne ustawienie ze srodowiska nie dzialalo.
   dev:
     desc: API z hot-reloadem (web dochodzi w G1.4)
     deps: [up]
     cmds:
-      - cmd: 'echo "API: http://localhost:5014 — /health, /openapi/v1.json. Web wchodzi w G1.4."'
-      - dotnet watch --project backend/src/Klucz.Api run
+      - cmd: 'echo "API: http://localhost:${API_PORT:-5014} — /health, /openapi/v1.json (tylko w Development). Web wchodzi w G1.4."'
+      - dotnet watch --project backend/src/Klucz.Api run --urls "http://localhost:${API_PORT:-5014}"
 
   # ------------------------------------------------------------ dalsze fazy
   mirror:

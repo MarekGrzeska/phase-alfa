@@ -104,8 +104,11 @@ jobs:
         with:
           global-json-file: backend/global.json
 
+      # `SourceRevisionId`: SDK dokleja go do `InformationalVersion` po znaku `+`,
+      # a `/health` oddaje wlasnie ta wersje. Bez tego pole `version` bylo stala
+      # i nie odrozniało zadnych dwoch buildow.
       - name: Build
-        run: dotnet build backend/Klucz.sln --configuration Release
+        run: dotnet build backend/Klucz.sln --configuration Release -p:SourceRevisionId=${{ github.sha }}
 
       - name: Testy
         run: dotnet test backend/Klucz.sln --configuration Release --no-build
@@ -136,8 +139,24 @@ jobs:
       - name: Zależności weba
         run: pnpm -C web install --frozen-lockfile
 
+      # `--no-incremental`: MSBuild pomija cel generujacy dokument, gdy projekt jest
+      # aktualny. Bez tego bramka robila `git diff` na pliku, ktorego nikt w tym
+      # przebiegu nie odtworzyl — i zawsze widziala zgodnosc, takze wtedy, gdy
+      # w repozytorium lezal stary kontrakt. Asercja istnienia jest osobno, bo
+      # „nie wygenerowano" wyglada tak samo jak „nie ma zmian".
       - name: Bramka dryfu
         run: |
-          dotnet build backend/src/Klucz.Api/Klucz.Api.csproj
+          dotnet build backend/src/Klucz.Api/Klucz.Api.csproj --no-incremental
+          test -f backend/artifacts/openapi.json || { echo "BRAK ARTEFAKTU: build nie wygenerowal openapi.json"; exit 1; }
           pnpm -C web --filter @klucz/api-client run generate
+          test -f web/packages/api-client/src/schema.d.ts || { echo "BRAK ARTEFAKTU: generator nie wygenerowal schema.d.ts"; exit 1; }
           git diff --exit-code -- backend/artifacts/openapi.json web/packages/api-client/src/schema.d.ts
+
+      # Bramka dryfu sprawdza, czy KONTRAKT zgadza sie z kodem — nie sprawdza, czy
+      # klient dalej sie kompiluje. Zmiana nazwy DTO regenerowana i zacommitowana
+      # przechodzila ja na zielono, a recznie pisany `client.ts`, ktory odwoluje sie
+      # do `components["schemas"]["HealthResponse"]`, przestawal sie kompilowac
+      # i nikt sie o tym nie dowiadywal. `task test:web` nie byl wolany w ZADNYM
+      # zadaniu CI, a CLAUDE.md mowi: CI jest jedynym zrodlem prawdy o zielonym buildzie.
+      - name: Typecheck klienta
+        run: pnpm -C web -r typecheck
