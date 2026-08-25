@@ -33,14 +33,27 @@ PROG_KRYTERIA = 0.90         # udział zadań otwartych z kryteriami
 MIN_ZADAN = 10
 
 
-def wiersze(kody, segmenty, typ="zasady_oceniania"):
+def wariant_bazowy(warianty: str | None) -> str:
+    """Pierwszy człon kolumny `warianty`: "100,X" → "100"; litera to wersja zeszytu."""
+    return (warianty or "").split(",")[0]
+
+
+def pasuje(r: dict, typ: str, kody, segmenty, roczniki, warianty) -> bool:
+    """Czy wiersz spisu wchodzi do przebiegu. Pusty filtr znaczy „wszystko"."""
+    return (r["typ"] == typ
+            and (not kody or r["kod"] in kody)
+            and (not segmenty or r["segment"] in segmenty)
+            and (not roczniki or r["rocznik"] in roczniki)
+            # Wariant po pierwszym członie: zeszyty zadań trzymają w tej kolumnie
+            # także wersję („100,X"), więc filtr na całość by ich nie znalazł
+            # i pilot dostałby klucz bez arkuszy.
+            and (not warianty or wariant_bazowy(r["warianty"]) in warianty))
+
+
+def wiersze(kody, segmenty, typ="zasady_oceniania", roczniki=(), warianty=()):
     with open(URLS, encoding="utf-8") as fh:
         for r in csv.DictReader(fh, delimiter="\t"):
-            if r["typ"] != typ:
-                continue
-            if kody and r["kod"] not in kody:
-                continue
-            if segmenty and r["segment"] not in segmenty:
+            if not pasuje(r, typ, kody, segmenty, roczniki, warianty):
                 continue
             r["sciezka_lokalna"] = r["sciezka_lokalna"].replace("\\", "/")
             yield r
@@ -69,7 +82,7 @@ def przedmiot(kod: str) -> str:
 
 def arkusze_dla(r: dict, wersje, spis) -> dict:
     """Zeszyty zadań tej samej formy — po jednym na wersję."""
-    wlasny = (r["warianty"] or "").split(",")[0]
+    wlasny = wariant_bazowy(r["warianty"])
     znalezione = {}
     for a in spis:
         if a["kod"] != r["kod"] or a["sesja"] != r["sesja"]:
@@ -106,6 +119,12 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--kod", default="OMAP", help="kody arkuszy po przecinku (domyślnie OMAP)")
     ap.add_argument("--segment", default="", help="segmenty po przecinku (domyślnie wszystkie)")
+    # Pilot z G2.2.1 to JEDEN klucz z 75: bez zawężenia przebieg z arkuszami
+    # bierze cały korpus i trwa kwadrans zamiast minuty. Nazwy po angielsku,
+    # jak każdy nowy identyfikator (CLAUDE.md, zasada 4).
+    ap.add_argument("--year", default="", help="roczniki po przecinku, np. 2025")
+    ap.add_argument("--variant", default="",
+                    help="warianty arkusza po przecinku, np. 100 (wariant bazowy)")
     ap.add_argument("--wyczysc", action="store_true",
                     help="opróżnij tabele korpusu przed ładowaniem (baza jest trwała)")
     ap.add_argument("--limit", type=int, default=None, help="ile kluczy przetworzyć")
@@ -132,6 +151,8 @@ def main() -> int:
 
     kody = {k.strip() for k in args.kod.split(",") if k.strip()}
     segmenty = {s.strip() for s in args.segment.split(",") if s.strip()}
+    roczniki = {y.strip() for y in args.year.split(",") if y.strip()}
+    warianty = {w.strip() for w in args.variant.split(",") if w.strip()}
 
     if not os.path.exists(URLS):
         print(f"brak {URLS}")
@@ -139,14 +160,18 @@ def main() -> int:
         print("  task mirror -- --filtr matematyka")
         return 2
 
-    zadania_do_zrobienia = list(wiersze(kody, segmenty))
+    zadania_do_zrobienia = list(wiersze(kody, segmenty, roczniki=roczniki,
+                                        warianty=warianty))
     if args.limit:
         zadania_do_zrobienia = zadania_do_zrobienia[:args.limit]
     if not zadania_do_zrobienia:
-        print("nic nie pasuje do filtra kod=%s segment=%s" % (args.kod, args.segment))
+        print("nic nie pasuje do filtra kod=%s segment=%s year=%s variant=%s"
+              % (args.kod, args.segment, args.year or "—", args.variant or "—"))
         return 2
 
-    spis_arkuszy = list(wiersze(kody, segmenty, typ="arkusz")) if args.z_arkuszami else []
+    spis_arkuszy = (list(wiersze(kody, segmenty, typ="arkusz", roczniki=roczniki,
+                                 warianty=warianty))
+                    if args.z_arkuszami else [])
 
     # autocommit=True, żeby `con.transaction()` zakładał PRAWDZIWĄ transakcję na klucz —
     # inaczej błąd ostatniego cofa cały przebieg.
@@ -195,7 +220,7 @@ def main() -> int:
             k = K.czytaj_klucz(p, silnik=args.silnik)
             arkusze = {}
             if args.z_arkuszami:
-                wlasny = (r["warianty"] or "").split(",")[0]
+                wlasny = wariant_bazowy(r["warianty"])
                 wersje = sorted({w for f in k.formy if f["wariant"] == wlasny
                                  for w in f["wersje"]}, key=lambda w: (w is None, w))
                 for w, dane in arkusze_dla(r, wersje or [None], spis_arkuszy).items():
