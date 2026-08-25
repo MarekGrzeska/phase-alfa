@@ -91,6 +91,16 @@ def arkusze_dla(r: dict, wersje, spis) -> dict:
     return out
 
 
+def reviewed_by_url(con) -> dict[str, int]:
+    """Ile zadań po korekcie ma każdy klucz — adresowane URL-em, jak w spisie."""
+    return dict(con.execute(
+        """SELECT d.url, count(*)
+           FROM task t
+           JOIN document d ON d.id = t.marking_scheme_id
+           WHERE t.review_status <> 'pending'
+           GROUP BY d.url""").fetchall())
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -103,6 +113,13 @@ def main() -> int:
     ap.add_argument("--z-arkuszami", action="store_true",
                     help="doczytaj zeszyty zadań — treść zadań i zasoby "
                          "(8× wolniej: 15 min zamiast 2, bo arkusze są pełne grafiki)")
+    # Nazwa po angielsku, jak każdy nowy identyfikator w tym repozytorium
+    # (CLAUDE.md, zasada 4). Polskie flagi obok są długiem z G1.2 i schodzą
+    # osobnym commitem — przemianowanie razem ze zmianą zachowania zaciera,
+    # co było regresją, a co zmianą nazwy.
+    ap.add_argument("--overwrite-reviewed", action="store_true",
+                    help="przeładuj TAKŻE klucze po korekcie — kasuje ręczne "
+                         "rozstrzygnięcia razem z zadaniami")
     ap.add_argument("--szczegoly", action="store_true", help="wiersz na każdy klucz")
     ap.add_argument("--raport", default=None,
                     help="gdzie zapisać raport (domyślnie data/reports/ingest-RRRR-MM-DD.txt)")
@@ -135,11 +152,27 @@ def main() -> int:
     # inaczej błąd ostatniego cofa cały przebieg.
     con = psycopg.connect(polaczenie(), autocommit=True)
     if args.wyczysc:
+        # TRUNCATE jest większym młotem niż przeładowanie jednego klucza: bierze
+        # CAŁY korpus razem z korektą każdego rocznika. Bramka z ładowarki tu nie
+        # sięga, bo ten SQL omija ją z definicji.
+        (po_korekcie,) = con.execute(
+            "SELECT count(*) FROM task WHERE review_status <> 'pending'").fetchone()
+        if po_korekcie and not args.overwrite_reviewed:
+            print("ODMOWA: --wyczysc kasuje CAŁY korpus, a zadań po korekcie "
+                  "jest w nim %d." % po_korekcie)
+            print("Jeśli naprawdę o to chodzi: --wyczysc --overwrite-reviewed.")
+            con.close()
+            return 2
         with con.cursor() as cur:
             cur.execute("TRUNCATE %s RESTART IDENTITY CASCADE"
                         % ", ".join(loader.TABELE))
         print("korpus wyczyszczony")
-    lad = loader.Ladowarka(con)
+    lad = loader.Ladowarka(con, overwrite_reviewed=args.overwrite_reviewed)
+
+    # Jedno zapytanie zamiast jednego na klucz. Sprawdzenie stoi PRZED parsowaniem,
+    # bo klucz kosztuje ~1,5 s, a pominięty ma nie kosztować nic; twarda ochrona
+    # i tak siedzi w ładowarce, tuż przed DELETE.
+    po_korekcie_url = {} if args.overwrite_reviewed else reviewed_by_url(con)
 
     print("kluczy do przetworzenia: %d" % len(zadania_do_zrobienia))
     print("%-34s %-10s %5s %5s %5s %5s %5s  %s"
@@ -147,11 +180,16 @@ def main() -> int:
     print("─" * 118)
 
     t0 = time.perf_counter()
-    wyniki, pominiete, bledy = [], [], []
+    wyniki, pominiete, bledy, po_korekcie = [], [], [], []
     for r in zadania_do_zrobienia:
         p = os.path.join(ROOT, r["sciezka_lokalna"])
         if not os.path.exists(p):
             pominiete.append(r["plik"])
+            continue
+        if po_korekcie_url.get(r["url"]):
+            po_korekcie.append((r["plik"], po_korekcie_url[r["url"]]))
+            print("%-34s POMIJAM — zadań po korekcie: %d"
+                  % (r["plik"][:34], po_korekcie_url[r["url"]]))
             continue
         try:
             k = K.czytaj_klucz(p, silnik=args.silnik)
@@ -165,6 +203,13 @@ def main() -> int:
                                                       silnik=args.silnik)
                     arkusze[w] = dane
             stat = lad.zaladuj(k, meta_z_wiersza(r), arkusze)
+        except loader.ReviewedKeyError as e:
+            # Nie błąd: klucz ma korektę, a przebieg jej nie tknął. Ten wyjątek
+            # łapie wyścig — korekta zatwierdzona po zapytaniu wstępnym — więc
+            # pominięcie liczy się tak samo jak tam.
+            po_korekcie.append((r["plik"], e.reviewed))
+            print("%-34s POMIJAM — zadań po korekcie: %d" % (r["plik"][:34], e.reviewed))
+            continue
         except Exception as e:
             bledy.append((r["plik"], "%s: %s" % (type(e).__name__, e)))
             print("%-34s BŁĄD %s: %s" % (r["plik"][:34], type(e).__name__, e))
@@ -180,14 +225,15 @@ def main() -> int:
     czas = time.perf_counter() - t0
 
     try:
-        _zapisz_raport(args.raport, con, wyniki, pominiete, bledy, czas, lad)
+        _zapisz_raport(args.raport, con, wyniki, pominiete, bledy, czas, lad, po_korekcie)
     finally:
         # W `finally`, bo raport potrafi się wywalić na zapytaniu i zostawić połączenie.
         con.close()
     return 1 if bledy or any(w["blad"] for w in wyniki) else 0
 
 
-def _zapisz_raport(sciezka, con, wyniki, pominiete, bledy, czas, lad) -> None:
+def _zapisz_raport(sciezka, con, wyniki, pominiete, bledy, czas, lad,
+                   po_korekcie=()) -> None:
     """Ten sam raport na ekran i do pliku — plan G1.2.2 każe go porównać z sondą."""
     sciezka = sciezka or (KORZEN_REPO / "data" / "reports"
                           / ("ingest-%s.txt" % time.strftime("%Y-%m-%d")))
@@ -195,7 +241,7 @@ def _zapisz_raport(sciezka, con, wyniki, pominiete, bledy, czas, lad) -> None:
     sciezka.parent.mkdir(parents=True, exist_ok=True)
     with (open(sciezka, "w", encoding="utf-8") as fh,
           contextlib.redirect_stdout(_Tee(sys.stdout, fh))):
-        _raport(con, wyniki, pominiete, bledy, czas, lad)
+        _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie)
     print("\nRaport zapisany: %s" % sciezka)
 
 
@@ -252,7 +298,7 @@ def _blizniakow(blizniaki: dict, warianty: str) -> int:
                for w in (warianty or "").split(",") if w.strip())
 
 
-def _raport(con, wyniki, pominiete, bledy, czas, lad) -> None:
+def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
     print("\n" + "─" * 74)
     print("CO WESZŁO DO BAZY")
     print("─" * 74)
@@ -393,6 +439,14 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad) -> None:
     if pominiete:
         print("  brak pliku w mirrorze: %d (%s)"
               % (len(pominiete), ", ".join(pominiete[:3])))
+    if po_korekcie:
+        # Nie „problem", tylko normalny stan A2: im dalej w korektę, tym więcej
+        # kluczy przebieg omija. Wypisane wprost, bo cicho pominięty klucz
+        # wygląda w raporcie dokładnie tak samo jak klucz załadowany.
+        print("  pominięte po korekcie: kluczy %d, zadań %d"
+              % (len(po_korekcie), sum(n for _, n in po_korekcie)))
+        for plik, n in po_korekcie[:5]:
+            print("    ↳ %-34s zadań: %d" % (plik[:34], n))
     problemy = [w for w in wyniki if w["uwagi"]]
     if problemy:
         print("\n  PONIŻEJ PROGU — %d z %d:" % (len(problemy), n))
