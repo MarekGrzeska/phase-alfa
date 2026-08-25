@@ -103,7 +103,7 @@ def test_migracja_ktora_padla_nie_cofa_poprzedniej(baza, tmp_path):
         (jest,) = cur.fetchone()
         assert jest, "pierwsza migracja zniknęła — to NIE są osobne transakcje"
 
-        cur.execute("SELECT wersja FROM schema_migrations ORDER BY wersja")
+        cur.execute("SELECT version FROM schema_migrations ORDER BY version")
         assert [r[0] for r in cur.fetchall()] == ["0001_dobra"]
 
 

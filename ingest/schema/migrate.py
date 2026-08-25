@@ -35,9 +35,9 @@ KATALOG = Path(__file__).parent / "migrations"
 
 TABELA = """
 CREATE TABLE IF NOT EXISTS schema_migrations (
-    wersja      text        PRIMARY KEY,
-    zastosowano timestamptz NOT NULL DEFAULT now(),
-    suma_sha256 char(64)    NOT NULL
+    version    text        PRIMARY KEY,
+    applied_at timestamptz NOT NULL DEFAULT now(),
+    sha256     char(64)    NOT NULL
 )
 """
 
@@ -103,8 +103,8 @@ def migracje(katalog: Path) -> list[tuple[str, Path, str]]:
 
 
 def zastosowane(cur) -> dict[str, str]:
-    cur.execute("SELECT wersja, suma_sha256 FROM schema_migrations")
-    return {w: s for w, s in cur.fetchall()}
+    cur.execute("SELECT version, sha256 FROM schema_migrations")
+    return dict(cur.fetchall())
 
 
 def sprawdz_sumy(wszystkie, juz: dict[str, str]) -> None:
@@ -181,7 +181,7 @@ def main() -> int:
             with conn.transaction(), conn.cursor() as cur:
                 cur.execute(sql)
                 cur.execute(
-                    "INSERT INTO schema_migrations (wersja, suma_sha256) VALUES (%s, %s)",
+                    "INSERT INTO schema_migrations (version, sha256) VALUES (%s, %s)",
                     (wersja, sha),
                 )
             print(f"  + {wersja}")

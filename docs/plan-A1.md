@@ -199,13 +199,14 @@ ingest/schema/
 1. Przenieść `research/schema/schema.sql` → `ingest/schema/migrations/0001_corpus.sql`.
    Sprawdzić, czy DDL jest czysto Postgresowe (research pisał je jako PG DDL, ale sonda
    ładowała do SQLite — patrz pułapki w G1.2.2).
-2. **Więzy zostają ostre.** `UNIQUE (zadanie_id, punkty)` w `kryterium` złapał prawdziwy
+2. **Więzy zostają ostre.** `UNIQUE (task_id, points)` w `criterion` złapał prawdziwy
    błąd przy pierwszym ładowaniu (sekcja reguł przekrojowych udawała drugi próg 0 pkt).
    Nic nie luzować „żeby przeszło" — od tego jest ekran korekty w A2.
 3. Napisać `migrate.py` i test: podniesienie pustej bazy → migracje → `\d` pokazuje
-   komplet tabel (`forma_dokument`, `zadanie`, `zadanie_wersja`, `kryterium`,
-   `kryterium_warunek`, `warunek_zapis`, `odpowiedz_wzorcowa`, `rozwiazanie_przykladowe`,
-   `regula`, `zasob`, `wymaganie`, `rezim`, `zadanie_wymaganie`).
+   komplet tabel (`exam_form_document`, `task`, `task_version`, `criterion`,
+   `criterion_condition`, `condition_expression`, `model_answer`, `example_solution`,
+   `rule`, `asset`, `requirement`, `requirement_regime`, `task_requirement`).
+   Nazwy po angielsku wg słownika z `CLAUDE.md`; model bez zmian wobec sondy.
 4. Connection string wyłącznie z konfiguracji (`.env` + `.env.example` w repo).
    Żadnych haseł w kodzie — nawet dev-owych.
 
@@ -409,9 +410,9 @@ Cel: ten sam przebieg co w sondzie, ale zapisujący do Postgresa z Dockera.
    kluczy 75 · ~114 s (1,5 s/klucz) · zadań 1436 (2062 punkty)
    pokrycie wymagań 100% · odpowiedzi 100% · kryteriów 100%
 
-   zadanie 1436 · zadanie_wersja 1574 · zadanie_wymaganie 3809
-   kryterium 3315 · kryterium_warunek 4379 · warunek_zapis 514
-   rozwiazanie_przykladowe 1227 · odpowiedz_wzorcowa 1221 · regula 772
+   task 1436 · task_version 1574 · task_requirement 3809
+   criterion 3315 · criterion_condition 4379 · condition_expression 514
+   example_solution 1227 · model_answer 1221 · rule 772
    ```
 
    **Rozbieżność w tych liczbach = regresja przeprowadzki, nie ciekawostka.** Zapisać

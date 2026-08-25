@@ -15,14 +15,14 @@ psycopg = pytest.importorskip("psycopg")
 pytestmark = pytest.mark.integracyjny
 
 TABELE = {
-    "rezim", "wymaganie", "dokument", "forma", "forma_dokument",
-    "zadanie", "zadanie_wymaganie", "zadanie_wersja", "odpowiedz_wzorcowa",
-    "kryterium", "kryterium_warunek", "warunek_zapis",
-    "rozwiazanie_przykladowe", "przyklad_odpowiedzi", "regula", "zasob",
+    "requirement_regime", "requirement", "document", "exam_form",
+    "exam_form_document", "task", "task_requirement", "task_version",
+    "model_answer", "criterion", "criterion_condition", "condition_expression",
+    "example_solution", "answer_example", "rule", "asset",
     "schema_migrations",
 }
 
-WIDOKI = {"zadania_per_wymaganie", "blizniaki"}
+WIDOKI = {"tasks_per_requirement", "twins"}
 
 
 @pytest.fixture(scope="module")
@@ -112,42 +112,42 @@ def test_wiez_kryterium_odrzuca_dwa_progi_o_tej_samej_punktacji(conn):
     """
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO dokument (segment, rocznik, kod, typ, zrodlo_typu, url, sciezka) "
-            "VALUES ('e8', 2025, 'OMAP', 'zasady_oceniania', 'sufiks', "
+            "INSERT INTO document (segment, year, code, kind, kind_source, url, path) "
+            "VALUES ('e8', 2025, 'OMAP', 'marking_scheme', 'suffix', "
             "'test://wiez', 'test') RETURNING id"
         )
         (dok_id,) = cur.fetchone()
         cur.execute(
-            "INSERT INTO zadanie (klucz_id, numer, kolejnosc, punkty_max, typ) "
-            "VALUES (%s, '20', 20, 3, 'otwarte_krotkie') RETURNING id",
+            "INSERT INTO task (marking_scheme_id, number, position, max_points, kind) "
+            "VALUES (%s, '20', 20, 3, 'open_short') RETURNING id",
             (dok_id,),
         )
         (zad_id,) = cur.fetchone()
 
         cur.execute(
-            "INSERT INTO kryterium (zadanie_id, punkty, kolejnosc) VALUES (%s, 0, 1)",
+            "INSERT INTO criterion (task_id, points, position) VALUES (%s, 0, 1)",
             (zad_id,),
         )
         with pytest.raises(psycopg.errors.UniqueViolation):
             cur.execute(
-                "INSERT INTO kryterium (zadanie_id, punkty, kolejnosc) VALUES (%s, 0, 2)",
+                "INSERT INTO criterion (task_id, points, position) VALUES (%s, 0, 2)",
                 (zad_id,),
             )
 
 
 def test_wiez_punkty_max_odrzuca_bzdure(conn):
-    """CHECK (punkty_max BETWEEN 0 AND 60) — literówka w puli nie wchodzi cicho."""
+    """CHECK (max_points BETWEEN 0 AND 60) — literówka w puli nie wchodzi cicho."""
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO dokument (segment, rocznik, kod, typ, zrodlo_typu, url, sciezka) "
-            "VALUES ('e8', 2025, 'OMAP', 'zasady_oceniania', 'sufiks', "
+            "INSERT INTO document (segment, year, code, kind, kind_source, url, path) "
+            "VALUES ('e8', 2025, 'OMAP', 'marking_scheme', 'suffix', "
             "'test://punkty', 'test') RETURNING id"
         )
         (dok_id,) = cur.fetchone()
         with pytest.raises(psycopg.errors.CheckViolation):
             cur.execute(
-                "INSERT INTO zadanie (klucz_id, numer, kolejnosc, punkty_max, typ) "
-                "VALUES (%s, '1', 1, 999, 'zamkniete')",
+                "INSERT INTO task (marking_scheme_id, number, position, max_points, kind) "
+                "VALUES (%s, '1', 1, 999, 'closed')",
                 (dok_id,),
             )
 
@@ -155,7 +155,7 @@ def test_wiez_punkty_max_odrzuca_bzdure(conn):
 def test_migracje_zapisane(conn):
     """Baza wie, którą wersją schematu jest — inaczej nie da się jej odtworzyć."""
     with conn.cursor() as cur:
-        cur.execute("SELECT wersja FROM schema_migrations ORDER BY wersja")
+        cur.execute("SELECT version FROM schema_migrations ORDER BY version")
         wersje = [r[0] for r in cur.fetchall()]
     assert wersje, "schema_migrations puste — migracje nie przeszły"
     assert wersje == sorted(wersje)

@@ -24,7 +24,7 @@ task db:psql          # konsola SQL
 
 ## Więzy nie są dekoracją
 
-`UNIQUE (zadanie_id, punkty)` w tabeli `kryterium` złapał prawdziwy błąd przy
+`UNIQUE (task_id, points)` w tabeli `criterion` złapał prawdziwy błąd przy
 pierwszym ładowaniu w sondzie: sekcja reguł przekrojowych stoi *między* zadaniami,
 więc podział tekstu po nagłówkach `Zadanie N.` doklejał ją do zadania poprzedzającego,
 a jej zdanie „…to otrzymuje 0 punktów" udawało drugi próg 0 pkt. **Bez tego więzu
@@ -76,5 +76,6 @@ w edytorze, który dopisze znacznik, nie wygląda jak podmiana migracji. Czego
 | `migrations/0002_indexes.sql` | indeksy na kluczach obcych (PostgreSQL nie robi ich sam) |
 
 Uzasadnienie modelu — dlaczego klucz → arkusz jest N:M, dlaczego kryteria wiszą
-na `zadanie`, a odpowiedzi na `zadanie_wersja`, i skąd trzy poziomy dysjunkcji
+na `task`, a odpowiedzi na `task_version`, i skąd trzy poziomy dysjunkcji
 w kryteriach — leży w `research/schema/README.md` w repozytorium `cke-mirror`.
+Tamten dokument używa jeszcze polskich nazw; przekład stoi w `CLAUDE.md`.

@@ -49,21 +49,50 @@ teksty w dokumentach HTML. Odbiorcą jest autor, który mówi po polsku.
 diakrytycznych**: `poprawka`, nie `poprawka` z ogonkami. Powód jest praktyczny —
 konsole i narzędzia gitowe na Windows potrafią je rozjechać.
 
+### 3. Nazwy tabel i kolumn — **po angielsku**
+
+Cały schemat bazy jest po angielsku, mimo że dziedzina jest polska. Decyzja
+z 25.08.2026; wcześniej schemat był po polsku i został przetłumaczony w całości.
+
+Ponieważ pojęcia biorą się z dokumentów CKE, tłumaczenie **musi być jedno i to samo
+wszędzie** — inaczej parser, schemat i moduł C# zaczną nazywać tę samą rzecz na trzy
+sposoby. Stąd słownik obowiązujący:
+
+| Polski (dokumenty CKE) | Angielski (kod i baza) |
+|---|---|
+| reżim wymagań | `requirement_regime` |
+| wymaganie (podstawy programowej) | `requirement` |
+| dokument (plik PDF) | `document` |
+| forma arkusza | `exam_form` |
+| zadanie | `task` |
+| wersja zadania (bliźniak X/Y) | `task_version` |
+| odpowiedź wzorcowa | `model_answer` |
+| kryterium (próg punktowy) | `criterion` |
+| warunek kryterium | `criterion_condition` |
+| zapis równoważny | `condition_expression` |
+| rozwiązanie przykładowe | `example_solution` |
+| przykład odpowiedzi | `answer_example` |
+| reguła przekrojowa („Uwagi ogólne") | `rule` |
+| zasób graficzny (wycinek) | `asset` |
+| zasady oceniania (klucz) | `marking_scheme` |
+| arkusz (zeszyt zadań) | `paper` |
+| treść | `content` · | opis | `description` |
+| kolejność | `position` · | rodzaj/typ | `kind` |
+| ścieżka | `path` · | punkty | `points` |
+
+Wartości w więzach `CHECK` też są po angielsku (`'marking_scheme'`, `'open_short'`,
+`'approved'`), bo należą do schematu, a nie do danych. Dane pozostają, jakie są —
+`subject` trzyma `'matematyka'`, bo tak nazywa to CKE.
+
+**Komentarze w tym schemacie zostają po polsku** i to jest zamierzone: nazwa mówi,
+*co* to jest, komentarz mówi, *dlaczego tak* — i to drugie jest po polsku, jak wszystko
+inne w tym repozytorium.
+
 ### Czego te zasady nie rozstrzygają — do ustalenia
 
-**Nazwy w kodzie** (zmienne, funkcje, tabele, kolumny) nie są objęte żadną z powyższych.
-Stan faktyczny na dziś, świadomie zostawiony:
-
-- **Schemat bazy jest po polsku** i taki zostaje: `zadanie`, `kryterium`, `wymaganie`,
-  `rezim`, `forma`, `zasob`, `regula`. To nie jest zaniedbanie — to **słownik dziedziny**.
-  Te słowa stoją tak samo w kluczach CKE, w podstawie programowej i w rozmowie
-  o produkcie. Tłumaczenie ich na angielski dodałoby warstwę zgadywania
-  (`wymaganie` to `requirement` czy `standard`?) przy zerowym zysku.
-- **Kod Pythona miesza oba** — `migrate.py` ma `polaczenie()` i `suma()` obok
-  `main()` i `status()`.
-
-Do rozstrzygnięcia, gdy zacznie przeszkadzać. Kandydat na regułę: nazwy techniczne
-po angielsku, nazwy z dziedziny CKE po polsku.
+**Nazwy zmiennych i funkcji w Pythonie** mieszają oba języki: `migrate.py` ma
+`polaczenie()` i `suma()` obok `main()` i `status()`. Do rozstrzygnięcia, gdy zacznie
+przeszkadzać — schemat bazy, jako kontrakt między warstwami, był pilniejszy.
 
 ---
 
