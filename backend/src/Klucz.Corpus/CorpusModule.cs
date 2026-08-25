@@ -26,7 +26,7 @@ public static class CorpusModule
         // Korzeń składu jest WZGLĘDNY wobec korzenia repozytorium, tak samo jak
         // `BLOB_ROOT` po stronie Pythona — w bazie stoją ścieżki względne.
         var korzenBlobow = konfiguracja["Blob:Root"] ?? konfiguracja["BLOB_ROOT"] ?? "data/blob";
-        uslugi.AddSingleton<IBlobStore>(new DyskowyBlobStore(korzenBlobow));
+        uslugi.AddSingleton<IBlobStore>(new DyskowyBlobStore(KorzenRepozytorium.Rozwin(korzenBlobow)));
 
         return uslugi;
     }
