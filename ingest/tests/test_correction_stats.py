@@ -8,7 +8,33 @@ from __future__ import annotations
 
 import pytest
 
-from correction import pages, stats
+from correction import db, pages, stats
+
+
+@pytest.mark.parametrize(("number", "widoczna"), [
+    ("16", True), ("18", True), ("21", True), ("15", False), ("22", False),
+    ("18.2", True),
+])
+def test_regula_obejmuje_cale_zakresy_a_nie_same_konce(number, widoczna):
+    """„W zadaniach 16–21 sam poprawny wynik to 0 punktów" dotyczy też zadania 18.
+
+    Dopasowanie po krańcach zakresu pokazywało tę regułę wyłącznie przy 16 i 21,
+    czyli znikała z ekranu przy większości zadań, których dotyczy — a korekta
+    kryteriów bez reguły arkusza ocenia co innego, niż ocenia klucz.
+    """
+    regula = {"tasks_from": "16", "tasks_to": "21"}
+    assert db.rule_applies(regula, number) is widoczna
+
+
+def test_regula_bez_zakresu_dotyczy_calego_arkusza():
+    assert db.rule_applies({"tasks_from": None, "tasks_to": None}, "1") is True
+
+
+def test_regula_przypieta_do_jednego_zadania():
+    """Uwaga spod zadania wchodzi z zakresem N–N, nie z pustym."""
+    regula = {"tasks_from": "16", "tasks_to": "16"}
+    assert db.rule_applies(regula, "16") is True
+    assert db.rule_applies(regula, "17") is False
 
 
 def test_stan_bez_zadnego_rozstrzygniecia_nie_dzieli_przez_zero():

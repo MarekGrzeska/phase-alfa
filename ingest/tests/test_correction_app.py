@@ -125,6 +125,32 @@ def _post(client, task, **fields):
                        follow_redirects=False)
 
 
+def _full(task, **overrides) -> dict:
+    """Formularz taki, jaki wysyła PRZEGLĄDARKA: komplet pól, nie wycinek.
+
+    Testy postujące wybrane pola przechodziły na kodzie, który nie umiał
+    obsłużyć pełnego formularza — a pełny jest jedynym, jaki naprawdę
+    przychodzi. Wartości są tu te same, co w fixture, więc domyślnie
+    ten formularz NIE JEST zmianą.
+    """
+    fields = {
+        "task.number": "20",
+        "task.max_points": "3",
+        "task.kind": "open_short",
+        f"version.{task['version']}.content": "Treść zadania 20",
+        f"answer.{task['answer']}.answer": "105",
+        f"criterion.{task['criterion']}.points": "3",
+        f"criterion.{task['criterion']}.label": "pełne rozwiązanie",
+        # W bazie NULL — szablon renderuje puste pole i takie wraca w POST-cie.
+        f"criterion.{task['criterion']}.description": "",
+        f"condition.{task['condition']}.description": "poprawny sposób obliczenia pola",
+        f"expression.{task['expression']}.expression": "P = 15² − 3",
+        "add_requirement": "",
+    }
+    fields.update(overrides)
+    return fields
+
+
 def _state(con, task_id: int) -> dict:
     return con.execute(
         "SELECT review_status, reviewed_at FROM task WHERE id = %s", (task_id,)
@@ -281,6 +307,97 @@ def test_cofniecie_do_korekty_zeruje_znacznik(client, con, task):
     assert state["review_status"] == "pending"
     assert state["reviewed_at"] is None
     assert [e["action"] for e in _events(con)] == ["approve", "reopen"]
+
+
+def test_pelny_formularz_bez_zmian_to_trafienie_parsera(client, con, task):
+    """Pusty opis progu jest w schemacie NULL-owalny i parser zostawia go pusty
+    przy każdym progu z wypunktowanymi warunkami.
+
+    Wymagalność liczona po samej NAZWIE kolumny myliła go z `description`
+    w `criterion_condition`, które NOT NULL jest — i takie zadanie nie dawało
+    się zatwierdzić nigdy, bo przeglądarka zawsze przysyła to pole puste.
+    """
+    response = _post(client, task, action="approve", **_full(task))
+
+    assert response.status_code == 303, response.text[:400]
+    assert _state(con, task["id"])["review_status"] == "approved"
+
+
+def test_usuniecie_progu_zabiera_jego_warunki_i_zapisy(client, con, task):
+    """Kaskada usuwa dzieci, a formularz nadal je przysyła — walidacja nie ma
+    prawa uznać ich za cudze, bo wtedy usunięcie progu nie udaje się nigdy."""
+    response = _post(client, task, action="approve",
+                     **_full(task, **{f"delete.criterion.{task['criterion']}": "1"}))
+
+    assert response.status_code == 303, response.text[:400]
+    assert _state(con, task["id"])["review_status"] == "corrected"
+    assert con.execute("SELECT count(*) AS n FROM criterion").fetchone()["n"] == 0
+    assert con.execute("SELECT count(*) AS n FROM criterion_condition"
+                       ).fetchone()["n"] == 0
+    assert con.execute("SELECT count(*) AS n FROM condition_expression"
+                       ).fetchone()["n"] == 0
+
+
+@pytest.mark.parametrize("query", ["", "?status=&year=&code=", "?status=pending"])
+def test_wlasny_formularz_filtrow_nie_wywraca_strony(client, task, query):
+    """Opcja „wszystkie" wysyła pustą wartość — i strona ma to przyjąć."""
+    assert client.get(f"/{query}").status_code == 200
+
+
+def test_poprawka_sprzed_dolozenia_wiersza_nie_znika_z_pomiaru(client, con, task):
+    """Poprawka zapisana przed dołożeniem progu zostaje w rekordzie na zawsze,
+    więc nie ma prawa zniknąć ze statystyki trafień parsera."""
+    added = _post(client, task, action="add:criterion",
+                  **_full(task, **{f"criterion.{task['criterion']}.label": "inna"}))
+    assert added.status_code == 303
+    assert "edited_before=1" in added.headers["location"]
+
+    # Druga runda: nic nowego nie zmieniamy, tylko zatwierdzamy.
+    response = client.post(
+        f"/task/{task['id']}",
+        data={"started_at": _started(), "action": "approve", "edited_before": "1"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert _state(con, task["id"])["review_status"] == "corrected"
+
+
+def test_zatwierdzenie_po_cofnieciu_pamieta_dawna_poprawke(client, con, task):
+    """Rekord raz poprawiony ręcznie nie staje się trafieniem parsera przez to,
+    że ktoś cofnął go do korekty i zatwierdził ponownie."""
+    _post(client, task, action="approve",
+          **_full(task, **{f"criterion.{task['criterion']}.label": "poprawiona"}))
+    assert _state(con, task["id"])["review_status"] == "corrected"
+
+    _post(client, task, action="reopen")
+    _post(client, task, action="approve")
+
+    assert _state(con, task["id"])["review_status"] == "corrected"
+
+
+def test_punktacja_poza_zakresem_typu_wraca_jako_komunikat(client, con, task):
+    """Smallint odrzuca 99999 klasą błędu 22, nie 23 — bez tej gałęzi cały
+    formularz przepadał z odpowiedzią 500."""
+    response = _post(client, task, action="approve",
+                     **_full(task, **{f"criterion.{task['criterion']}.points": "99999"}))
+
+    assert response.status_code == 422
+    assert "za duża" in response.text
+    assert _state(con, task["id"])["review_status"] == "pending"
+
+
+def test_zdublowany_numer_zadania_wskazuje_wlasciwa_tabele(client, con, task):
+    """Jeden komunikat na każdy UNIQUE kierowałby tu do kryteriów."""
+    con.execute("INSERT INTO task (marking_scheme_id, number, position, max_points, "
+                "kind) SELECT marking_scheme_id, '21', 21, 2, 'open_short' FROM task "
+                "WHERE id = %s", (task["id"],))
+
+    response = _post(client, task, action="approve",
+                     **_full(task, **{"task.number": "21"}))
+
+    assert response.status_code == 422
+    assert "zadanie o takim numerze" in response.text
 
 
 def test_nastepne_do_korekty_prowadzi_do_zadania(client, con, task):

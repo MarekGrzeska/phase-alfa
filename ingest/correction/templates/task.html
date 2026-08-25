@@ -81,6 +81,10 @@
   <form method="post" action="/task/{{ task.id }}">
     <input type="hidden" name="started_at" value="{{ started_at }}">
     {% if page %}<input type="hidden" name="page" value="{{ page }}">{% endif %}
+    {# Poprawki zapisane wcześniej w tej rundzie (dokładanie wiersza zapisuje
+       i przekierowuje). Bez tego zadanie poprawione, a zatwierdzone dopiero po
+       dołożeniu progu, liczyłoby się jako trafienie parsera. #}
+    {% if edited_before %}<input type="hidden" name="edited_before" value="1">{% endif %}
 
     <div class="card">
       <h2>Zadanie</h2>

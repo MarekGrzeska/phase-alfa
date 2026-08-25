@@ -50,13 +50,26 @@ def _started_at(raw: str | None) -> datetime:
 
 def _friendly(exc: psycopg.Error) -> str:
     """Więz bazy → zdanie dla człowieka. Więzy zostają ostre, komunikaty nie."""
+    table = exc.diag.table_name or ""
     if isinstance(exc, psycopg.errors.UniqueViolation):
-        return ("Dwa progi tego zadania mają tę samą punktację. "
-                "Więz UNIQUE (task_id, points) jest tu celowo — złapał już "
-                "prawdziwy błąd w sondzie. Popraw punktację albo usuń jeden próg.")
+        # Rozróżnienie po tabeli, a nie jeden komunikat na każdy UNIQUE:
+        # zdublowany numer zadania kierowałby wtedy do kryteriów.
+        if table == "criterion":
+            return ("Dwa progi tego zadania mają tę samą punktację. Więz "
+                    "UNIQUE (task_id, points) jest tu celowo — złapał już "
+                    "prawdziwy błąd w sondzie. Popraw punktację albo usuń próg.")
+        if table == "task":
+            return "Ten klucz ma już zadanie o takim numerze."
+        return (f"Wiersz łamie unikalność ({exc.diag.constraint_name or 'UNIQUE'})"
+                f"{': ' + exc.diag.message_detail if exc.diag.message_detail else ''}")
     if isinstance(exc, psycopg.errors.CheckViolation):
         return ("Wartość poza zakresem, na który pozwala schemat "
                 f"({exc.diag.constraint_name or 'CHECK'}).")
+    if isinstance(exc, psycopg.DataError):
+        # Np. punktacja rzędu 99999: smallint odrzuca ją klasą 22, a nie 23,
+        # więc bez tej gałęzi cały formularz przepadał z odpowiedzią 500.
+        return ("Liczba jest za duża albo w złym formacie dla tej kolumny "
+                f"({exc.diag.message_primary or exc}).")
     return exc.diag.message_primary or str(exc)
 
 
@@ -94,6 +107,7 @@ def _overlay(task: dict, form: Mapping[str, str]) -> None:
 
 def _render_task(request: Request, cur, task: dict, started_at: datetime,
                  errors: list[str], page: int | None = None,
+                 edited_before: bool = False,
                  status_code: int = 200) -> HTMLResponse:
     source = db.page_source(cur, task["id"]) or {}
     return templates.TemplateResponse(
@@ -109,6 +123,7 @@ def _render_task(request: Request, cur, task: dict, started_at: datetime,
             # widoku — w adresie, nie w JavaScripcie.
             "page": page or task["page"],
             "document_pages": source.get("pages"),
+            "edited_before": edited_before,
         },
         status_code=status_code,
     )
@@ -117,19 +132,26 @@ def _render_task(request: Request, cur, task: dict, started_at: datetime,
 # ----------------------------------------------------------------------- trasy
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, status: str | None = None, year: int | None = None,
-          code: str | None = None) -> HTMLResponse:
-    if status is not None and status not in db.STATUSES:
+def index(request: Request, status: str = "", year: str = "",
+          code: str = "") -> HTMLResponse:
+    # Wszystkie trzy filtry przyjmują TEKST i puste znaczy „wszystkie" — bo tak
+    # wygląda opcja „wszystkie" w formularzu obok. Przy `year: int | None`
+    # własny formularz tej strony wracał z 422, a `status` spoza listy z 400:
+    # jedyny sposób na filtrowanie był ustawić wszystkie trzy naraz.
+    if status and status not in db.STATUSES:
         raise HTTPException(400, f"nieznany status: {status}")
     with db.connect() as con, con.cursor() as cur:
+        selected = {"status": status or None,
+                    "year": int(year) if year.isdigit() else None,
+                    "code": code or None}
         return templates.TemplateResponse(
             request,
             "index.html",
             {
                 "numbers": stats.collect(cur),
-                "tasks": db.list_tasks(cur, status, year, code),
+                "tasks": db.list_tasks(cur, **selected),
                 "options": db.filters(cur),
-                "selected": {"status": status, "year": year, "code": code},
+                "selected": selected,
                 "next_id": db.next_pending(cur),
             },
         )
@@ -145,13 +167,14 @@ def next_task() -> RedirectResponse:
 
 @app.get("/task/{task_id}", response_class=HTMLResponse)
 def task_form(request: Request, task_id: int, started_at: str | None = None,
-              page: int | None = None) -> HTMLResponse:
+              page: int | None = None, edited_before: str = "") -> HTMLResponse:
     with db.connect() as con, con.cursor() as cur:
         task = db.load_task(cur, task_id)
         if task is None:
             raise HTTPException(404, f"nie ma zadania {task_id}")
         return _render_task(request, cur, task, _started_at(started_at),
-                            errors=[], page=page)
+                            errors=[], page=page,
+                            edited_before=edited_before == "1")
 
 
 @app.get("/task/{task_id}/page.png")
@@ -180,6 +203,10 @@ async def task_save(request: Request, task_id: int):
     started_at = _started_at(str(form.get("started_at") or ""))
     shown_page = str(form.get("page") or "")
     shown_page = int(shown_page) if shown_page.isdigit() else None
+    # Poprawki zapisane wcześniej w tej samej rundzie (dokładanie wiersza robi
+    # zapis i przekierowanie). Bez tego zadanie poprawione, a zatwierdzone
+    # dopiero po dołożeniu progu, wchodziło do statystyki jako trafienie parsera.
+    edited_before = str(form.get("edited_before") or "") == "1"
 
     con = db.connect()
     try:
@@ -201,11 +228,13 @@ async def task_save(request: Request, task_id: int):
                     # zadania, a nie od ostatniego kliknięcia.
                     target = f"/task/{task_id}?" + urlencode(
                         {"started_at": started_at.isoformat(),
+                         "edited_before": "1",
                          **({"page": shown_page} if shown_page else {})})
                 else:
-                    db.decide(cur, task_id, action, started_at, changes)
+                    db.decide(cur, task_id, action, started_at, changes,
+                              edited_before=edited_before)
                     target = f"/task/{task_id}" if action == "reopen" else "/next"
-        except (db.ValidationError, psycopg.IntegrityError) as exc:
+        except (db.ValidationError, psycopg.IntegrityError, psycopg.DataError) as exc:
             messages = (exc.messages if isinstance(exc, db.ValidationError)
                         else [_friendly(exc)])
             with con.cursor() as cur:
@@ -214,7 +243,8 @@ async def task_save(request: Request, task_id: int):
                     raise HTTPException(404, f"nie ma zadania {task_id}") from exc
                 _overlay(task, form)
                 return _render_task(request, cur, task, started_at, messages,
-                                    page=shown_page, status_code=422)
+                                    page=shown_page, edited_before=edited_before,
+                                    status_code=422)
         return RedirectResponse(target, status_code=303)
     finally:
         con.close()

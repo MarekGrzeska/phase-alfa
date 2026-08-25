@@ -22,11 +22,19 @@ STATUS_LABELS = {
 
 TASK_KINDS = ("closed", "open_short", "open_extended", "essay")
 
-# Kolumny edytowalne w ekranie, per tabela. `required` znaczy NOT NULL
-# w schemacie: puste pole ma zatrzymać zapis, a nie wywalić się na więzie.
 INT_COLUMNS = frozenset({"max_points", "points"})
-REQUIRED_COLUMNS = frozenset({"number", "max_points", "kind", "answer",
-                              "description", "expression"})
+
+# Kolumny NOT NULL — liczone PER TABELA, nie per nazwa kolumny. `description`
+# jest wymagane w `criterion_condition`, ale NULL-owalne w `criterion`, gdzie
+# parser zostawia je puste przy każdym progu z wypunktowanymi warunkami. Zbiór
+# po samych nazwach kolumn traktował oba tak samo i zamykał drogę do
+# zatwierdzenia większości zadań otwartych.
+REQUIRED = {
+    "task": frozenset({"number", "max_points", "kind"}),
+    "model_answer": frozenset({"answer"}),
+    "criterion_condition": frozenset({"description"}),
+    "condition_expression": frozenset({"expression"}),
+}
 
 # Przynależność wiersza do zadania — pisana raz i wstrzykiwana do każdego
 # UPDATE/DELETE. Bez tego podmieniony identyfikator w formularzu sięgałby
@@ -125,6 +133,35 @@ def next_pending(cur) -> int | None:
 
 # --------------------------------------------------------------- jedno zadanie
 
+def _task_ordinal(number: str | None) -> int | None:
+    """Numer główny zadania: `16` → 16, `4.1` → 4. Zakresy reguł idą po nim."""
+    if number is None:
+        return None
+    head = str(number).split(".")[0].strip()
+    return int(head) if head.isdigit() else None
+
+
+def rule_applies(rule: Mapping[str, Any], number: str) -> bool:
+    """Czy reguła arkusza obowiązuje to zadanie.
+
+    Porównanie musi być LICZBOWE. Zakres „16–21" obejmuje też 18, a dopasowanie
+    po krańcach widziało wyłącznie 16 i 21 — czyli reguła „sam poprawny wynik
+    to 0 punktów" znikała z ekranu przy większości zadań, których dotyczy.
+    Numer bez sensownej części liczbowej pokazuje regułę, zamiast ją chować:
+    kontekst za dużo jest tańszy niż kryterium ocenione bez reguły.
+    """
+    start = _task_ordinal(rule.get("tasks_from"))
+    end = _task_ordinal(rule.get("tasks_to"))
+    if start is None and end is None:
+        return True
+    here = _task_ordinal(number)
+    if here is None:
+        return False
+    if start is not None and here < start:
+        return False
+    return not (end is not None and here > end)
+
+
 def load_task(cur, task_id: int) -> dict | None:
     """Zadanie z kompletem tego, co ekran pokazuje i co wolno edytować."""
     cur.execute(
@@ -217,16 +254,14 @@ def load_task(cur, task_id: int) -> dict | None:
     )
     task["solutions"] = cur.fetchall()
 
-    # Reguły przekrojowe z zakresem obejmującym to zadanie — kontekst, nie
-    # przedmiot edycji: wiszą na arkuszu, więc poprawia się je razem z nim.
+    # Reguły przekrojowe obejmujące to zadanie — kontekst, nie przedmiot edycji:
+    # wiszą na arkuszu, więc poprawia się je razem z arkuszem.
     cur.execute(
         """SELECT id, kind, content, tasks_from, tasks_to FROM rule
-           WHERE marking_scheme_id = %s
-             AND (tasks_from IS NULL OR tasks_from = %s OR tasks_to = %s)
-           ORDER BY position LIMIT 20""",
-        (task["document_id"], task["number"], task["number"]),
+           WHERE marking_scheme_id = %s ORDER BY position""",
+        (task["document_id"],),
     )
-    task["rules"] = cur.fetchall()
+    task["rules"] = [r for r in cur.fetchall() if rule_applies(r, task["number"])]
     task["versions"] = versions
     return task
 
@@ -326,15 +361,41 @@ def save(cur, task_id: int, form: Mapping[str, str]) -> dict[str, dict[str, int]
     deleted: dict[str, int] = {}
     problems: list[str] = []
 
+    skips = _rows_to_vanish(cur, task_id, form)
     _delete_rows(cur, task_id, form, deleted)
     _save_task_row(cur, task_id, form, edited, problems)
     for prefix, (table, columns) in EDITABLE.items():
-        _save_rows(cur, task_id, form, prefix, table, columns, edited, problems)
+        _save_rows(cur, task_id, form, prefix, table, columns, skips[prefix],
+                   edited, problems)
     _save_requirements(cur, task_id, form, edited, deleted)
 
     if problems:
         raise ValidationError(problems)
     return {"edited": edited, "deleted": deleted}
+
+
+def _rows_to_vanish(cur, task_id: int, form: Mapping[str, str]) -> dict[str, set[int]]:
+    """Wiersze, których po tym zapisie nie będzie — zaznaczone i te z kaskady.
+
+    Kasowanie progu zabiera jego warunki, a warunku — jego zapisy. Formularz
+    nadal je przysyła, bo przeglądarka wysyła całą stronę: bez tej listy
+    walidacja szukałaby ich w bazie, nie znajdowała i zgłaszała jako cudze,
+    czyli usunięcie progu nie mogłoby się nigdy udać.
+    """
+    skips = {prefix: _deleted_ids(form, prefix) for prefix in EDITABLE}
+    if skips["version"]:
+        cur.execute("SELECT id FROM model_answer WHERE task_version_id = ANY(%s)",
+                    (list(skips["version"]),))
+        skips["answer"] |= {r["id"] for r in cur.fetchall()}
+    if skips["criterion"]:
+        cur.execute("SELECT id FROM criterion_condition WHERE criterion_id = ANY(%s)",
+                    (list(skips["criterion"]),))
+        skips["condition"] |= {r["id"] for r in cur.fetchall()}
+    if skips["condition"]:
+        cur.execute("SELECT id FROM condition_expression WHERE condition_id = ANY(%s)",
+                    (list(skips["condition"]),))
+        skips["expression"] |= {r["id"] for r in cur.fetchall()}
+    return skips
 
 
 def _delete_rows(cur, task_id: int, form: Mapping[str, str],
@@ -387,15 +448,15 @@ def _save_task_row(cur, task_id: int, form: Mapping[str, str],
 
 
 def _save_rows(cur, task_id: int, form: Mapping[str, str], prefix: str, table: str,
-               columns: tuple[str, ...], edited: dict[str, int],
+               columns: tuple[str, ...], skip: set[int], edited: dict[str, int],
                problems: list[str]) -> None:
     submitted = _submitted_rows(form, prefix, columns)
     if not submitted:
         return
-    skip = _deleted_ids(form, prefix)
     wanted = [rid for rid in submitted if rid not in skip]
     if not wanted:
         return
+    required = REQUIRED.get(table, frozenset())
 
     cur.execute(
         f"SELECT id, {', '.join(columns)} FROM {table} "  # noqa: S608
@@ -417,7 +478,7 @@ def _save_rows(cur, task_id: int, form: Mapping[str, str], prefix: str, table: s
             if raw is None:
                 new[column] = old[column]
                 continue
-            if column in REQUIRED_COLUMNS and not raw.strip():
+            if column in required and not raw.strip():
                 problems.append(f"{table} #{row_id}, pole {column}: nie może być "
                                 "puste — usuń wiersz, jeśli jest zbędny.")
                 break
@@ -514,20 +575,35 @@ def add_expression(cur, task_id: int, condition_id: int) -> None:
 
 # ------------------------------------------------------------ rozstrzygnięcie
 
+def was_corrected(cur, task_id: int) -> bool:
+    """Czy ten rekord był już kiedyś poprawiany ręcznie — wprost z dziennika."""
+    cur.execute(
+        """SELECT EXISTS (SELECT 1 FROM correction_event
+                          WHERE task_id = %s AND action = 'correct') AS found""",
+        (task_id,),
+    )
+    return cur.fetchone()["found"]
+
+
 # Decyzja człowieka → status zadania. `approve` rozdwaja się na dwa stany
 # w zależności od tego, czy coś poprawił — i to jest cała mechanika S6/S8.
-def decide(cur, task_id: int, action: str, started_at, changes: dict) -> str:
-    edited = changes.get("edited") or {}
-    deleted = changes.get("deleted") or {}
-    touched = bool(edited or deleted)
+def decide(cur, task_id: int, action: str, started_at, changes: dict,
+           edited_before: bool = False) -> str:
+    changed_now = bool(changes.get("edited") or changes.get("deleted"))
 
     if action == "reopen":
         status, event = "pending", "reopen"
     elif action == "reject":
         status, event = "rejected", "reject"
     elif action == "approve":
-        status = "corrected" if touched else "approved"
-        event = "correct" if touched else "approve"
+        # `approved` znaczy „parser trafił sam" i wyłącznie to. Poprawka zapisana
+        # wcześniej — przy dokładaniu wiersza albo w rundzie przed cofnięciem
+        # do korekty — nie znika z historii rekordu, więc nie ma prawa zniknąć
+        # z pomiaru: inaczej S6/S8 rośnie za każdym razem, gdy ktoś dwa razy
+        # kliknie, a to na tej liczbie stoi decyzja o zaworze z G2.2.2.
+        by_hand = changed_now or edited_before or was_corrected(cur, task_id)
+        status = "corrected" if by_hand else "approved"
+        event = "correct" if by_hand else "approve"
     else:
         raise ValidationError([f"Nieznane rozstrzygnięcie: [{action}]."])
 
@@ -540,6 +616,6 @@ def decide(cur, task_id: int, action: str, started_at, changes: dict) -> str:
     cur.execute(
         """INSERT INTO correction_event (task_id, action, started_at, fields_changed)
            VALUES (%s, %s, %s, %s)""",
-        (task_id, event, started_at, Jsonb(changes) if touched else None),
+        (task_id, event, started_at, Jsonb(changes) if changed_now else None),
     )
     return status
