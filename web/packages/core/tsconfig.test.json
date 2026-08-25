@@ -1,0 +1,10 @@
+{
+  // Testy dostają `@types/node`, bo strażnik zero-DOM czyta `package.json`
+  // i pliki źródłowe z dysku. Produkt tych typów NIE dostaje — pilnuje tego
+  // `tsconfig.json`, który obejmuje wyłącznie `src`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["test"]
+}

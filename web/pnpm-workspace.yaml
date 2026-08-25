@@ -1,3 +1,12 @@
 packages:
   - 'packages/*'
   - 'apps/*'
+
+allowBuilds:
+  esbuild: set this to true or false
+
+# Vite woła binarke esbuilda, wiec jego skrypt instalacyjny musi sie wykonac.
+# pnpm 11 blokuje je domyslnie; lista tutaj (a nie `pnpm approve-builds`) sprawia,
+# ze CI i maszyna deweloperska instaluja tak samo.
+onlyBuiltDependencies:
+  - esbuild

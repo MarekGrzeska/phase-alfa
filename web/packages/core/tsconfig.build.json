@@ -1,0 +1,12 @@
+{
+  // Osobny build dowodzi, że `core` kompiluje się SAM — bez Vite, bez Reacta
+  // i bez reszty workspace'u. To jest ta rzecz, za którą alfa płaci z góry:
+  // faza 2 (React Native) bierze ten pakiet bez zmian.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}

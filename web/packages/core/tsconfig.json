@@ -1,0 +1,21 @@
+{
+  // Konfiguracja SAMEGO produktu — to ona jest warstwą 1 zero-DOM.
+  // Testy mają własną (`tsconfig.test.json`), bo strażnik musi czytać pliki
+  // i potrzebuje do tego `@types/node`.
+  "compilerOptions": {
+    "target": "ES2022",
+    // BEZ "DOM" — `document`, `window` i `navigator` nie istnieją tu w typach.
+    "lib": ["ES2022"],
+    // Pusta lista, a nie brak klucza: brak wciąga WSZYSTKIE @types z node_modules,
+    // czyli także `@types/node` z sąsiedniego pakietu — i `process` wraca do typów.
+    "types": [],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src"]
+}
