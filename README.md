@@ -18,7 +18,7 @@ Kontraktem między warstwami jest **schemat bazy plus pliki JSON golden setu**, 
 | Kamień | Zakres | Status |
 |---|---|---|
 | **A1** | Szkielet: monorepo, Postgres w Dockerze, monolit C# z granicami modułów, OpenAPI → klient TS, CI | G1.1 ✓ · G1.2 ✓ · G1.3 ✓ · G1.4 ✓ · G1.5 ✓ |
-| A2 | Korpus: ekran korekty → parser OMAP E8 2019–2026 → zatwierdzone rekordy w bazie | |
+| **A2** | Korpus: ekran korekty → parser OMAP E8 2019–2026 → zatwierdzone rekordy w bazie | G2.1 ✓ |
 | A3 | Grading: pipeline 5 kroków, golden set, benchmark, macierz eksperymentów | |
 | A4 / W4 | Sesja zadań, mapa braków, telemetria, sprawdzian od zera | |
 
@@ -28,6 +28,7 @@ Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 ## Plany i przeglądy
 
 - [`docs/plan-A1.md`](docs/plan-A1.md) — szczegółowy plan implementacji **G1.1–G1.5** (kamień A1)
+- [`docs/plan-A2.md`](docs/plan-A2.md) — szczegółowy plan implementacji **G2.1–G2.7 + W2** (kamień A2)
 - [`ingest/README.md`](ingest/README.md) · [`backend/README.md`](backend/README.md) · [`web/README.md`](web/README.md) — jak uruchomić i czego pilnują bramki w każdej z warstw
 - [`docs/g1.2-ingest.html`](docs/g1.2-ingest.html) — **G1.2** ingest: co powstało, co osiąga, jak podłączyć się do bazy DBeaverem
 - [`docs/review/`](docs/review/) — przeglądy kodu (G1.1–G1.4); plan mówi, co miało powstać, przegląd — co z tego wyszło
@@ -74,6 +75,8 @@ task up        # docker compose up -d + migracje schematu
 task dev       # dotnet watch + vite dev server
 task test      # testy: architektura, zero-DOM, regresja parsera, więzy schematu
 task ingest    # przebieg parsera (po A2)
+task correction        # ekran korekty — bramka między parserem a korpusem (G2.1)
+task correction:report # pomiar S8: stan korekty, czasy, prognoza
 task bench     # benchmark golden setu (po A3)
 ```
 

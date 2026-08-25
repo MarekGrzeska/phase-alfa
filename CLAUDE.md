@@ -244,7 +244,9 @@ task up        # Postgres + Azurite (emulator Azure Blob) + migracje schematu
 task dev       # dotnet watch + vite (od G1.3/G1.4)
 task test      # architektura, zero-DOM, regresja parsera, więzy schematu
 task db:reset  # baza od zera (kasuje wolumen)
-task ingest    # przebieg parsera (od A2)
+task ingest    # przebieg parsera (od A2) — klucze po korekcie pomija
+task correction        # ekran korekty: rekord staje się korpusem (od G2.1)
+task correction:report # pomiar S8: stan korekty, mediana czasu, prognoza
 task bench     # benchmark golden setu (od A3)
 ```
 

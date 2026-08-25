@@ -69,11 +69,27 @@ ROLA_DOKUMENTU = {
 RE_WLASNA_FORMA = re.compile(r"([A-Z]{4})-((?:[A-Z]\d-)?[A-Z0-9]{3})")
 
 
+class ReviewedKeyError(RuntimeError):
+    """Klucz ma zadania po korekcie — przeładowanie skasowałoby pracę człowieka."""
+
+    def __init__(self, url: str, reviewed: int) -> None:
+        self.url = url
+        self.reviewed = reviewed
+        super().__init__(
+            f"{url}: zadań po korekcie {reviewed}. Przeładowanie klucza kasuje jego "
+            "zadania razem z rozstrzygnięciami. Jeśli o to właśnie chodzi — "
+            "--overwrite-reviewed."
+        )
+
+
 class Ladowarka:
     """Wstawia rekordy z `parser.Klucz` do bazy, pilnując wspólnych słowników."""
 
-    def __init__(self, con):
+    def __init__(self, con, overwrite_reviewed: bool = False):
         self.con = con
+        # Domyślnie ładowarka ODMAWIA skasowania korekty. Zgoda jest jawna
+        # i przechodzi tędy z `--overwrite-reviewed`.
+        self.overwrite_reviewed = overwrite_reviewed
         self._rezimy: dict[str, int] = {}
         self._formy: dict[tuple, int] = {}
         self._wymagania: dict[tuple, tuple[int, str]] = {}
@@ -195,6 +211,17 @@ class Ladowarka:
         if wiersz is None:
             return
         (doc_id,) = wiersz
+        # Bramka stoi TUTAJ, tuż przed DELETE, a nie w wywołującym: to jedyne
+        # miejsce w kodzie, w którym rozstrzygnięcia człowieka znikają, więc
+        # ochrona ma obowiązywać każdą drogę do niego — runner, testy, ekran.
+        cur.execute(
+            """SELECT count(*) FROM task
+               WHERE marking_scheme_id = %s AND review_status <> 'pending'""",
+            (doc_id,),
+        )
+        (reviewed,) = cur.fetchone()
+        if reviewed and not self.overwrite_reviewed:
+            raise ReviewedKeyError(url, reviewed)
         cur.execute("DELETE FROM task WHERE marking_scheme_id = %s", (doc_id,))
         cur.execute("DELETE FROM rule WHERE marking_scheme_id = %s", (doc_id,))
         cur.execute("DELETE FROM exam_form_document WHERE document_id = %s", (doc_id,))
@@ -218,8 +245,12 @@ class Ladowarka:
                (segment, year, code, variants, session, kind, kind_source,
                 url, path, pages)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+               -- `ingest_status` wraca do 'new', bo zadania tego klucza wlasnie
+               -- zniknely i wchodza od nowa jako `pending`. Bez tego przeladowany
+               -- klucz zostawalby 'approved' o zadaniach, ktorych nikt nie widzial.
                ON CONFLICT (url) DO UPDATE SET path = EXCLUDED.path,
-                                               pages = EXCLUDED.pages
+                                               pages = EXCLUDED.pages,
+                                               ingest_status = 'new'
                RETURNING id""",
             (meta["segment"], int(meta["rocznik"]), meta["kod"],
              meta.get("warianty"), sesja, "marking_scheme",
@@ -312,10 +343,14 @@ class Ladowarka:
                        wersje_wlasne, arkusze, arkusz_ids, stat,
                        sesja: str, wariant: str) -> None:
         cur.execute(
+            # `page` to strona w KLUCZU — ekran korekty renderuje właśnie ją,
+            # bo sprawdza kryteria przeciwko dokumentowi, z którego wyszły.
+            # `task_version.page` bywa stroną w arkuszu i wtedy nie odpowiada
+            # na to pytanie (migracja 0004).
             """INSERT INTO task
-               (marking_scheme_id, number, position, max_points, kind)
-               VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-            (klucz_doc, z.numer, z.kolejnosc, z.punkty, TYP_ZADANIA[z.typ]),
+               (marking_scheme_id, number, position, max_points, kind, page)
+               VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+            (klucz_doc, z.numer, z.kolejnosc, z.punkty, TYP_ZADANIA[z.typ], z.strona),
         )
         (zid,) = cur.fetchone()
         stat["zadan"] += 1

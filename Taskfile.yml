@@ -218,6 +218,22 @@ tasks:
     dir: ingest
     cmds: ['{{.PY}} -m parsers.omap_e8.run {{.CLI_ARGS}}']
 
+  # ------------------------------------------------------------------ korekta
+  # `--host 127.0.0.1` jawnie, mimo że to domyślna wartość uvicorna: ekran
+  # edytuje korpus bez żadnego uwierzytelnienia, więc „tylko localhost" jest
+  # tu decyzją, a nie przypadkiem konfiguracji, którą wolno cicho zmienić.
+  correction:
+    desc: Ekran korekty na localhoście (G2.1)
+    dir: ingest
+    cmds:
+      - cmd: 'echo "Ekran korekty: http://localhost:${CORRECTION_PORT:-8600}"'
+      - '{{.PY}} -m uvicorn correction.app:app --host 127.0.0.1 --port ${CORRECTION_PORT:-8600} --reload'
+
+  correction:report:
+    desc: Raport korekty (S8) — stan, czasy, prognoza — do data/reports/
+    dir: ingest
+    cmds: ['{{.PY}} -m correction.report {{.CLI_ARGS}}']
+
   bench:
     desc: Benchmark golden setu (A3)
     cmds:

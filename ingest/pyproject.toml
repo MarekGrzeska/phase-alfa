@@ -10,10 +10,28 @@ dependencies = [
     # G1.2 dolozy: pdfplumber (MIT), pypdf (BSD), cryptography
     # (jeden klucz w korpusie jest zaszyfrowany AES z pustym haslem wlasciciela)
     "pypdf>=5",
+    # --- G2.1: ekran korekty ---
+    # Licencje sprawdzone 25.08.2026, wszystkie permisywne: fastapi/starlette (MIT),
+    # uvicorn (BSD-3), jinja2 (BSD-3), python-multipart (Apache-2.0),
+    # pypdfium2 (Apache-2.0/BSD-3), pillow (MIT-CMU).
+    #
+    # pypdfium2, a NIE PyMuPDF: AGPL-3.0 uruchamia obowiazek udostepnienia zrodel
+    # w modelu SaaS (DECYZJE.md, sekcja 1). Render strony to jedyne, czego ekran
+    # potrzebuje, wiec nie ma powodu wpuszczac tu tej licencji.
+    "fastapi>=0.115",
+    "jinja2>=3.1",
+    "pillow>=10",
+    "pypdfium2>=4",
+    "python-multipart>=0.0.9",
+    "uvicorn>=0.30",
 ]
 
 [project.optional-dependencies]
 dev = [
+    # TestClient Starlette stoi na kliencie HTTP — bez tego testy ekranu nie maja
+    # czym wolac aplikacji. httpx2, bo starlette 1.x zglasza uzycie httpx 0.x jako
+    # przestarzale, a ostrzezenie w logu CI jest dlugiem, nie tlem.
+    "httpx2>=2",
     "pytest>=8.0",
     "ruff>=0.6",
 ]

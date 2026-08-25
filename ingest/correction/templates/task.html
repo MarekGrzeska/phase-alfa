@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Zadanie {{ task.number }}{% endblock %}
+{% block subtitle %}
+  <span class="mono">{{ task.code }} · {{ task.session }}</span> ·
+  zadanie {{ task.number }} ·
+  <span class="tag {{ task.review_status }}">{{ STATUS_LABELS[task.review_status] }}</span>
+{% endblock %}
+{% block actions %}
+  {% if nav.previous %}<a href="/task/{{ nav.previous }}">← poprzednie</a>{% endif %}
+  {% if nav.next %}<a href="/task/{{ nav.next }}">następne →</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+  .split { display: grid; grid-template-columns: minmax(320px, 44%) 1fr; gap: 1rem; align-items: start; }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+  .viewer { position: sticky; top: 4rem; }
+  .viewer img { width: 100%; border: 1px solid var(--rule); border-radius: 3px; background: #fff; }
+  .criterion { border: 1px solid var(--rule); border-radius: 3px; padding: .6rem; margin-bottom: .7rem; }
+  .condition { border-left: 2px solid var(--rule); padding: .4rem 0 .4rem .6rem; margin: .5rem 0; }
+  .expression { display: flex; gap: .4rem; align-items: center; margin: .25rem 0; }
+  .expression input { flex: 1; }
+  .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+  .del { font-size: .75rem; color: var(--crit); white-space: nowrap; }
+  .decide { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center;
+            position: sticky; bottom: 0; background: var(--surface);
+            border-top: 1px solid var(--rule); padding: .7rem 0; }
+</style>
+
+<div class="split">
+  <div class="viewer">
+    <div class="card">
+      <h2>Klucz — strona {{ page or '—' }}{% if document_pages %} z {{ document_pages }}{% endif %}</h2>
+      {% if page %}
+        <img src="/task/{{ task.id }}/page.png?n={{ page }}"
+             alt="strona {{ page }} klucza {{ task.code }}">
+        <p class="small" style="margin:.5rem 0 0">
+          {% if page > 1 %}
+            <a href="/task/{{ task.id }}?page={{ page - 1 }}&amp;started_at={{ started_at }}">← strona {{ page - 1 }}</a>
+          {% endif %}
+          {% if not document_pages or page < document_pages %}
+            <a href="/task/{{ task.id }}?page={{ page + 1 }}&amp;started_at={{ started_at }}">strona {{ page + 1 }} →</a>
+          {% endif %}
+          <span class="mono">{{ task.document_path }}</span>
+        </p>
+      {% else %}
+        <p class="small">
+          Ten klucz wczytano razem z arkuszami przed migracją 0004, więc numer
+          strony w KLUCZU nie został zapisany (<span class="mono">task.page</span> jest puste).
+          Przeładuj go poleceniem <span class="mono">task ingest</span>, żeby odzyskać podgląd.
+        </p>
+      {% endif %}
+    </div>
+
+    {% if task.solutions %}
+    <div class="card">
+      <h2>Rozwiązania przykładowe <span class="small">(z klucza, tylko do wglądu)</span></h2>
+      {% for s in task.solutions %}
+        <h3>{{ s.method or 'sposób' }} · {{ s.points }} pkt</h3>
+        <p class="small">{{ s.content }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if task.rules %}
+    <div class="card">
+      <h2>Reguły arkusza w zakresie tego zadania</h2>
+      {% for r in task.rules %}
+        <p class="small"><span class="tag">{{ r.kind }}</span>
+          {% if r.tasks_from %}<span class="mono">{{ r.tasks_from }}–{{ r.tasks_to }}</span>{% endif %}
+          {{ r.content }}</p>
+      {% endfor %}
+      <p class="small" style="margin-bottom:0">
+        Reguły wiszą na arkuszu, nie na zadaniu — poprawia się je razem z arkuszem,
+        więc tutaj są tylko kontekstem oceny.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+  <form method="post" action="/task/{{ task.id }}">
+    <input type="hidden" name="started_at" value="{{ started_at }}">
+    {% if page %}<input type="hidden" name="page" value="{{ page }}">{% endif %}
+    {# Poprawki zapisane wcześniej w tej rundzie (dokładanie wiersza zapisuje
+       i przekierowuje). Bez tego zadanie poprawione, a zatwierdzone dopiero po
+       dołożeniu progu, liczyłoby się jako trafienie parsera. #}
+    {% if edited_before %}<input type="hidden" name="edited_before" value="1">{% endif %}
+
+    <div class="card">
+      <h2>Zadanie</h2>
+      <div class="row">
+        <label>numer <input name="task.number" value="{{ task.number }}" size="6"></label>
+        <label>pula punktów
+          <input name="task.max_points" value="{{ task.max_points }}" size="4" inputmode="numeric"></label>
+        <label>rodzaj
+          <select name="task.kind">
+            {% for k in TASK_KINDS %}
+              <option value="{{ k }}" {% if task.kind == k %}selected{% endif %}>{{ k }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Wersje i odpowiedzi wzorcowe</h2>
+      {% for v in task.versions %}
+        <h3 class="mono">{{ v.code }}-{{ v.variant }}{% if v.version %} wersja {{ v.version }}{% endif %}</h3>
+        <textarea name="version.{{ v.id }}.content" rows="3"
+                  placeholder="treść zadania — pusta, dopóki ingest nie doczytał arkusza">{{ v.content or '' }}</textarea>
+        {% for a in v.answers %}
+          <div class="row" style="margin:.3rem 0">
+            <span class="small">odpowiedź{% if a.part %} ({{ a.part }}){% endif %}</span>
+            <input name="answer.{{ a.id }}.answer" value="{{ a.answer }}" size="16">
+            <label class="del"><input type="checkbox" name="delete.answer.{{ a.id }}" value="1"> usuń</label>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="small">Zadanie nie ma ani jednej wersji — to błąd ładowania, nie korekty.</p>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <h2>Kryteria <span class="small">próg → warunek → zapis równoważny</span></h2>
+      {% for c in task.criteria %}
+        <div class="criterion">
+          <div class="row">
+            <label><input name="criterion.{{ c.id }}.points" value="{{ c.points }}"
+                          size="3" inputmode="numeric"> pkt</label>
+            <input name="criterion.{{ c.id }}.label" value="{{ c.label or '' }}"
+                   placeholder="etykieta progu, np. pełne rozwiązanie" size="34">
+            <label class="del"><input type="checkbox" name="delete.criterion.{{ c.id }}" value="1"> usuń próg</label>
+            {# Ostrzeżenie, nie więz: schemat świadomie na to pozwala, bo taki zapis
+               stoi w prawdziwym kluczu CKE (OMAP-900-2105, literówka komisji).
+               Chodzi o to, żeby człowiek nie zrobił tego samego przez pomyłkę. #}
+            {% if c.points is not none and c.points|int > task.max_points|int %}
+              <span class="tag" style="color:var(--warn);border-color:var(--warn)"
+                    title="Sekcja SPÓJNOŚĆ w raporcie ingestu też to pokaże">próg ponad pulą zadania</span>
+            {% endif %}
+          </div>
+          <textarea name="criterion.{{ c.id }}.description" rows="2"
+                    placeholder="treść progu, gdy klucz nie wypunktowuje warunków">{{ c.description or '' }}</textarea>
+
+          {% for cc in c.conditions %}
+            <div class="condition">
+              <div class="row">
+                <textarea name="condition.{{ cc.id }}.description" rows="2"
+                          placeholder="warunek — spełnienie DOWOLNEGO daje próg">{{ cc.description }}</textarea>
+                <label class="del"><input type="checkbox" name="delete.condition.{{ cc.id }}" value="1"> usuń warunek</label>
+              </div>
+              {% for e in cc.expressions %}
+                <div class="expression">
+                  <input name="expression.{{ e.id }}.expression" value="{{ e.expression }}"
+                         placeholder="zapis równoważny">
+                  {% if e.mathjson %}<span class="tag">MathJSON</span>{% endif %}
+                  <label class="del"><input type="checkbox" name="delete.expression.{{ e.id }}" value="1"> usuń</label>
+                </div>
+              {% endfor %}
+              <button name="action" value="add:expression:{{ cc.id }}" class="small">+ zapis równoważny</button>
+            </div>
+          {% endfor %}
+          <button name="action" value="add:condition:{{ c.id }}" class="small">+ warunek</button>
+        </div>
+      {% else %}
+        <p class="small">
+          Brak kryteriów. Dla zadań zamkniętych rocznika 2019 to norma dokumentu,
+          nie brak parsera — klucz nie ma wtedy sekcji kryteriów w ogóle.
+        </p>
+      {% endfor %}
+      <button name="action" value="add:criterion" class="small">+ próg punktowy</button>
+    </div>
+
+    <div class="card">
+      <h2>Wymagania podstawy programowej</h2>
+      {% for r in task.requirements %}
+        <div class="row" style="margin:.2rem 0">
+          <span class="tag">{{ r.regime }}</span>
+          <span class="mono">{{ r.kind }} {{ r.stage or '' }} {{ r.path }}</span>
+          <span class="small">{{ r.content[:90] }}</span>
+          <label class="del"><input type="checkbox" name="delete.requirement.{{ r.id }}" value="1"> odepnij</label>
+        </div>
+      {% else %}
+        <p class="small">Zadanie bez wymagania — mapa braków go nie zobaczy.</p>
+      {% endfor %}
+      <div class="row" style="margin-top:.5rem">
+        <select name="add_requirement">
+          <option value="">— dopnij wymaganie —</option>
+          {% for r in requirements %}
+            <option value="{{ r.id }}">{{ r.regime }} · {{ r.kind }} {{ r.stage or '' }} {{ r.path }} — {{ r.content[:70] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="decide">
+      <button name="action" value="approve" class="primary">Zatwierdź</button>
+      <button name="action" value="reject" class="danger">Odrzuć</button>
+      {% if task.review_status != 'pending' %}
+        <button name="action" value="reopen">Cofnij do korekty</button>
+      {% endif %}
+      <span class="small">
+        „Zatwierdź" zapisuje poprawki i rozstrzyga. Status wychodzi z porównania
+        z bazą, nie z deklaracji: bez zmian —
+        <span class="tag approved">zatwierdzone</span>, ze zmianami —
+        <span class="tag corrected">poprawione</span>.
+      </span>
+    </div>
+  </form>
+</div>
+{% endblock %}
