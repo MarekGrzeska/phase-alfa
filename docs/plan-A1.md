@@ -720,6 +720,15 @@ Zadanie `python` odpala usługę Postgresa i test integracyjny na jednym kluczu
 
 1. Cztery zadania, każde z cache'em; `concurrency` z `cancel-in-progress: true`,
    żeby kolejny push ubijał poprzedni przebieg (oszczędność minut).
+
+   > **Poprawka z implementacji.** Wyzwalacz `push: ['**']` razem z `pull_request`
+   > odpalał DWA przebiegi tego samego commita, gdy gałąź miała otwarty PR — czyli
+   > podwójny rachunek za tę samą informację. Jest więc `push` tylko na `main`
+   > plus `pull_request`. `cancel-in-progress` obowiązuje wyłącznie na PR-ach:
+   > na `main` każdy przebieg opisuje stan, który zostaje, więc nie wolno go ubijać.
+   > Do cache'u NuGeta dochodzą wersjonowane `packages.lock.json` i
+   > `dotnet restore --locked-mode` — inaczej „cache" nie miałby stabilnego klucza,
+   > a restore nie miałby czego pilnować.
 2. `permissions: contents: read` — minimalne uprawnienia tokena.
 3. Ochrona gałęzi `main`: wymagane przejście wszystkich czterech zadań.
 4. **Sprawdzian klonu od zera** — raz, ręcznie, przed zamknięciem A1:

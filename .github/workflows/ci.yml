@@ -9,10 +9,26 @@
 # zrzuty stron w `ingest/tests/fixtures/`.
 name: CI
 
+# `push` tylko na `main`, reszta przez `pull_request`. Wczesniej bylo
+# `branches: ['**']`, wiec kazdy push do galezi z otwartym PR-em odpalal DWA
+# przebiegi po cztery zadania — te same testy, ten sam commit, podwojny rachunek.
+# Repozytorium jest prywatne, wiec minuty licza sie do limitu konta (plan G1.5).
 on:
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
+
+# Kolejny push do galezi ubija poprzedni przebieg tej samej galezi — zadania
+# licza sie do limitu, a wynik dla nieaktualnego commita nikogo nie obchodzi.
+# Na `main` NIE anulujemy: tam kazdy przebieg opisuje stan, ktory zostaje.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Token tylko do odczytu. Zadne zadanie nie pisze do repozytorium ani nie wystawia
+# artefaktow — a domyslne uprawnienia sa szersze, niz ktorekolwiek z nich potrzebuje.
+permissions:
+  contents: read
 
 jobs:
   python:
@@ -100,15 +116,25 @@ jobs:
       - uses: actions/checkout@v4
 
       # Wersja SDK z `backend/global.json` — CI i maszyna budują tym samym.
+      # Cache pakietow trzyma sie `packages.lock.json`: zmiana wersji w
+      # `Directory.Packages.props` przelicza lockfile'e, a te sa kluczem cache'u.
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: backend/global.json
+          cache: true
+          cache-dependency-path: backend/**/packages.lock.json
+
+      # `--locked-mode`: przywracamy DOKLADNIE to, co stoi w `packages.lock.json`.
+      # Pakiet dodany bez zacommitowania lockfile'a konczy sie tu bledem NU1004,
+      # a nie cichym pobraniem czegos innego niz na maszynie autora.
+      - name: Przywrocenie pakietow
+        run: dotnet restore backend/Klucz.sln --locked-mode
 
       # `SourceRevisionId`: SDK dokleja go do `InformationalVersion` po znaku `+`,
       # a `/health` oddaje wlasnie ta wersje. Bez tego pole `version` bylo stala
       # i nie odrozniało zadnych dwoch buildow.
       - name: Build
-        run: dotnet build backend/Klucz.sln --configuration Release -p:SourceRevisionId=${{ github.sha }}
+        run: dotnet build backend/Klucz.sln --configuration Release --no-restore -p:SourceRevisionId=${{ github.sha }}
 
       - name: Testy
         run: dotnet test backend/Klucz.sln --configuration Release --no-build
@@ -117,7 +143,7 @@ jobs:
     name: typecheck (zero-DOM) + vitest
     runs-on: ubuntu-latest
 
-    # Osobne zadanie od `kontrakt`, bo pyta o co innego: czy warstwa TS sama w sobie
+    # Osobne zadanie od `contract`, bo pyta o co innego: czy warstwa TS sama w sobie
     # jest zdrowa. Zero-DOM egzekwuje tu `tsc` — `packages/core` kompiluje sie bez
     # `lib: DOM`, wiec `document` w tym pakiecie nie przechodzi typecheck'u. Vitest
     # dokłada dwie pozostale warstwy: zabronione zaleznosci i skan zrodel.
@@ -148,7 +174,7 @@ jobs:
       - name: Build
         run: pnpm -C web -r build
 
-  kontrakt:
+  contract:
     name: dryf OpenAPI
     runs-on: ubuntu-latest
 
@@ -160,6 +186,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: backend/global.json
+          cache: true
+          cache-dependency-path: backend/**/packages.lock.json
 
       - uses: pnpm/action-setup@v4
         with:
@@ -181,7 +209,8 @@ jobs:
       # „nie wygenerowano" wyglada tak samo jak „nie ma zmian".
       - name: Bramka dryfu
         run: |
-          dotnet build backend/src/Klucz.Api/Klucz.Api.csproj --no-incremental
+          dotnet restore backend/src/Klucz.Api/Klucz.Api.csproj --locked-mode
+          dotnet build backend/src/Klucz.Api/Klucz.Api.csproj --no-restore --no-incremental
           test -f backend/artifacts/openapi.json || { echo "BRAK ARTEFAKTU: build nie wygenerowal openapi.json"; exit 1; }
           pnpm -C web --filter @klucz/api-client run generate
           test -f web/packages/api-client/src/schema.d.ts || { echo "BRAK ARTEFAKTU: generator nie wygenerowal schema.d.ts"; exit 1; }

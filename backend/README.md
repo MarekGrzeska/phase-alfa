@@ -73,6 +73,18 @@ assembly zapalało się więc dopiero przy commicie, który pakietu **używa** �
 wtedy, gdy granica jest już przekroczona, a test przestaje być granicą i staje się
 protokołem z wypadku.
 
+## Wersje pakietów: `packages.lock.json`
+
+Wersje stoją centralnie w `Directory.Packages.props`, a `RestorePackagesWithLockFile`
+dokłada do każdego projektu **wersjonowany** `packages.lock.json` z pełnym drzewem
+tranzytywnym. CI przywraca pakiety przez `dotnet restore --locked-mode`: przywraca
+DOKŁADNIE to, co w lockfile'ach, i nic innego.
+
+Dodałeś pakiet i nie zacommitowałeś lockfile'a → CI kończy się `NU1004`, zamiast
+po cichu pobrać wersję inną niż na maszynie autora. Lokalnie lockfile'e aktualizują
+się same przy pierwszym `dotnet build` po zmianie wersji — trzeba je tylko dodać
+do commita. Te same pliki są kluczem cache'u NuGeta w CI.
+
 ## Kontrakt: OpenAPI → klient TS
 
 Dokument powstaje **przy buildzie** (`Microsoft.Extensions.ApiDescription.Server`)
