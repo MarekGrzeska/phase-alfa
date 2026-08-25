@@ -1,26 +1,5 @@
 #!/usr/bin/env python3
-"""Ingest całego zakresu — 75 kluczy matematyki E8 do jednej bazy, z raportem.
-
-`tests/test_corpus_load.py` sprawdza model na jednym kluczu. Ten skrypt sprawdza PARSER
-na wszystkim, co jest w mirrorze: ładuje każdy klucz do tej samej bazy
-z włączonymi więzami i mierzy pokrycie — ile zadań, ile z wymaganiami
-podstawy, ile z odpowiedzią, ile z kryteriami. Liczby są tu ważniejsze niż
-zielone „OK": klucz, z którego wyszło 12 zadań zamiast 21, nie wywala
-żadnego więzu, tylko po cichu wnosi do korpusu dziurę.
-
-    task ingest                              # 75 kluczy E8, ~2 min
-    task ingest -- --limit 8                 # szybki przebieg
-    task ingest -- --kod MMAP,EMAP           # matematyka maturalna
-    task ingest -- --szczegoly               # wiersz na każdy klucz
-    task ingest -- --wyczysc                 # wyczyść korpus przed ładowaniem
-
-Kod wyjścia 1, gdy którykolwiek klucz nie przeszedł progów pokrycia — to jest
-test regresji parsera, nie tylko raport.
-
-Baza jest PostgreSQL wskazany przez `.env` (patrz `schema/migrate.py`), a nie
-plik SQLite jak w sondzie. Konsekwencja praktyczna: baza jest TRWAŁA. Drugi
-przebieg dokłada się do pierwszego, chyba że podasz `--wyczysc`.
-"""
+"""Ingest całego zakresu — 75 kluczy matematyki E8 do jednej bazy, z raportem."""
 from __future__ import annotations
 
 import argparse
@@ -43,17 +22,11 @@ for _s in (sys.stdout, sys.stderr):
     if hasattr(_s, "reconfigure"):
         _s.reconfigure(encoding="utf-8", errors="replace")
 
-# Korzeń mirrora i spis — reguła stoi w `sciezki.py`, wspólna dla mirrora,
-# runnera i testów. Wcześniej każdy z nich liczył ją u siebie, z własną liczbą
-# wywołań `dirname` dobraną do swojej głębokości w drzewie.
 ROOT = str(korzen_mirrora())
 URLS = str(spis_urls())
 
-# Progi pokrycia. Nie są ambicją, tylko linią, poniżej której wynik znaczy
-# „parser się rozjechał", a nie „klucz jest ubogi". Zmierzone na korpusie:
-# najkrótszy klucz matematyki E8 (OMAP-800) ma 15 zadań, najdłuższy 21;
-# wymagania podstawy niesie 100% kluczy, więc brak choćby jednego jest
-# sygnałem, że tabela nie została sparowana z zadaniem.
+# Progi to linia, poniżej której wynik znaczy „parser się rozjechał", a nie „klucz
+# jest ubogi": najkrótszy klucz E8 ma 15 zadań, a wymagania niesie 100% kluczy.
 PROG_WYMAGANIA = 0.95        # udział zadań z wymaganiem podstawy
 PROG_ODPOWIEDZI = 0.95       # udział zadań zamkniętych z odpowiedzią wzorcową
 PROG_KRYTERIA = 0.90         # udział zadań otwartych z kryteriami
@@ -95,15 +68,7 @@ def przedmiot(kod: str) -> str:
 
 
 def arkusze_dla(r: dict, wersje, spis) -> dict:
-    """Zeszyty zadań tej samej formy — po jednym na wersję.
-
-    Szukamy ich w `urls.tsv`, nie po nazwie pliku: konwencja nazw zmieniała się
-    trzy razy (`Arkusz_OMAP-100-1904.pdf` → `OMAP-100-X-2505-zeszyt-zadan.pdf`),
-    a spis ma to już rozłożone na kolumny `kod / warianty / sesja / typ`.
-    Brak pliku nie jest błędem — mirror bywa filtrowany, a wersja zadania
-    powstaje i bez treści; klucz mówi, ILE jest wersji, a treść mieszka
-    w zeszycie.
-    """
+    """Zeszyty zadań tej samej formy — po jednym na wersję."""
     wlasny = (r["warianty"] or "").split(",")[0]
     znalezione = {}
     for a in spis:
@@ -116,10 +81,7 @@ def arkusze_dla(r: dict, wersje, spis) -> dict:
         if os.path.exists(os.path.join(ROOT, a["sciezka_lokalna"])):
             znalezione[litera] = {"sciezka": a["sciezka_lokalna"], "url": a["url"]}
 
-    # Wersje w kluczu i litery w nazwach plików nie zawsze się pokrywają:
-    # w 2025 r. zeszyt wariantu 400 nazywa się „…-400-X-2505…", choć klucz
-    # deklaruje dla tej formy jedną wersję bez litery. Gdy zeszyt jest jeden,
-    # należy do tej jedynej wersji — cokolwiek stoi w jego nazwie.
+    # Gdy zeszyt jest jeden, należy do jedynej wersji — cokolwiek stoi w jego nazwie.
     out = {}
     for w in wersje:
         if w in znalezione:
@@ -146,9 +108,8 @@ def main() -> int:
                     help="gdzie zapisać raport (domyślnie data/reports/ingest-RRRR-MM-DD.txt)")
     args = ap.parse_args()
 
-    # Zawężone i dopiero tutaj: `filterwarnings("ignore")` w ciele modułu gasiło
-    # wszystko w całym procesie — także `ResourceWarning` o niezamkniętych
-    # plikach i połączeniach — każdemu, kto ten moduł zaimportuje.
+    # Zawężone i dopiero tutaj: w ciele modułu gasiłoby też `ResourceWarning`, i to
+    # każdemu, kto ten moduł zaimportuje.
     for modul in ("pdfplumber", "pdfminer", "pypdf"):
         warnings.filterwarnings("ignore", category=UserWarning, module=modul)
 
@@ -170,9 +131,8 @@ def main() -> int:
 
     spis_arkuszy = list(wiersze(kody, segmenty, typ="arkusz")) if args.z_arkuszami else []
 
-    # autocommit=True, żeby `con.transaction()` w ładowarce zakładał PRAWDZIWĄ
-    # transakcję na każdy klucz, a nie punkt przywracania wewnątrz jednej
-    # wielkiej — inaczej błąd ostatniego klucza cofa cały przebieg.
+    # autocommit=True, żeby `con.transaction()` zakładał PRAWDZIWĄ transakcję na klucz —
+    # inaczej błąd ostatniego cofa cały przebieg.
     con = psycopg.connect(polaczenie(), autocommit=True)
     if args.wyczysc:
         with con.cursor() as cur:
@@ -222,19 +182,13 @@ def main() -> int:
     try:
         _zapisz_raport(args.raport, con, wyniki, pominiete, bledy, czas, lad)
     finally:
-        # W `finally`, bo raport potrafi się wywalić na zapytaniu — a wtedy
-        # połączenie zostawało otwarte i nikt się o tym nie dowiadywał,
-        # bo `ResourceWarning` było wyciszone.
+        # W `finally`, bo raport potrafi się wywalić na zapytaniu i zostawić połączenie.
         con.close()
     return 1 if bledy or any(w["blad"] for w in wyniki) else 0
 
 
 def _zapisz_raport(sciezka, con, wyniki, pominiete, bledy, czas, lad) -> None:
-    """Ten sam raport na ekran i do pliku — plan G1.2.2 każe go porównać z sondą.
-
-    Porównanie „z pamięci" nie jest porównaniem: raport ma zostać na dysku,
-    żeby dało się do niego wrócić po tygodniu i zobaczyć, co się zmieniło.
-    """
+    """Ten sam raport na ekran i do pliku — plan G1.2.2 każe go porównać z sondą."""
     sciezka = sciezka or (KORZEN_REPO / "data" / "reports"
                           / ("ingest-%s.txt" % time.strftime("%Y-%m-%d")))
     sciezka = Path(sciezka)
@@ -279,10 +233,7 @@ def _ocena(k, stat: dict, r: dict) -> dict:
         uwagi.append("odpowiedzi %.0f%%" % (100 * odp))
     if kryt < PROG_KRYTERIA:
         uwagi.append("kryteria %.0f%%" % (100 * kryt))
-    # Numeracja zadań musi być ciągła: dziura znaczy, że nagłówek nie trafił
-    # w regex, a nie że CKE pominęła zadanie. Liczy się numer główny — matura
-    # dzieli zadanie na podpunkty („33.1", „33.2") i wtedy samo „33" nie
-    # istnieje, co przy naiwnym porównaniu wygląda jak brak zadania.
+    # Dziura w numeracji znaczy, że nagłówek nie trafił w regex. Liczy się numer główny.
     numery = sorted({int(z.numer.split(".")[0]) for z in k.zadania})
     if numery and numery != list(range(1, numery[-1] + 1)):
         brakuje = [n for n in range(1, numery[-1] + 1) if n not in numery]
@@ -296,13 +247,7 @@ def _ocena(k, stat: dict, r: dict) -> dict:
 
 
 def _blizniakow(blizniaki: dict, warianty: str) -> int:
-    """Ile bliźniaków ma klucz obsługujący te warianty.
-
-    Kolumna `warianty` ze spisu bywa listą (`100,200,400,500,660,K00`), a słownik
-    jest kluczowany pojedynczym `exam_form.variant`. Odpytywanie go całą listą
-    dawało zawsze zero — i to dokładnie przy kluczach wielowariantowych, czyli
-    tych, dla których powstał model N:M.
-    """
+    """Ile bliźniaków ma klucz obsługujący te warianty."""
     return sum(blizniaki.get(w.strip(), 0)
                for w in (warianty or "").split(",") if w.strip())
 
@@ -332,13 +277,8 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad) -> None:
     print("\n" + "─" * 74)
     print("WARIANTY DOSTOSOWANE — 700 i 800 mają INNE zadania na to samo wymaganie")
     print("─" * 74)
-    # Bliźniak = zadanie istniejące w dwóch wersjach tej samej formy. Liczymy
-    # je per wariant, bo to on rozstrzyga, czy CKE robiła w danym roku dwa
-    # zeszyty zadań: wariant 100 ma bliźniaki od 2020 r., a 700 i 800 nie mają
-    # ich nigdy — mają za to WŁASNE, łatwiejsze zadania na to samo wymaganie.
-    # PostgreSQL nie pozwala grupować po samym `t.id` i wybierać `f.variant`
-    # ani odwoływać się w HAVING do aliasu z SELECT — SQLite w sondzie na oba
-    # pozwalał. Stąd pełna lista kolumn w GROUP BY i powtórzony count().
+    # Bliźniaki liczymy per wariant: 100 ma je od 2020 r., 700 i 800 nie mają nigdy.
+    # PostgreSQL nie grupuje po samym `t.id` ani nie sięga w HAVING po alias z SELECT.
     blizniaki = dict(con.execute("""
         SELECT variant, count(*) FROM (
             SELECT f.variant AS variant, t.id AS task_id
@@ -394,9 +334,8 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad) -> None:
     print("\n" + "─" * 74)
     print("SPÓJNOŚĆ — pytania, na które więzy schematu nie odpowiadają")
     print("─" * 74)
-    # Te trzy zapytania łapią to, czego CHECK-i złapać nie mogą, bo dotyczą
-    # relacji między tabelami. Wynik niezerowy nie zawsze znaczy błąd parsera:
-    # pierwszy z nich wskazuje literówkę w samym kluczu CKE.
+    # Relacje między tabelami, czego CHECK-i złapać nie mogą. Pierwsze zapytanie
+    # wskazuje literówkę w samym kluczu CKE, nie błąd parsera.
     for opis, sql in (
         ("próg punktowy wyższy niż pula zadania",
          """SELECT count(*) FROM criterion c JOIN task t ON t.id = c.task_id
@@ -440,14 +379,10 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad) -> None:
         print("  pokrycie kryteriów  : %.1f%%" % (100 * sum(w["kryt"] for w in wyniki) / n))
     if lad.kolizje_form:
         print("  form w dwóch kluczach: %d" % len(lad.kolizje_form))
-    # Ta sama ścieżka podstawy z inną treścią niż zapisana w bazie. Do korpusu
-    # wchodzi pierwsza — reszta ginęłaby bez śladu, gdyby nie ta linia.
     if lad.kolizje_wymagan:
         print("  wymagań o rozjechanej treści: %d (do bazy weszła pierwsza)"
               % len(lad.kolizje_wymagan))
-        # Klucz sortowania przez `str`, bo `etap` bywa None (roczniki bez podziału
-        # na klasy) — gołe `sorted` porównałoby wtedy None ze stringiem i wywaliło
-        # cały raport w miejscu, w którym raport miał ostrzegać.
+        # Klucz przez `str`, bo `etap` bywa None i gołe `sorted` wywala cały raport.
         for (rodzaj, etap, sciezka) in sorted(lad.kolizje_wymagan,
                                               key=lambda k: (k[0], k[1] or "", k[2]))[:5]:
             print("    ↳ %s %s %s — wersji treści: %d"

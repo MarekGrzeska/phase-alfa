@@ -6,10 +6,6 @@ using Microsoft.Extensions.Configuration;
 
 namespace Klucz.Tests;
 
-/// <summary>
-/// <c>/health</c> ma odpowiadać ZAWSZE i rozdzielać dwa różne zdarzenia: „proces żyje"
-/// i „baza odpowiada".
-/// </summary>
 public class HealthTests
 {
     internal static WebApplicationFactory<Program> Application(Dictionary<string, string?> settings)
@@ -19,8 +15,6 @@ public class HealthTests
     [Fact]
     public async Task Unreachable_database_yields_degraded_not_an_error()
     {
-        // Port 1 na pętli zwrotnej odmawia połączenia natychmiast — to jest
-        // „baza leży", a nie „baza wolno odpowiada".
         await using var application = Application(new Dictionary<string, string?>
         {
             ["DB_HOST"] = "127.0.0.1",
@@ -42,10 +36,6 @@ public class HealthTests
     [Fact]
     public async Task Malformed_port_yields_degraded_not_a_500()
     {
-        // Literówka w `.env` to BŁĄD KONFIGURACJI, nie awaria API. Wcześniej
-        // składanie adresu stało poza `try` w sondzie, więc `FormatException`
-        // z `int.Parse(DB_PORT)` wychodziło jako HTTP 500 ze stack trace w treści
-        // odpowiedzi: monitoring widział „API leży", choć API stało.
         await using var application = Application(new Dictionary<string, string?>
         {
             ["DB_HOST"] = "127.0.0.1",
@@ -66,10 +56,6 @@ public class HealthTests
     [Fact]
     public async Task Unsupported_connection_parameter_yields_degraded_not_a_500()
     {
-        // Nieznany parametr w `DATABASE_URL` zatrzymuje składanie adresu
-        // (`ArgumentException` z buildera Npgsql) — celowo, bo cicha utrata
-        // parametru połączenia jest gorsza niż błąd. Ale endpoint ma to oddać
-        // jako `degraded`, a nie jako 500.
         await using var application = Application(new Dictionary<string, string?>
         {
             ["DATABASE_URL"] = "postgresql://klucz:tajne@localhost:5432/klucz?takiego_parametru_nie_ma=1",
@@ -85,8 +71,6 @@ public class HealthTests
     [Fact]
     public async Task Missing_database_configuration_does_not_break_startup()
     {
-        // Build generuje dokument OpenAPI, a żeby go wygenerować, startuje aplikację.
-        // Gdyby brak zmiennych przewracał start, `dotnet build` wymagałby Postgresa.
         await using var application = Application(new Dictionary<string, string?>
         {
             ["DB_HOST"] = null,
@@ -111,12 +95,6 @@ public class HealthTests
 
         var health = await application.CreateClient().GetFromJsonAsync<HealthResponse>("/health");
 
-        // Komunikat opisuje to, co WIDAĆ, a nie to, co powinno być prawdą. Wcześniej
-        // stało tu „baza stoi (`task up`), a health check jej nie widzi" — zdanie
-        // twierdzące odwrotność stanu faktycznego, gdy kontenera po prostu nie było.
-        // Od czasu, gdy atrybut pomija test po nieudanej próbie połączenia, ta asercja
-        // zapala się tylko wtedy, gdy baza ODPOWIADA, a API jej mimo to nie widzi —
-        // czyli gdy zepsuta jest konfiguracja API, nie baza.
         var target = $"{Environment.GetEnvironmentVariable("DB_HOST")}:{Environment.GetEnvironmentVariable("DB_PORT")}";
 
         Assert.NotNull(health);

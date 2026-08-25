@@ -1,21 +1,4 @@
-"""Runner migracji SQL — plain SQL, bez ORM.
-
-Schemat bazy jest kontraktem między warstwą Pythona a warstwą C#, więc ma być
-czytelny jako SQL, a nie wyprowadzalny z modelu w którymkolwiek języku.
-C# ten schemat wyłącznie CZYTA i nigdy go nie zmienia.
-
-Zasady:
-  * jeden plik = jeden krok, wykonywany w JEDNEJ transakcji razem z wpisem
-    do `schema_migrations` — migracja albo weszła w całości, albo wcale;
-  * kolejność po nazwie pliku (`0001_`, `0002_`, ...);
-  * migracja już zastosowana NIE MOŻE zmieniać treści — suma SHA-256 jest
-    sprawdzana przy każdym uruchomieniu i rozjazd przerywa pracę;
-  * uruchomienie na aktualnej bazie nie robi nic (idempotencja).
-
-Użycie:
-    uv run python ingest/schema/migrate.py            # zastosuj brakujące
-    uv run python ingest/schema/migrate.py --status   # tylko pokaż stan
-"""
+"""Runner migracji SQL — plain SQL, bez ORM."""
 
 from __future__ import annotations
 
@@ -46,16 +29,7 @@ CZESCI = ("DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD")
 
 
 def polaczenie() -> str:
-    """Adres bazy — wyłącznie z konfiguracji, nigdy z kodu.
-
-    Adres SKŁADANY z części, a nie wpisany w całości, bo numer portu stał
-    wcześniej w `.env` dwa razy: raz dla Dockera, raz w środku gotowego adresu.
-    Przy kolizji portów zmieniało się jedno z nich, drugie zostawało po staremu,
-    a objaw — „baza nieosiągalna" — nie wskazywał na przyczynę.
-
-    `DATABASE_URL` ma pierwszeństwo i służy do wskazania innej bazy niż
-    deweloperska (tak robią testy runnera na bazie tymczasowej).
-    """
+    """Adres bazy — wyłącznie z konfiguracji, nigdy z kodu."""
     url = os.environ.get("DATABASE_URL")
     if url:
         return url
@@ -74,21 +48,7 @@ def polaczenie() -> str:
 
 
 def suma(sciezka: Path) -> str:
-    """SHA-256 treści, po normalizacji zakończeń linii i BOM-u.
-
-    Suma ma reagować na zmianę TREŚCI, a nie na to, czym plik był zapisany:
-
-    * `utf-8-sig` zjada BOM — PowerShell na Windows dopisuje go przy
-      `Set-Content -Encoding utf8` i bez tego niewinne otwarcie pliku
-      w złym edytorze wyglądałoby jak podmiana migracji;
-    * CRLF → LF, bo inaczej ta sama migracja ma inną sumę na Windows
-      i na Linuksie w CI. `.gitattributes` to wymusza, ale runner nie ma
-      prawa się na to ślepo zdawać.
-
-    Czego celowo NIE normalizuje: samych znaków. Plik przepuszczony przez
-    złe kodowanie (`·` → `Â·`) MA zerwać sumę — to jest uszkodzona migracja,
-    nie kosmetyka.
-    """
+    """SHA-256 treści, po normalizacji zakończeń linii i BOM-u."""
     tresc = sciezka.read_text(encoding="utf-8-sig").replace("\r\n", "\n")
     return hashlib.sha256(tresc.encode("utf-8")).hexdigest()
 
@@ -108,11 +68,7 @@ def zastosowane(cur) -> dict[str, str]:
 
 
 def sprawdz_sumy(wszystkie, juz: dict[str, str]) -> None:
-    """Migracja, która już weszła, nie może zmienić treści.
-
-    Gdyby mogła, dwie maszyny z tą samą wersją schematu miałyby różne bazy —
-    a schemat jest kontraktem.
-    """
+    """Migracja, która już weszła, nie może zmienić treści."""
     for wersja, sciezka, sha in wszystkie:
         stare = juz.get(wersja)
         if stare is not None and stare != sha:
@@ -149,12 +105,9 @@ def main() -> int:
 
     wszystkie = migracje(args.migrations)
 
-    # autocommit=True jest tu WARUNKIEM poprawności, nie optymalizacją.
-    # Bez niego pierwsze zapytanie samo otwiera transakcję, a późniejsze
-    # `conn.transaction()` zakłada wtedy PUNKT PRZYWRACANIA wewnątrz niej
-    # zamiast nowej transakcji. Wszystkie migracje lądowałyby w jednej
-    # wspólnej transakcji, a napis „+ 0001" pojawiałby się przed
-    # jakimkolwiek zatwierdzeniem — czyli kłamał, gdy padnie migracja druga.
+    # autocommit=True jest WARUNKIEM poprawności: bez niego `conn.transaction()` zakłada
+    # punkt przywracania wewnątrz otwartej już transakcji, więc wszystkie migracje
+    # lądują w jednej i napis „+ 0001" pojawia się przed jakimkolwiek zatwierdzeniem.
     with psycopg.connect(polaczenie(), autocommit=True) as conn:
         with conn.cursor() as cur:
             cur.execute(TABELA)
@@ -176,8 +129,7 @@ def main() -> int:
 
         for wersja, sciezka, sha in nowe:
             sql = sciezka.read_text(encoding="utf-8")
-            # Jedna transakcja: DDL + wpis o nim. Migracja przerwana w połowie
-            # nie zostawia bazy w stanie, którego nie da się nazwać.
+            # Jedna transakcja: DDL + wpis o nim.
             with conn.transaction(), conn.cursor() as cur:
                 cur.execute(sql)
                 cur.execute(

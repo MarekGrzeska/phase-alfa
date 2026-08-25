@@ -1,14 +1,4 @@
-"""Sprawdzian runnera migracji — na osobnej, tymczasowej bazie.
-
-Testuje to, czego `test_schema.py` sprawdzić nie może, bo tamten patrzy na
-gotowy wynik: czy runner zachowuje się poprawnie, gdy coś pójdzie nie tak.
-
-Najważniejszy z tych testów to `test_migracja_ktora_padla_nie_cofa_poprzedniej`.
-Pilnuje obietnicy „jeden plik = jedna transakcja", która przez pierwsze dwa
-tygodnie NIE była prawdziwa: połączenie bez `autocommit` powodowało, że
-`conn.transaction()` zakładał punkt przywracania wewnątrz już otwartej
-transakcji, więc wszystkie migracje commitowały się razem na końcu.
-"""
+"""Sprawdzian runnera migracji — na osobnej, tymczasowej bazie."""
 
 from __future__ import annotations
 
@@ -37,11 +27,6 @@ def _url_bazy(url: str, nazwa: str) -> str:
 
 @pytest.fixture
 def baza():
-    """Tworzy pustą bazę na czas testu i kasuje ją po nim.
-
-    Osobna baza, bo runner wykonuje DDL i zapisuje do `schema_migrations` —
-    puszczony na bazie deweloperskiej zadeptałby korpus.
-    """
     try:
         url = adres()
     except SystemExit as e:
@@ -65,14 +50,6 @@ def baza():
 
 
 def uruchom(url: str, katalog: Path, *dodatkowe: str) -> subprocess.CompletedProcess:
-    """Uruchamia runner na wskazanej bazie i zwraca wynik.
-
-    PYTHONIOENCODING jest tu KONIECZNE, nie kosmetyczne. Na Windows proces
-    potomny pisze na przechwycone wyjście w kodowaniu konsoli (cp1250), więc
-    polskie znaki i myślniki z komunikatów runnera rozsypywały dekodowanie
-    po stronie testu — a `stdout` wychodził wtedy jako None i test wywalał się
-    na TypeError zamiast pokazać, co poszło nie tak.
-    """
     return subprocess.run(
         [sys.executable, str(RUNNER), "--migrations", str(katalog), *dodatkowe],
         env={**os.environ, "DATABASE_URL": url, "PYTHONIOENCODING": "utf-8"},
@@ -88,11 +65,7 @@ def zapisz(katalog: Path, nazwa: str, sql: str) -> None:
 
 
 def test_migracja_ktora_padla_nie_cofa_poprzedniej(baza, tmp_path):
-    """Sedno: pierwsza migracja ma ZOSTAĆ w bazie, gdy druga się wywali.
-
-    Gdyby wszystkie migracje leciały w jednej wspólnej transakcji, błąd drugiej
-    cofnąłby też pierwszą — a na ekranie i tak stałoby, że pierwsza weszła.
-    """
+    """Sedno: pierwsza migracja ma ZOSTAĆ w bazie, gdy druga się wywali."""
     zapisz(tmp_path, "0001_dobra.sql", "CREATE TABLE pierwsza (id integer);")
     zapisz(tmp_path, "0002_zla.sql", "TO NIE JEST POPRAWNY SQL;")
 
@@ -119,8 +92,7 @@ def test_druga_proba_nic_nie_robi(baza, tmp_path):
 
 
 def test_podmiana_zastosowanej_migracji_przerywa(baza, tmp_path):
-    """Zastosowanej migracji się nie edytuje — inaczej dwie maszyny z tą samą
-    wersją schematu miałyby różne bazy."""
+    """Zastosowanej migracji się nie edytuje — inaczej dwie maszyny z tą samą"""
     zapisz(tmp_path, "0001_tabela.sql", "CREATE TABLE cos (id integer);")
     assert uruchom(baza, tmp_path).returncode == 0
 
@@ -131,11 +103,7 @@ def test_podmiana_zastosowanej_migracji_przerywa(baza, tmp_path):
 
 
 def test_bom_i_crlf_nie_licza_sie_jako_podmiana(baza, tmp_path):
-    """Suma ma reagować na zmianę TREŚCI, nie na to, czym plik zapisano.
-
-    PowerShell na Windows dopisuje BOM przy `Set-Content -Encoding utf8`,
-    a git potrafi wydać plik z CRLF — żadne z tych dwóch nie jest podmianą.
-    """
+    """Suma ma reagować na zmianę TREŚCI, nie na to, czym plik zapisano."""
     tresc = "CREATE TABLE cos (id integer);\n"
     zapisz(tmp_path, "0001_tabela.sql", tresc)
     assert uruchom(baza, tmp_path).returncode == 0

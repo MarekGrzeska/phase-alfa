@@ -1,25 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Warstwa pozycyjna PDF-a — jedno API, dwa silniki.
-
-`extract_text()` zwraca strumień znaków w kolejności zapisu, a arkusze CKE
-kodują znaczenie układem dwuwymiarowym: licznik nad kreską, potęga nad linią
-bazową, wersja X w lewej kolumnie tabeli. Ten moduł zwraca to, z czego układ
-da się odtworzyć — znaki z ramkami, poziome linie i tabele — i ukrywa różnicę
-między silnikami za jednym interfejsem.
-
-Domyślny silnik to **pdfplumber (MIT)**. PyMuPDF jest dwulicencyjny
-(AGPL-3.0 albo komercyjna Artifex): AGPL uruchamia obowiązek udostępnienia
-źródeł przy korzystaniu przez sieć, więc do produktu SaaS nie wchodzi.
-Zostaje jako opcja badawcza — jest ~2× szybszy, a wynik ma identyczny.
-
-    from pdf.layout import open_pdf
-    with open_pdf("klucz.pdf") as doc:          # pdfplumber
-        for page in doc:
-            page.chars, page.bars, page.tables
-
-    with open_pdf("klucz.pdf", engine="pymupdf") as doc:
-        ...
-"""
+"""Warstwa pozycyjna PDF-a — jedno API, dwa silniki."""
 from __future__ import annotations
 
 import contextlib
@@ -34,7 +14,6 @@ BAR_MAX_LEN = 90.0
 
 @dataclass
 class Char:
-    """Jeden glif z ramką w układzie strony (y rośnie w dół, jak w PDF-ie)."""
     c: str
     x0: float
     x1: float
@@ -53,7 +32,6 @@ class Char:
 
 @dataclass
 class Bar:
-    """Pozioma linia o rozmiarze kreski ułamkowej."""
     x0: float
     x1: float
     y: float
@@ -85,7 +63,6 @@ class Page:
         self._bars: List[Bar] | None = None
         self._tables: List[Table] | None = None
 
-    # podklasy dostarczają _read_*
     def _read_chars(self) -> List[Char]: raise NotImplementedError
     def _read_bars(self) -> List[Bar]: raise NotImplementedError
     def _read_tables(self) -> List[Table]: raise NotImplementedError
@@ -104,18 +81,10 @@ class Page:
 
     @property
     def bars(self) -> List[Bar]:
-        """Kreski ułamkowe — bez linii należących do tabel.
-
-        Odstęp nad i pod linią NIE odróżnia kreski ułamkowej od krawędzi
-        komórki: rozkłady obu mierzone na 30 kluczach nakładają się
-        (mediana odstępu 0,8 vs -0,5 pt). Długość linii rozdziela tylko
-        częściowo. Rozstrzyga struktura — linia wewnątrz wykrytej tabeli
-        należy do tabeli. Detektor tabel jest więc też filtrem ułamków.
-        """
         if self._bars is None:
             cand = self._read_bars()
-            # find_tables/extract_tables kosztuje ~2× tyle co reszta parsowania,
-            # więc odpalamy je tylko wtedy, gdy jest co odsiewać.
+            # find_tables kosztuje ~2× tyle co reszta parsowania — odpalamy tylko wtedy,
+            # gdy jest co odsiewać.
             self._bars = cand if not cand else [
                 b for b in cand if not any(t.contains(b) for t in self.tables)]
         return self._bars
@@ -125,7 +94,6 @@ def _is_bar(x0: float, x1: float, thick: float) -> bool:
     return thick <= BAR_MAX_THICK and BAR_MIN_LEN <= (x1 - x0) <= BAR_MAX_LEN
 
 
-# ── pdfplumber (MIT) — silnik domyślny ────────────────────────────────────
 class _PlumberPage(Page):
     def __init__(self, number, raw):
         super().__init__(number, raw.width, raw.height)
@@ -153,14 +121,6 @@ class _PlumberPage(Page):
 
 
 class _PlumberDoc:
-    """Dokument pdfplumbera; strony trzymane po numerze.
-
-    Strona musi być TA SAMA przy każdym dostępie, bo `Page` odkłada w polach
-    znaki, ramki i kreski — a wykrywanie tabel kosztuje mniej więcej tyle, co
-    cała reszta parsowania razy dwa. Budowanie nowego obiektu przy każdym
-    `doc[i]` znaczyło, że te pola nie żyły dłużej niż jedno wyrażenie.
-    """
-
     def __init__(self, path):
         import pdfplumber
         self._pdf = pdfplumber.open(path)
@@ -182,7 +142,6 @@ class _PlumberDoc:
         self._pdf.close()
 
 
-# ── PyMuPDF (AGPL / komercyjna) — opcjonalny, szybszy ─────────────────────
 class _MuPage(Page):
     def __init__(self, number, raw):
         super().__init__(number, raw.rect.width, raw.rect.height)
@@ -227,8 +186,6 @@ class _MuPage(Page):
 
 
 class _MuDoc:
-    """Jak `_PlumberDoc` — strona po numerze, żeby jej pamięć podręczna żyła."""
-
     def __init__(self, path):
         import pymupdf
         self._doc = pymupdf.open(path)
@@ -267,13 +224,10 @@ def open_pdf(path: str, engine: str = "pdfplumber"):
 
 
 # ── zrzut strony do JSON-a — testy bez PDF-a ────────────────────────────────
-# Arkusze CKE nie wchodzą do repozytorium (prawa nierozstrzygnięte, G0.1), więc
-# regresja rekonstrukcji musiałaby chodzić tylko na maszynie z mirrorem. Zrzut
-# warstwy pozycyjnej jest tanim obejściem: znaki, kreski i tabele to kilkadziesiąt
-# kilobajtów JSON-a, z których `reconstruct` odtwarza dokładnie ten sam tekst.
+# Arkusze CKE nie wchodzą do repozytorium (G0.1), więc regresja chodziłaby tylko
+# na maszynie z mirrorem. Zrzut warstwy pozycyjnej to kilkadziesiąt kilobajtów.
 
 def zrzut_strony(page: Page) -> dict:
-    """Strona → słownik do zapisania w `tests/fixtures/`."""
     return {
         "numer": page.number,
         "szerokosc": page.width,
