@@ -210,6 +210,8 @@ więc działa na Windows bez bash-a. Konsekwencje, o których trzeba pamiętać:
 | Zakończenia linii | `.gitattributes` wymusza LF |
 | Zaszyte porty | Port hosta z konfiguracji (`DB_PORT`), nigdy w pliku wersjonowanym |
 | PowerShell 5.1 | `Set-Content -Encoding utf8` dopisuje BOM, `Get-Content -Raw` czyta jako ANSI — para tych komend psuje polskie znaki. Pliki edytować w edytorze, nie w konsoli |
+| Skrypt `.ps1` z polskimi znakami | **Musi mieć BOM.** Bez niego PowerShell 5.1 czyta plik jako ANSI: napisy się rozjeżdżają, cudzysłów pęka i parser zgłasza nieznane polecenie o polskiej nazwie |
+| `2>&1` na natywnym programie w PS 5.1 | Opakowuje stderr w `ErrorRecord`, a przy `ErrorActionPreference = 'Stop'` leci wyjątkiem **mimo kodu wyjścia 0**. Sprawdzać `$LASTEXITCODE`, stderr gasić przez `2>$null` |
 | Proces potomny z przechwyconym wyjściem | Na Windows pisze w kodowaniu konsoli (cp1250), nie UTF-8. Uruchamiając Pythona z Pythona, przekazać `PYTHONIOENCODING=utf-8` — inaczej polskie znaki w komunikatach rozsypią dekodowanie, a `stdout` wyjdzie jako `None` |
 
 Cudzysłowy proste w komunikacie commita rozbijają argument, gdy `git commit -m`

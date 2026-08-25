@@ -31,6 +31,12 @@
          do `InformationalVersion` po znaku `+`. Lokalny build zostaje przy samym
          numerze i to jest w porządku: lokalnie wiadomo, co się zbudowało. -->
     <VersionPrefix>0.1.0</VersionPrefix>
+
+    <!-- `packages.lock.json` przy każdym projekcie, wersjonowany. Bez niego CI
+         przywracał to, co akurat stało w źródle NuGeta, a tryb zamknięty restore'a
+         nie miał czego pilnować. Ta sama zasada, co „frozen lockfile" w pnpm i uv.
+         Plik jest też kluczem cache'u NuGeta w CI. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <!--

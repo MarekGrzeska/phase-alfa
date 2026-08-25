@@ -17,7 +17,7 @@ Kontraktem między warstwami jest **schemat bazy plus pliki JSON golden setu**, 
 
 | Kamień | Zakres | Status |
 |---|---|---|
-| **A1** | Szkielet: monorepo, Postgres w Dockerze, monolit C# z granicami modułów, OpenAPI → klient TS, CI | G1.1 ✓ · G1.2 ✓ · G1.3 ✓ · G1.4 ✓ |
+| **A1** | Szkielet: monorepo, Postgres w Dockerze, monolit C# z granicami modułów, OpenAPI → klient TS, CI | G1.1 ✓ · G1.2 ✓ · G1.3 ✓ · G1.4 ✓ · G1.5 ✓ |
 | A2 | Korpus: ekran korekty → parser OMAP E8 2019–2026 → zatwierdzone rekordy w bazie | |
 | A3 | Grading: pipeline 5 kroków, golden set, benchmark, macierz eksperymentów | |
 | A4 / W4 | Sesja zadań, mapa braków, telemetria, sprawdzian od zera | |
@@ -76,6 +76,47 @@ task test      # testy: architektura, zero-DOM, regresja parsera, więzy schemat
 task ingest    # przebieg parsera (po A2)
 task bench     # benchmark golden setu (po A3)
 ```
+
+Cały stos jednym poleceniem — `.env` z `.env.example`, sprawdzenie narzędzi,
+kontenery, migracje i oba serwery:
+
+| Platforma | Komenda |
+|---|---|
+| Windows | `powershell -File scripts\dev-stack.ps1` |
+| macOS / Linux | `./scripts/dev-stack.sh` |
+
+Skrypty nie powtarzają logiki z `Taskfile.yml` — wołają `task`. Dokładają to,
+czego Taskfile z założenia nie robi: operacje na plikach (`.env` nie istnieje przy
+pierwszym klonie) i sprawdzenie, czy silnik Dockera **odpowiada**, a nie tylko jest
+zainstalowany.
+
+## CI
+
+`.github/workflows/ci.yml` — cztery zadania równoległe, każde odpowiada jednemu
+`task test:*`, więc to samo da się uruchomić lokalnie:
+
+| Zadanie | Co sprawdza | Lokalnie |
+|---|---|---|
+| `python` | ruff + pytest + migracje na świeżym Postgresie | `task test:python` |
+| `dotnet` | build + granice modułów + testy jednostkowe | `task test:dotnet` |
+| `web` | typecheck (w tym zero-DOM) + vitest + build | `task test:web` |
+| `contract` | regeneracja OpenAPI + `git diff --exit-code` | `task test:contract` |
+
+Bieg **na pull requestach i na pushu do `main`**, nie na każdej gałęzi: push do
+gałęzi z otwartym PR-em odpalał dwa przebiegi tego samego commita, a repozytorium
+jest prywatne — minuty Actions liczą się do limitu konta. Kolejny push do PR-a ubija
+poprzedni przebieg (`concurrency`), na `main` przebiegi dochodzą do końca.
+
+Zależności są cache'owane w każdej z trzech warstw i wszystkie trzy przywracają je
+w trybie zamkniętym: `uv sync --frozen`, `pnpm install --frozen-lockfile`,
+`dotnet restore --locked-mode`. To ostatnie wymaga wersjonowanych
+`packages.lock.json` — pakiet dodany bez zacommitowania lockfile'a kończy się
+błędem `NU1004`, a nie cichym pobraniem innej wersji niż na maszynie autora.
+
+Ochrony gałęzi `main` **nie ma i na tym planie GitHuba być nie może** — repozytorium
+jest prywatne, a ochrona wymaga planu Pro (API odpowiada `403: Upgrade to GitHub Pro`).
+Bramką jest więc dyscyplina, nie ustawienie: scalamy przez pull request i dopiero
+z czterema zielonymi checkami.
 
 ## Licencje zależności
 

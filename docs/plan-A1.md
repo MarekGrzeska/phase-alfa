@@ -720,8 +720,23 @@ Zadanie `python` odpala usługę Postgresa i test integracyjny na jednym kluczu
 
 1. Cztery zadania, każde z cache'em; `concurrency` z `cancel-in-progress: true`,
    żeby kolejny push ubijał poprzedni przebieg (oszczędność minut).
+
+   > **Poprawka z implementacji.** Wyzwalacz `push: ['**']` razem z `pull_request`
+   > odpalał DWA przebiegi tego samego commita, gdy gałąź miała otwarty PR — czyli
+   > podwójny rachunek za tę samą informację. Jest więc `push` tylko na `main`
+   > plus `pull_request`. `cancel-in-progress` obowiązuje wyłącznie na PR-ach:
+   > na `main` każdy przebieg opisuje stan, który zostaje, więc nie wolno go ubijać.
+   > Do cache'u NuGeta dochodzą wersjonowane `packages.lock.json` i
+   > `dotnet restore --locked-mode` — inaczej „cache" nie miałby stabilnego klucza,
+   > a restore nie miałby czego pilnować.
 2. `permissions: contents: read` — minimalne uprawnienia tokena.
-3. Ochrona gałęzi `main`: wymagane przejście wszystkich czterech zadań.
+3. ~~Ochrona gałęzi `main`: wymagane przejście wszystkich czterech zadań.~~
+   **Niewykonalne na obecnym planie GitHuba** (sprawdzone 25.08.2026): ochrona gałęzi
+   w repozytorium **prywatnym** wymaga planu Pro — API odpowiada
+   `403: Upgrade to GitHub Pro or make this repository public`. Do wyboru zostaje:
+   repozytorium publiczne (wtedy znika też limit minut, a więc i powód zmiany
+   wyzwalacza z kroku 1), płatny plan, albo — na dziś — dyscyplina zamiast ustawienia:
+   scalanie wyłącznie przez PR z czterema zielonymi checkami. Wybrano to ostatnie.
 4. **Sprawdzian klonu od zera** — raz, ręcznie, przed zamknięciem A1:
    świeży katalog → `git clone` → `task up` → `task dev` → `/health` odpowiada,
    web się otwiera. Jeśli po drodze potrzeba było kroku spoza README, README kłamie.
