@@ -32,6 +32,8 @@ Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 - [`ingest/README.md`](ingest/README.md) · [`backend/README.md`](backend/README.md) · [`web/README.md`](web/README.md) — jak uruchomić i czego pilnują bramki w każdej z warstw
 - [`docs/decyzje-A2.md`](docs/decyzje-A2.md) — rozstrzygnięcia zapadłe w A2, gotowe do przeniesienia do `DECYZJE.md`
 - [`docs/g1.2-ingest.html`](docs/g1.2-ingest.html) — **G1.2** ingest: co powstało, co osiąga, jak podłączyć się do bazy DBeaverem
+- [`docs/a2-korpus.html`](docs/a2-korpus.html) — **A2** od środka: bramka korekty, osiem klocków, zmierzone liczby i to, co zostało ręką
+- [`docs/a3-ocenianie.html`](docs/a3-ocenianie.html) — **A3** w planie: pipeline pięciu kroków, pięć pytań badawczych, zależności wejściowe
 - [`docs/review/`](docs/review/) — przeglądy kodu (G1.1–G1.4); plan mówi, co miało powstać, przegląd — co z tego wyszło
 
 Przeglądy tworzy skill [`.claude/skills/code-review`](.claude/skills/code-review/SKILL.md)

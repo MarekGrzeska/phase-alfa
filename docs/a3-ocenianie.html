@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ocenianie A3 od środka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600;700&display=swap">
+
+<style>
+  /* Ten sam system co `a2-korpus.html` — dokumenty kamieni mają być rodzeństwem,
+     nie zbiorem stylów. Zmienia się treść i rozkład akcentów, nie tokeny. */
+  :root {
+    --paper:      #f7f8fa;
+    --surface:    #ffffff;
+    --sunk:       #eef1f5;
+    --ink:        #12181f;
+    --ink-soft:   #4a5563;
+    --ink-faint:  #78838f;
+    --rule:       #c9d2dc;
+    --rule-soft:  #e2e8ef;
+    --seal:       #1b4d8f;
+    --seal-soft:  #e8eff8;
+    --mark:       #c0392b;
+    --mark-soft:  #fbeceb;
+    --done:       #2e7d63;
+    --done-soft:  #e7f2ee;
+
+    --col: 66ch;
+    --wide: 62rem;
+
+    --face-display: "Spectral", "Georgia", "Times New Roman", serif;
+    --face-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --face-mono: "IBM Plex Mono", "Consolas", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #10151b;
+      --surface:   #161d26;
+      --sunk:      #1b232e;
+      --ink:       #e4e9ef;
+      --ink-soft:  #a9b4c0;
+      --ink-faint: #7b8794;
+      --rule:      #2f3b49;
+      --rule-soft: #232c37;
+      --seal:      #7fb0e8;
+      --seal-soft: #1a2735;
+      --mark:      #ef8378;
+      --mark-soft: #2c1d1d;
+      --done:      #63c3a1;
+      --done-soft: #16271f;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #10151b;
+    --surface:   #161d26;
+    --sunk:      #1b232e;
+    --ink:       #e4e9ef;
+    --ink-soft:  #a9b4c0;
+    --ink-faint: #7b8794;
+    --rule:      #2f3b49;
+    --rule-soft: #232c37;
+    --seal:      #7fb0e8;
+    --seal-soft: #1a2735;
+    --mark:      #ef8378;
+    --mark-soft: #2c1d1d;
+    --done:      #63c3a1;
+    --done-soft: #16271f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--face-body);
+    font-size: clamp(1rem, 0.96rem + 0.2vw, 1.075rem);
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 1.25rem 6rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--wide); margin: 0 auto; }
+  .col { max-width: var(--col); }
+
+  /* ---------------------------------------------------------- nagłówek */
+  .masthead {
+    padding: 4.5rem 0 2.5rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 3rem;
+  }
+  .eyebrow {
+    font-family: var(--face-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--seal);
+    margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--face-display);
+    font-weight: 700;
+    font-size: clamp(2.3rem, 1.5rem + 3.4vw, 3.9rem);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 1.25rem;
+  }
+  .standfirst {
+    font-size: clamp(1.08rem, 1rem + 0.4vw, 1.28rem);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 52ch;
+    margin: 0;
+  }
+  .stamp {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--face-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  /* ---------------------------------------------------------- sekcje */
+  section { margin: 0 0 4.5rem; }
+
+  h2 {
+    font-family: var(--face-display);
+    font-weight: 600;
+    font-size: clamp(1.6rem, 1.25rem + 1.4vw, 2.2rem);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0 0 0.4rem;
+  }
+  h3 {
+    font-family: var(--face-body);
+    font-weight: 600;
+    font-size: 1.02rem;
+    line-height: 1.35;
+    margin: 0 0 0.35rem;
+  }
+  .kicker {
+    font-family: var(--face-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 1.6rem;
+  }
+  p { margin: 0 0 1.05rem; }
+  .col p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; }
+  em { font-style: normal; color: var(--seal); font-weight: 500; }
+
+  code, .mono {
+    font-family: var(--face-mono);
+    font-size: 0.87em;
+  }
+  code {
+    background: var(--sunk);
+    border-radius: 3px;
+    padding: 0.1em 0.34em;
+  }
+
+  /* ---------------------------------------------------------- diagram */
+  figure {
+    margin: 2.5rem 0 0;
+    padding: 1.75rem 1.5rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    background-image:
+      linear-gradient(var(--rule-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px);
+    background-size: 25px 25px, 25px 25px;
+    overflow-x: auto;
+  }
+  figure svg { display: block; width: 100%; min-width: 660px; height: auto; }
+  /* Jedyny znaczący kolor w diagramie — krok, który wywołuje model.
+     Przez token, nie literałem, żeby czytał na obu tłach. */
+  figure svg .mk { fill: var(--mark); }
+  figure svg .mk-s { stroke: var(--mark); }
+  figure svg #ar-mark path { fill: var(--mark); }
+  figcaption {
+    font-size: 0.87rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin-top: 1.25rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--rule-soft);
+    max-width: 62ch;
+  }
+
+  /* ---------------------------------------------------------- karty liczb */
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin-top: 2.25rem;
+  }
+  .fig {
+    background: var(--surface);
+    padding: 1.5rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .fig .big {
+    font-family: var(--face-mono);
+    font-weight: 600;
+    font-size: clamp(1.9rem, 1.4rem + 1.6vw, 2.5rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .fig .lede { font-weight: 600; font-size: 0.95rem; }
+  .fig .note { font-size: 0.86rem; line-height: 1.45; color: var(--ink-soft); }
+  .fig.is-done .big { color: var(--done); }
+  .fig.is-open .big { color: var(--mark); }
+  .fig.is-plain .big { color: var(--seal); }
+
+  /* ---------------------------------------------------------- etapy */
+  .stages { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 2.25rem; }
+  .stage {
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem 1.4rem;
+  }
+  .stage .id {
+    font-family: var(--face-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--seal);
+    padding-top: 0.15rem;
+  }
+  .stage p { margin: 0; max-width: 62ch; }
+  .stage .measure {
+    font-family: var(--face-mono);
+    font-size: 0.83rem;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    margin-top: 0.7rem;
+    padding-left: 0.85rem;
+    border-left: 2px solid var(--seal);
+    color: var(--ink-soft);
+  }
+  .stage .measure.ready { border-left-color: var(--done); }
+  .stage .measure.pending { border-left-color: var(--mark); }
+  @media (max-width: 34rem) {
+    .stage { grid-template-columns: 1fr; gap: 0.5rem; }
+  }
+
+  /* ---------------------------------------------------------- tabela */
+  .ledger-wrap { overflow-x: auto; margin-top: 2.25rem; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: 0.92rem; }
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-family: var(--face-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 1rem 1.1rem 0.75rem;
+  }
+  th, td { padding: 0.62rem 1.1rem; text-align: left; vertical-align: top; }
+  thead th {
+    font-family: var(--face-mono);
+    font-size: 0.73rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  tbody tr + tr td, tbody tr + tr th { border-top: 1px solid var(--rule-soft); }
+  td.num { font-family: var(--face-mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  tbody th[scope="row"] { font-family: var(--face-mono); font-size: 0.83rem; font-weight: 600; color: var(--seal); white-space: nowrap; }
+
+  /* ---------------------------------------------------------- status */
+  .checks { list-style: none; padding: 0; margin: 2.25rem 0 0; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .checks li {
+    background: var(--surface);
+    padding: 1rem 1.35rem;
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .tag {
+    font-family: var(--face-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.28rem 0.5rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .tag.done { background: var(--done-soft); color: var(--done); }
+  .tag.open { background: var(--mark-soft); color: var(--mark); }
+  .tag.plan { background: var(--seal-soft); color: var(--seal); }
+  .checks .what { font-size: 0.96rem; line-height: 1.5; }
+  .checks .why { display: block; font-size: 0.86rem; color: var(--ink-soft); margin-top: 0.2rem; }
+  @media (max-width: 34rem) {
+    .checks li { grid-template-columns: 1fr; gap: 0.5rem; }
+    .tag { justify-self: start; }
+  }
+
+  /* ---------------------------------------------------------- pułapki */
+  .traps { counter-reset: trap; display: grid; gap: 1.5rem; margin-top: 2.25rem; }
+  .trap { display: grid; grid-template-columns: 2.25rem 1fr; gap: 1.1rem; }
+  .trap::before {
+    counter-increment: trap;
+    content: counter(trap);
+    font-family: var(--face-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--mark);
+    border-top: 2px solid var(--mark);
+    padding-top: 0.4rem;
+  }
+  .trap p { margin: 0; max-width: 60ch; font-size: 0.96rem; }
+
+  /* ---------------------------------------------------------- pull */
+  .pull {
+    border-left: 3px solid var(--seal);
+    padding: 0.4rem 0 0.4rem 1.4rem;
+    margin: 2.25rem 0;
+    font-family: var(--face-display);
+    font-size: clamp(1.15rem, 1rem + 0.7vw, 1.45rem);
+    line-height: 1.45;
+    font-weight: 500;
+    max-width: 46ch;
+  }
+
+  footer {
+    margin-top: 5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--face-mono);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: var(--ink-faint);
+  }
+
+  a { color: var(--seal); text-underline-offset: 0.18em; }
+  a:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--seal);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Faza alfy · kamień A3 · plan</p>
+    <h1>Czy maszyna ocenia&nbsp;tak jak człowiek</h1>
+    <p class="standfirst">
+      A2 zamienił klucze CKE w dane. A3 pyta, czy z tych danych da się ocenić
+      odpowiedź ucznia — i za ile. Ta strona opisuje, co ma powstać, czym to
+      zostanie zmierzone i co dziś blokuje start.
+    </p>
+    <p class="stamp">
+      <span>Stan na 26.08.2026</span> <span>·</span>
+      <span>plan na tygodnie 5–7</span> <span>·</span>
+      <span>nic z A3 jeszcze nie powstało</span>
+    </p>
+  </header>
+
+  <!-- ============================================ 1. o co chodzi -->
+  <section>
+    <p class="kicker">Po co ten kamień</p>
+    <h2>A3 nie jest funkcją. Jest przyrządem pomiarowym</h2>
+    <div class="col">
+      <p>
+        Łatwo pomylić A3 z „dodaniem oceniania". Ocenianie jest tu środkiem, nie celem:
+        pipeline powstaje po to, żeby dało się <strong>zmierzyć pięć rzeczy, o których
+        dziś wiadomo tyle, że nie wiadomo</strong> — który model wystarcza, czy modelowi
+        dawać obraz czy opis, jak powtarzalne są jego werdykty, który prompt wygrywa
+        i ile to wszystko kosztuje na jedną ocenioną odpowiedź.
+      </p>
+      <p>
+        Stąd definicja „zrobione" inna niż w poprzednich kamieniach. A3 jest zamknięte
+        nie wtedy, gdy silnik działa, tylko gdy <em>każde z pięciu pytań ma odpowiedź
+        liczbową zapisaną w repozytorium</em>. Działający silnik jest warunkiem
+        koniecznym, nie wynikiem.
+      </p>
+    </div>
+    <p class="pull">
+      Tokeny nie są tu ograniczeniem — są paliwem. Ograniczeniem jest golden set,
+      czyli ~150 odpowiedzi, które trzeba napisać i ocenić ręką.
+    </p>
+  </section>
+
+  <!-- ============================================ 2. diagram -->
+  <section>
+    <p class="kicker">Mechanizm</p>
+    <h2>Pięć kroków, jedna granica z modelem</h2>
+    <div class="col">
+      <p>
+        Odpowiedź ucznia przechodzi przez pięć kroków. Cztery z nich są
+        <strong>deterministyczne</strong>: ten sam wsad zawsze daje ten sam wynik,
+        testy chodzą w CI na każdym pushu, koszt zero. Model pojawia się w jednym
+        jedynym miejscu — i to za portem, nie w środku logiki.
+      </p>
+    </div>
+
+    <figure>
+      <svg viewBox="0 0 980 470" role="img"
+           aria-label="Schemat pipeline'u oceniania: odpowiedź ucznia z MathLive trafia do kroku Normalize, potem MatchCriteria, skąd rozgałęzia się na dwa kroki oceny — EvaluateClosed przez Compute Engine bez modelu i koszt zero, oraz EvaluateOpen, jedyny krok wywołujący model, za portem IGradingModel. Oba wracają do kroku Compose, który dokłada reguły przekrojowe arkusza i składa werdykt per kryterium z cytatem. Cztery z pięciu kroków są deterministyczne.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+          </marker>
+          <marker id="ar-mark" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z"></path>
+          </marker>
+        </defs>
+
+        <g fill="currentColor" font-family="IBM Plex Mono, monospace">
+
+          <!-- ---------- wejście ---------- -->
+          <g font-size="12.5">
+            <rect x="14" y="186" width="112" height="64" fill="none"
+                  stroke="currentColor" stroke-width="1" opacity="0.65"></rect>
+            <text x="70" y="211" text-anchor="middle" opacity="0.85">odpowiedź</text>
+            <text x="70" y="228" text-anchor="middle" opacity="0.85">ucznia</text>
+            <text x="70" y="244" text-anchor="middle" opacity="0.55" font-size="11">MathLive · W3.1</text>
+          </g>
+
+          <!-- ---------- kroki deterministyczne ---------- -->
+          <g font-size="13">
+            <rect x="156" y="186" width="120" height="64" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="216" y="212" text-anchor="middle">Normalize</text>
+            <text x="216" y="230" text-anchor="middle" font-size="11" opacity="0.6">MathJSON · NFKC</text>
+
+            <rect x="306" y="186" width="140" height="64" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="376" y="212" text-anchor="middle">MatchCriteria</text>
+            <text x="376" y="230" text-anchor="middle" font-size="11" opacity="0.6">progi → warunki</text>
+
+            <rect x="486" y="100" width="196" height="70" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="584" y="128" text-anchor="middle">EvaluateClosed</text>
+            <text x="584" y="147" text-anchor="middle" font-size="11" opacity="0.6">Compute Engine</text>
+            <text x="584" y="162" text-anchor="middle" font-size="11" opacity="0.6">bez modelu · koszt 0</text>
+
+            <rect x="716" y="186" width="122" height="64" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="777" y="212" text-anchor="middle">Compose</text>
+            <text x="777" y="230" text-anchor="middle" font-size="11" opacity="0.6">suma · reguły</text>
+          </g>
+
+          <!-- ---------- krok z modelem ---------- -->
+          <g font-size="13">
+            <rect class="mk-s" x="486" y="266" width="196" height="82" fill="none" stroke-width="2.5"></rect>
+            <text class="mk" x="584" y="294" text-anchor="middle" font-weight="600">EvaluateOpen</text>
+            <text class="mk" x="584" y="313" text-anchor="middle" font-size="11.5">port IGradingModel</text>
+            <text class="mk" x="584" y="329" text-anchor="middle" font-size="11.5">jedyne wywołanie modelu</text>
+            <text class="mk" x="584" y="343" text-anchor="middle" font-size="11">licznik tokenów w środku</text>
+          </g>
+
+          <!-- ---------- wyjście ---------- -->
+          <g font-size="12.5">
+            <rect x="868" y="186" width="106" height="64" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="921" y="211" text-anchor="middle" font-weight="600">werdykt</text>
+            <text x="921" y="229" text-anchor="middle" font-size="11" opacity="0.6">per kryterium</text>
+            <text x="921" y="244" text-anchor="middle" font-size="11" opacity="0.6">+ cytat</text>
+          </g>
+
+          <!-- ---------- reguły przekrojowe ---------- -->
+          <g font-size="12">
+            <rect x="686" y="392" width="182" height="52" fill="none"
+                  stroke="currentColor" stroke-width="1" opacity="0.55"></rect>
+            <text x="777" y="414" text-anchor="middle" opacity="0.85">reguły przekrojowe</text>
+            <text x="777" y="431" text-anchor="middle" opacity="0.55" font-size="11">błąd rachunkowy −1 pkt</text>
+          </g>
+          <path d="M777 392 L777 254" stroke="currentColor" stroke-width="1.5" fill="none"
+                marker-end="url(#ar)" opacity="0.55"></path>
+          <text x="787" y="330" font-size="12" opacity="0.6">dopiero po ocenie</text>
+          <text x="787" y="346" font-size="12" opacity="0.6">wszystkich kryteriów</text>
+
+          <!-- ---------- strzałki ciągu ---------- -->
+          <g stroke="currentColor" stroke-width="1.5" fill="none">
+            <path d="M126 218 L152 218" marker-end="url(#ar)"></path>
+            <path d="M276 218 L302 218" marker-end="url(#ar)"></path>
+            <path d="M446 218 C 466 218 466 135 482 135" marker-end="url(#ar)"></path>
+            <path d="M682 135 C 700 135 698 218 712 218" marker-end="url(#ar)"></path>
+            <path d="M838 218 L864 218" marker-end="url(#ar)"></path>
+          </g>
+          <g class="mk-s" stroke-width="2" fill="none">
+            <path d="M446 218 C 466 218 466 307 482 307" marker-end="url(#ar-mark)"></path>
+            <path d="M682 307 C 700 307 698 218 712 218" marker-end="url(#ar-mark)"></path>
+          </g>
+
+          <!-- ---------- numeracja kroków ---------- -->
+          <g font-size="11" opacity="0.55">
+            <text x="216" y="180" text-anchor="middle">krok 1</text>
+            <text x="376" y="180" text-anchor="middle">krok 2</text>
+            <text x="584" y="94" text-anchor="middle">krok 3</text>
+            <text x="777" y="180" text-anchor="middle">krok 5</text>
+          </g>
+          <text class="mk" x="584" y="260" text-anchor="middle" font-size="11">krok 4</text>
+
+          <!-- ---------- legenda ---------- -->
+          <g font-size="11.5">
+            <path d="M20 424 L52 424" stroke="currentColor" stroke-width="1.5" fill="none"></path>
+            <text x="60" y="428" opacity="0.7">4 z 5 kroków: deterministyczne, testy w CI, koszt 0</text>
+            <path class="mk-s" d="M20 446 L52 446" stroke-width="2.5" fill="none"></path>
+            <text class="mk" x="60" y="450">1 z 5: granica z modelem — podmiana dostawcy za portem</text>
+          </g>
+        </g>
+      </svg>
+      <figcaption>
+        Zadania zamknięte rozstrzyga <strong>krok 3, bez modelu i za darmo</strong> —
+        porównuje wyrażenia matematycznie, tym samym silnikiem, którym A2 policzył MathJSON.
+        Model dostaje wyłącznie zadania otwarte, i to zza portu, w którym siedzi licznik
+        tokenów. Dlatego „ile to kosztuje" jest w A3 pytaniem z odpowiedzią, a nie szacunkiem.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================ 3. port -->
+  <section>
+    <p class="kicker">Dlaczego granica jest jedna</p>
+    <h2>Podmiana modelu ma być liczbą, nie aktem wiary</h2>
+    <div class="col">
+      <p>
+        Gdyby wywołania modelu były rozsiane po pipelinie, pytanie „czy tańszy model
+        wystarczy" byłoby przebudową. Przy jednym porcie jest <strong>parametrem
+        przebiegu</strong>: ten sam golden set idzie przez dwa modele u dwóch dostawców,
+        a wynik to dwie liczby obok siebie — zgodność i koszt.
+      </p>
+      <p>
+        Ten sam nawyk zaczął się już w A2: <code>task prefill</code> i <code>task describe</code>
+        biorą dostawcę z argumentu, a rachunek tokenów wypisują do raportu. A3 przenosi
+        go do C# jako <code>IGradingModel</code> — z licznikiem kosztu w środku portu,
+        nie obok niego.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================ 4. co ma powstać -->
+  <section>
+    <p class="kicker">Sześć klocków · dwa fronty równoległe</p>
+    <h2>Co ma powstać</h2>
+    <div class="col">
+      <p>
+        G3.1 i G3.2 budują się <strong>równolegle</strong>, bo styk między nimi to jeden
+        interfejs ustalony pierwszego dnia. Integracja jest osobnym krokiem (G3.3),
+        a nie codziennym konfliktem. G3.0 biegnie obok od tygodnia 2 — i to on decyduje
+        o terminie całego kamienia.
+      </p>
+    </div>
+
+    <div class="stages">
+      <div class="stage">
+        <div class="id">G3.0</div>
+        <div>
+          <h3>Golden set — ~150 własnych odpowiedzi</h3>
+          <p>
+            Po 2–3 odpowiedzi (poprawna, częściowa, błędna) na każde z 56 zadań otwartych,
+            każda oceniona ręką wg klucza, kryterium po kryterium, zapisana jako JSON
+            w <code>ingest/golden/</code>. Wymaga wyłącznie klucza w PDF — nie czeka
+            na korpus w bazie. Rytm: 2 roczniki tygodniowo.
+          </p>
+          <p class="measure pending">katalog pusty · tydzień opóźnienia tutaj = tydzień opóźnienia A3</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G3.1</div>
+        <div>
+          <h3>Pipeline deterministyczny — pięć kroków w czystym C#</h3>
+          <p>
+            <strong>Normalize</strong> (odpowiedź z MathLive → MathJSON, normalizacja znaków),
+            <strong>MatchCriteria</strong> (dopasowanie do progów i warunków zadania),
+            <strong>EvaluateClosed</strong> (równoważność wyrażeń bez modelu),
+            <strong>Compose</strong> (reguły przekrojowe arkusza, suma, wynik per wymaganie
+            podstawy). Testy na utrwalonych przypadkach wchodzą do CI — regresja łamie build.
+          </p>
+          <p class="measure ready">MathJSON z G2.6 gotowy · kontrakt zadania ustalony w W2</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G3.2</div>
+        <div>
+          <h3>EvaluateOpen — jedyna granica z modelem</h3>
+          <p>
+            Port <code>IGradingModel</code> ze structured output: werdykt per kryterium
+            plus <strong>cytat z odpowiedzi ucznia jako uzasadnienie</strong>. Licznik
+            tokenów i kosztu wbudowany w port — per wywołanie, per zadanie, per przebieg.
+            Adaptery co najmniej dwóch dostawców, po dwa modele u każdego.
+          </p>
+          <p class="measure">moduł <code>Klucz.Grading</code> istnieje i jest pusty</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G3.3</div>
+        <div>
+          <h3>Benchmark — jedno polecenie, jedna liczba</h3>
+          <p>
+            <code>task bench</code> przepuszcza golden set przez pipeline i wypisuje
+            zgodność (osobno zamknięte i otwarte), macierz rozbieżności i koszt przebiegu.
+            Przebieg jest parametryzowany: model × wariant promptu × obraz albo opis ×
+            liczba powtórzeń. Wynik ląduje w pliku w repo, a nocny przebieg w CI dokłada
+            punkt do serii.
+          </p>
+          <p class="measure pending">cel ≥90% zgodności — w alfie to cel, bramką merge dopiero po alfie</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G3.4</div>
+        <div>
+          <h3>Macierz eksperymentów — przebiegi w tle</h3>
+          <p>
+            Pięć pytań badawczych zamykanych pomiarem, nie opinią. Praca ręczna sprowadza
+            się do czytania wyników: same przebiegi to czas maszyny, także nocą. To jest
+            ta część A3, która kosztuje tokeny zamiast tygodni.
+          </p>
+          <p class="measure">wszystkie odpowiedzi zapisane w repo = kamień zamknięty</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">W3</div>
+        <div>
+          <h3>Plac oceniania — front równoległy</h3>
+          <p>
+            Ekran, w którym rozwiązuje się pojedyncze zadanie i widzi werdykt z cytatem.
+            Ma powstać <strong>od pierwszego dnia A3</strong>, nie na końcu: to on
+            dostarcza prawdziwe wejście z MathLive dla kroku Normalize, więc pułapki
+            formatu wychodzą od razu. Drugi widok to pulpit benchmarku — serie i macierz
+            czytane z ekranu zamiast z plików tekstowych.
+          </p>
+          <p class="measure">czeka na G3.1 · pulpit czeka na G3.3</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 5. liczby -->
+  <section>
+    <p class="kicker">Co już wiadomo, zanim A3 ruszy</p>
+    <h2>Cztery liczby na wejściu</h2>
+
+    <div class="figures">
+      <div class="fig is-plain">
+        <span class="big">5</span>
+        <span class="lede">kroków pipeline'u</span>
+        <span class="note">Model wchodzi tylko do jednego z nich — i to zza portu z licznikiem kosztu.</span>
+      </div>
+      <div class="fig is-done">
+        <span class="big">75,7%</span>
+        <span class="lede">zadań ocenianych bez modelu</span>
+        <span class="note">1087 zamkniętych z 1436 w korpusie. Plan zakładał 74% — trafione.</span>
+      </div>
+      <div class="fig is-open">
+        <span class="big">0</span>
+        <span class="lede">odpowiedzi w golden secie</span>
+        <span class="note">Z ~150. To jedyny zasób A3, którego nie da się kupić tokenami.</span>
+      </div>
+      <div class="fig is-plain">
+        <span class="big">S1–S5</span>
+        <span class="lede">pytania do zamknięcia liczbą</span>
+        <span class="note">Nie „silnik działa", tylko „każde pytanie ma odpowiedź w repo".</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 6. pytania -->
+  <section>
+    <p class="kicker">Pięć pytań badawczych</p>
+    <h2>Po co w ogóle ten pomiar</h2>
+    <div class="col">
+      <p>
+        Każde z tych pytań jest dziś otwarte i każde zmienia produkt albo jego cenę.
+        Wszystkie pięć zamykają przebiegi na tym samym golden secie — dlatego jeden
+        zasób blokuje pięć odpowiedzi naraz.
+      </p>
+    </div>
+
+    <div class="stages">
+      <div class="stage">
+        <div class="id">S1</div>
+        <div>
+          <h3>Dawać modelowi obraz zadania czy opis z ingestu?</h3>
+          <p>
+            Pełne A/B na <strong>wszystkich 56 zadaniach otwartych</strong>, nie na próbce:
+            zgodność i koszt obu dróg obok siebie. Opisy powstają w A2 (G2.5.2), więc
+            eksperyment jest gotowy do odpalenia, gdy tylko przejdą walidację.
+          </p>
+          <p class="measure pending">czeka na golden set i na zatwierdzone opisy rysunków</p>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="id">S2</div>
+        <div>
+          <h3>Który model wystarcza?</h3>
+          <p>
+            Ten sam golden set przez co najmniej dwa modele u dwóch dostawców — mały
+            kontra duży. Podmiana jest parametrem przebiegu, bo port jest jeden, więc
+            koszt eksperymentu to tokeny, nie refaktor.
+          </p>
+          <p class="measure pending">czeka na adaptery dostawców (G3.2.3)</p>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="id">S3</div>
+        <div>
+          <h3>Jak powtarzalne są werdykty?</h3>
+          <p>
+            Pięć albo więcej powtórzeń tego samego przebiegu; mierzy się rozrzut werdyktów
+            per kryterium i per zadanie. Wynik mówi też, ile wart jest golden set robiony
+            samodzielnie — i czy późniejszy golden set nauczycielski jest wydatkiem
+            koniecznym.
+          </p>
+          <p class="measure pending">czeka na parametryzację przebiegu (G3.3.2)</p>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="id">S4</div>
+        <div>
+          <h3>Który wariant promptu wygrywa?</h3>
+          <p>
+            Wariant promptu jest wymiarem macierzy, nie przedmiotem przeczucia. Główne
+            pytanie: czy wymóg cytatu-uzasadnienia faktycznie poprawia zgodność, czy tylko
+            podnosi koszt.
+          </p>
+          <p class="measure pending">każdy wariant ma wyjść z liczbą, nie z opinią</p>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="id">S5</div>
+        <div>
+          <h3>Ile kosztuje jedna ocena i jedna sesja ucznia?</h3>
+          <p>
+            Licznik z portu <code>IGradingModel</code> zderzony z ceną produktu
+            49–79 zł miesięcznie. To jest pytanie o to, czy model biznesowy się spina —
+            i jedyne z tej piątki, które ciągnie się aż do A4.
+          </p>
+          <p class="measure pending">część 1 z licznika w porcie · część 2 z macierzy</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 7. co blokuje -->
+  <section>
+    <p class="kicker">Uczciwy obraz startu</p>
+    <h2>Czego A3 potrzebuje, żeby ruszyć</h2>
+    <div class="col">
+      <p>
+        Plan ma zawór: gdyby A2 puchło, A3 nie musi czekać na komplet ośmiu roczników —
+        wystarczy <strong>zatwierdzony pilot rocznika 2025</strong>. Tyle że pilot też ma
+        dziś zero zatwierdzonych zadań. Zawór nie omija korekty ręcznej, tylko ją skraca.
+      </p>
+    </div>
+
+    <div class="ledger-wrap">
+      <table>
+        <caption>Zależności wejściowe kamienia A3</caption>
+        <thead>
+          <tr>
+            <th scope="col">Czego trzeba</th>
+            <th scope="col">Stan na dziś</th>
+            <th scope="col">Co blokuje, gdy tego nie ma</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">golden set</th>
+            <td>0 z ~150 odpowiedzi, <code>ingest/golden/</code> pusty</td>
+            <td>benchmark i wszystkie pytania S1–S5</td>
+          </tr>
+          <tr>
+            <th scope="row">korpus</th>
+            <td>1436 sparsowanych, 0 zatwierdzonych</td>
+            <td>MatchCriteria nie ma na czym pracować; zawór skraca to do pilotu 2025</td>
+          </tr>
+          <tr>
+            <th scope="row">opisy rysunków</th>
+            <td>0 z 607 zatwierdzonych</td>
+            <td>tylko S1 (A/B obraz kontra opis) — reszta rusza bez nich</td>
+          </tr>
+          <tr>
+            <th scope="row">MathJSON</th>
+            <td>414 z 514 zapisów, 100 świadomych odmów</td>
+            <td>nic — gotowe, ten sam silnik obsłuży EvaluateClosed</td>
+          </tr>
+          <tr>
+            <th scope="row">kontrakt zadania po HTTP</th>
+            <td>gotowy w W2, czytany przez przeglądarkę korpusu</td>
+            <td>nic — ustalony tygodnie przed pipelinem, celowo</td>
+          </tr>
+          <tr>
+            <th scope="row">moduł <code>Klucz.Grading</code></th>
+            <td>istnieje, kompiluje się, jest pusty</td>
+            <td>nic — miejsce przygotowane w A1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ul class="checks">
+      <li><span class="tag done">gotowe</span><span class="what">Granica warstw i miejsce na pipeline<span class="why">Moduły nie widzą się nawzajem; <code>Grading</code> dostanie kryteria portem, nie referencją.</span></span></li>
+      <li><span class="tag done">gotowe</span><span class="what">Ten sam silnik matematyczny co w A2<span class="why">Zero dryfu dialektu między konwerterem z ingestu a oceną zamkniętych.</span></span></li>
+      <li><span class="tag done">gotowe</span><span class="what">Nawyk liczenia tokenów i kosztu<span class="why">Zaczęty w A2 przy LLM w ingeście; A3 przenosi go do portu.</span></span></li>
+      <li><span class="tag plan">plan</span><span class="what">Pipeline pięciu kroków i port modelu<span class="why">Budowane równolegle — styk to jeden interfejs ustalony pierwszego dnia.</span></span></li>
+      <li><span class="tag plan">plan</span><span class="what">Benchmark jako polecenie i przebieg nocny<span class="why">Bramką blokującą merge staje się dopiero po alfie, na ustabilizowanym golden secie.</span></span></li>
+      <li><span class="tag open">przed nami</span><span class="what">Golden set — ~150 własnych odpowiedzi<span class="why">Ścieżka krytyczna A3. Startuje z PDF-ów, nie czeka na bazę, więc może iść już teraz.</span></span></li>
+      <li><span class="tag open">przed nami</span><span class="what">Korekta ręczna korpusu z A2<span class="why">Ta sama pozycja co w poprzednim kamieniu — i wciąż ta sama liczba: 0.</span></span></li>
+    </ul>
+  </section>
+
+  <!-- ============================================ 8. pułapki -->
+  <section>
+    <p class="kicker">Rzeczy, które najłatwiej zepsuć</p>
+    <h2>Pięć min tego kamienia</h2>
+
+    <div class="traps">
+      <div class="trap"><p><strong>Golden set wciśnięty w A3.</strong> Pisanie i ocenianie ~150 odpowiedzi to praca ręką, nie tokeny. Wsunięty w sam kamień wydłuża go o tydzień — dlatego stoi na osobnym torze od tygodnia 2.</p></div>
+      <div class="trap"><p><strong>Model w środku pipeline'u zamiast za portem.</strong> Rozsiane wywołania zamieniają pytanie „czy tańszy model wystarczy" z parametru przebiegu w przebudowę — a wtedy nikt go nie zada.</p></div>
+      <div class="trap"><p><strong>Spłaszczenie trzech poziomów dysjunkcji.</strong> Próg ma warunki, warunek ma zapisy równoważne, a każdy poziom jest alternatywą. Spłaszczone do listy dają ocenę, która wygląda poprawnie i myli się w połowie przypadków.</p></div>
+      <div class="trap"><p><strong>Reguły przekrojowe liczone za wcześnie.</strong> „Błąd rachunkowy −1 pkt" ma sens dopiero po ocenie wszystkich kryteriów zadania. Policzone w trakcie odejmują punkt, którego jeszcze nie przyznano.</p></div>
+      <div class="trap"><p><strong>Benchmark jako bramka merge w alfie.</strong> Próg zgodności ma sens na ustabilizowanym golden secie. Postawiony za wcześnie blokuje pracę na szumie z ~150 własnych odpowiedzi.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Ocenianie A3 · egzamin ósmoklasisty, matematyka<br>
+    Źródła: <span class="mono">Plan Implementacji Alfy (grupa G3)</span>, <span class="mono">Plan Alfy (sekcja 07)</span>,
+    <span class="mono">docs/plan-A2.md</span>, <span class="mono">docs/corpus-A2.txt</span><br>
+    Stan na 26.08.2026 — to jest plan. Żadna liczba z A3 jeszcze nie istnieje;
+    liczby na wejściu pochodzą z zamkniętych narzędzi A2.
+  </footer>
+
+</div>
+</body>
+</html>
