@@ -218,6 +218,17 @@ tasks:
     dir: ingest
     cmds: ['{{.PY}} -m parsers.omap_e8.run {{.CLI_ARGS}}']
 
+  # Regresja parsera BEZ bazy (G2.3.1, krok 3). Poprawka dla rocznika 2019 nie ma
+  # prawa ruszyć liczb 2020–2026, a zrzut łapie to w dwie minuty — w ekranie
+  # korekty ta sama regresja kosztuje dzień.
+  #
+  #   task parser:snapshot -- --out ../data/reports/parser-przed.json
+  #   task parser:snapshot -- --baseline ../data/reports/parser-przed.json
+  parser:snapshot:
+    desc: Zrzut liczb parsera i porównanie z poprzednim przebiegiem
+    dir: ingest
+    cmds: ['{{.PY}} -m parsers.omap_e8.snapshot {{.CLI_ARGS}}']
+
   # ------------------------------------------------------------------ korekta
   # `--host 127.0.0.1` jawnie, mimo że to domyślna wartość uvicorna: ekran
   # edytuje korpus bez żadnego uwierzytelnienia, więc „tylko localhost" jest

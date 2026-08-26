@@ -94,6 +94,22 @@ def _scal_indeksy(s: str) -> str:
     return _RUN_SCRIPT.sub(_one, s)
 
 
+def _zloz(fragmenty: Sequence[tuple]) -> str:
+    """Fragmenty `(x, tekst, czy_ulamek)` od lewej → tekst jednego segmentu.
+
+    Ułamek tuż za cyfrą dostaje odstęp, bo `1⅔` to LICZBA MIESZANA — jeden
+    i dwie trzecie. Sklejone `12/3` wygląda jak poprawny ułamek o innej
+    wartości i przechodzi korektę niezauważone, więc naprawia się to w kodzie,
+    a nie ręcznie (kryterium z G2.3.2: cichy błąd → parser).
+    """
+    out: List[str] = []
+    for _, tekst, ulamek in sorted(fragmenty, key=lambda f: f[0]):
+        if ulamek and out and out[-1][-1:].isdigit():
+            out.append(" ")
+        out.append(tekst)
+    return _scal_indeksy("".join(out))
+
+
 def render(chars: Sequence[Char], bars: Sequence[Bar]) -> str:
     """Znaki + kreski → tekst z ułamkami w postaci `licznik/mianownik`."""
     chars = list(chars)
@@ -111,12 +127,12 @@ def render(chars: Sequence[Char], bars: Sequence[Bar]) -> str:
             inner = [b for b in scope
                      if b is not bar and bar.x0 - X_PAD <= b.x0 and b.x1 <= bar.x1 + X_PAD]
             local.append((bar.x0, "%s/%s" % (build(num, inner).strip() or "?",
-                                             build(den, inner).strip() or "?")))
+                                             build(den, inner).strip() or "?"), True))
             for c in num + den:
                 consumed.add(id(c))
         rest = [c for c in pool if id(c) not in consumed]
-        local.extend(_mark_scripts(rest))
-        return _scal_indeksy("".join(t for _, t in sorted(local, key=lambda p: p[0])))
+        local.extend((x, t, False) for x, t in _mark_scripts(rest))
+        return _zloz(local)
 
     for bar in sorted(bars, key=lambda b: b.x0):
         pietra = _pietra(chars, bar)
@@ -128,11 +144,12 @@ def render(chars: Sequence[Char], bars: Sequence[Bar]) -> str:
         inner = [b for b in bars
                  if b is not bar and bar.x0 - X_PAD <= b.x0 and b.x1 <= bar.x1 + X_PAD]
         parts.append((bar.x0, "%s/%s" % (build(num, inner).strip() or "?",
-                                         build(den, inner).strip() or "?")))
+                                         build(den, inner).strip() or "?"), True))
         for c in num + den:
             taken.add(id(c))
-    parts.extend(_mark_scripts([c for c in chars if id(c) not in taken]))
-    return _scal_indeksy("".join(t for _, t in sorted(parts, key=lambda p: p[0])))
+    parts.extend((x, t, False) for x, t
+                 in _mark_scripts([c for c in chars if id(c) not in taken]))
+    return _zloz(parts)
 
 
 def band_text(page, y_top: float, y_bottom: float) -> str:
@@ -180,6 +197,20 @@ def page_text(page, pomin_przypisy: bool = False) -> str:
         chars = [c for c in chars if id(c) not in do_ciecia]
     if not chars:
         return ""
+
+    vis = [c for c in chars if c.c.strip()]
+    sizes = [round(c.size, 1) for c in vis]
+    base_size = max(set(sizes), key=sizes.count) if sizes else 11.0
+    base_rows = sorted({round(c.cy / LINE_TOL) * LINE_TOL
+                        for c in vis if round(c.size, 1) >= base_size - 0.1})
+
+    def wiersz_bazowy(y: float, tolerancja: float) -> float:
+        """Najbliższy wiersz tekstu bazowego — albo `y`, gdy żaden nie jest blisko."""
+        if not base_rows:
+            return y
+        near = min(base_rows, key=lambda row: abs(row - y))
+        return near if abs(near - y) <= tolerancja else y
+
     anchor: dict[int, float] = {}
     for bar in bars:
         # Bez `size=`: rozmiar liczy `_rozmiar_bazowy`, ta sama liczba co w `render` —
@@ -187,26 +218,27 @@ def page_text(page, pomin_przypisy: bool = False) -> str:
         pietra = _pietra(chars, bar)
         if pietra is None:
             continue
+        # Ułamek STOJĄCY W ZDANIU ma zostać w wierszu tego zdania. Kotwiczony na
+        # własnej kresce trafiał do osobnego wiersza (`round(y / LINE_TOL)` różni
+        # się wtedy o jeden), a spłaszczenie wierszy w kryterium przenosiło go
+        # na początek tekstu: „ustalenie, że 12 konkurencji stanowi ⅓ wszystkich"
+        # czytało się „1/3 ustalenie, że 12 konkurencji stanowi wszystkich".
+        # Tolerancja jest tu wąska (LINE_TOL), bo wiersze stoją co ~12 pt:
+        # ułamek wyświetlany osobno nie ma do czego przylgnąć i zostaje sam.
+        y = wiersz_bazowy(bar.y, LINE_TOL)
         for c in pietra[0] + pietra[1]:
-            anchor[id(c)] = bar.y
+            anchor[id(c)] = y
 
     # Potęgi i indeksy leżą nad/pod linią bazową i bez kotwiczenia trafiają do
     # sąsiedniego wiersza: `P_AECF = 15² − …` rozpada się na trzy linie.
-    vis = [c for c in chars if c.c.strip()]
-    if vis:
-        sizes = [round(c.size, 1) for c in vis]
-        base_size = max(set(sizes), key=sizes.count)
-        base_rows = sorted({round(c.cy / LINE_TOL) * LINE_TOL
-                            for c in vis if round(c.size, 1) >= base_size - 0.1})
-        if base_rows:
-            for c in chars:
-                if id(c) in anchor or not c.c.strip():
-                    continue
-                if c.size >= base_size * SCRIPT_RATIO:
-                    continue
-                near = min(base_rows, key=lambda y: abs(y - c.cy))
-                if abs(near - c.cy) <= base_size:
-                    anchor[id(c)] = near
+    for c in chars:
+        if id(c) in anchor or not c.c.strip():
+            continue
+        if c.size >= base_size * SCRIPT_RATIO:
+            continue
+        near = wiersz_bazowy(c.cy, base_size)
+        if near != c.cy:
+            anchor[id(c)] = near
 
     rows: dict[int, List[Char]] = {}
     for c in chars:
