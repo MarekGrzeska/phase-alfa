@@ -10,7 +10,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from pdf import reconstruct
+from pdf import reconstruct, regions
 from pdf.layout import open_pdf
 
 RE_ZADANIE = re.compile(
@@ -284,7 +284,7 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     with open_pdf(path, engine=silnik) as doc:
         for page in doc:
             strony.append(reconstruct.page_text(page, pomin_przypisy=True))
-            naglowki += [(len(strony) - 1, y) for y in _pozycje_naglowkow(page)]
+            naglowki += [(len(strony) - 1, y) for _, y in _pozycje_naglowkow(page)]
             # To w przypisach stoi numer Dz.U., po którym poznajemy obowiązującą podstawę.
             odciete = reconstruct.przypisy(page.chars)
             if odciete:
@@ -390,7 +390,8 @@ def _tekst_stopki(znaki) -> str:
     return "".join(out)
 
 
-def _pozycje_naglowkow(page) -> List[float]:
+def _pozycje_naglowkow(page) -> List[Tuple[str, float]]:
+    """(numer zadania, górna krawędź nagłówka) — w kolejności od góry strony."""
     wiersze: Dict[int, list] = {}
     for c in page.chars:
         wiersze.setdefault(round(c.y0 / reconstruct.LINE_TOL), []).append(c)
@@ -398,9 +399,24 @@ def _pozycje_naglowkow(page) -> List[float]:
     for cs in wiersze.values():
         cs.sort(key=lambda c: c.x0)
         tekst = "".join(c.c for c in cs).strip()
-        if tekst.startswith("Zadanie") and RE_ZADANIE.match(tekst):
-            out.append(min(c.y0 for c in cs))
-    return sorted(out)
+        m = RE_ZADANIE.match(tekst) if tekst.startswith("Zadanie") else None
+        if m:
+            out.append((m.group(1), min(c.y0 for c in cs)))
+    return sorted(out, key=lambda p: p[1])
+
+
+def _pasy_zadan(page) -> Dict[str, Tuple[float, float]]:
+    """Pionowy zakres zadania na stronie: od jego nagłówka do następnego.
+
+    Zakres jest wejściem wykrywania regionu graficznego — bez niego kandydatami
+    byłyby kształty CAŁEJ strony i rysunek sąsiada wchodziłby do wycinka.
+    """
+    naglowki = _pozycje_naglowkow(page)
+    out: Dict[str, Tuple[float, float]] = {}
+    for i, (numer, gora) in enumerate(naglowki):
+        dol = naglowki[i + 1][1] if i + 1 < len(naglowki) else page.height
+        out.setdefault(numer, (gora, dol))
+    return out
 
 
 def _sparuj_tabele(naglowki, tabele, ile_zadan: int):
@@ -814,6 +830,27 @@ def _szczegolowe(prawa: str, dial: Dialekt) -> List[dict]:
 
 # ── ZESZYT ZADAŃ — treść zadania i prostokąty rysunków ────────────────────────
 
+# Zadanie odwołuje się do grafiki. Wzorzec rozstrzyga TAKŻE o rodzaju zasobu,
+# bo `asset.kind` czyta przeglądarka korpusu — „diagram" dla każdego rysunku
+# był uproszczeniem z czasu, gdy nikt tej kolumny nie oglądał.
+RODZAJE_GRAFIKI = (
+    (re.compile(r"\bwykres\w*\b", re.I), "wykres"),
+    (re.compile(r"\bdiagram\w*\b", re.I), "diagram"),
+    (re.compile(r"\b(?:rysunek|rysunk\w+|siatc\w+|osi liczbowej)\b", re.I), "rysunek"),
+)
+
+# Zadanie z trzema osobnymi rysunkami na jednej stronie zdarza się; z dziesięcioma
+# nie — to znaczy, że klaster się rozsypał i lepiej oddać ramkę człowiekowi.
+MAX_ZASOBOW_NA_STRONE = 3
+
+
+def rodzaj_grafiki(tresc: str) -> Optional[str]:
+    for wzor, rodzaj in RODZAJE_GRAFIKI:
+        if wzor.search(tresc):
+            return rodzaj
+    return None
+
+
 def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
     """Treść zadań + zasoby graficzne per numer zadania, plus liczba stron zeszytu.
 
@@ -827,6 +864,7 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
         stron = len(doc)
         for page in doc:
             txt = reconstruct.page_text(page, pomin_przypisy=True)
+            pasy = _pasy_zadan(page)
             for m in RE_ZADANIE.finditer(txt):
                 nr = m.group(1)
                 nast = RE_ZADANIE.search(txt, m.end())
@@ -836,16 +874,26 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
                 out.setdefault(nr, {"tresc": " ".join(tresc.split())[:1500],
                                     "strona": page.number + 1,
                                     "zasoby": []})
-                # Numer zadania trafia się na dwóch stronach — zasób ma być jeden na stronę, nie jeden na trafienie.
+                # Numer zadania trafia się na dwóch stronach — zasoby liczą się
+                # raz na stronę, nie raz na trafienie nagłówka.
                 strony_zasobow = {z["strona"] for z in out[nr]["zasoby"]}
-                if page.number + 1 not in strony_zasobow and re.search(
-                        r"\b(diagram\w*|rysunk\w+|rysunek|wykres\w*|siatc\w+"
-                        r"|osi liczbowej)\b", tresc, re.I):
+                rodzaj = rodzaj_grafiki(tresc)
+                if rodzaj is None or page.number + 1 in strony_zasobow:
+                    continue
+                pas = pasy.get(nr)
+                ramki = regions.detect(page, *pas) if pas else []
+                for bbox in ramki[:MAX_ZASOBOW_NA_STRONE]:
+                    out[nr]["zasoby"].append({"rodzaj": rodzaj,
+                                              "strona": page.number + 1,
+                                              "bbox": [float(v) for v in bbox]})
+                if not ramki:
+                    # Automat nie domknął — zasób zostaje z ramką całej strony
+                    # i przejmuje go ręczne dociągnięcie z G2.4.2. To zawór
+                    # nr 3 z Planu Implementacji, nie awaria przebiegu.
                     out[nr]["zasoby"].append({
-                        "rodzaj": "diagram",
+                        "rodzaj": rodzaj,
                         "strona": page.number + 1,
-                        # UPROSZCZENIE: bbox to cała strona; wykrywanie regionu grafiki to osobna robota.
-                        "bbox": [0, 0, page.width, page.height],
+                        "bbox": [0.0, 0.0, float(page.width), float(page.height)],
                     })
     return out, stron
 

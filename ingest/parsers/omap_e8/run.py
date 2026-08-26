@@ -13,7 +13,7 @@ from pathlib import Path
 
 import psycopg
 
-from parsers.omap_e8 import loader
+from parsers.omap_e8 import crops, loader
 from parsers.omap_e8 import parser as K
 from schema.migrate import polaczenie
 from sciezki import KORZEN_REPO, korzen_mirrora, spis_urls
@@ -277,8 +277,14 @@ def main() -> int:
                      "; ".join(w["uwagi"])[:34]))
     czas = time.perf_counter() - t0
 
+    # Cięcie PNG PO pętli ładowania, nie w niej: dysk nie cofa się razem
+    # z transakcją, a tak przebieg dorzuca też wycinki, których zabrakło
+    # po `task db:reset` (baza wraca pusta, blob zostaje).
+    wycinki = crops.cut_missing(con)
+
     try:
-        _zapisz_raport(args.report, con, wyniki, pominiete, bledy, czas, lad, po_korekcie)
+        _zapisz_raport(args.report, con, wyniki, pominiete, bledy, czas, lad,
+                       po_korekcie, wycinki)
     finally:
         # W `finally`, bo raport potrafi się wywalić na zapytaniu i zostawić połączenie.
         con.close()
@@ -286,7 +292,7 @@ def main() -> int:
 
 
 def _zapisz_raport(sciezka, con, wyniki, pominiete, bledy, czas, lad,
-                   po_korekcie=()) -> None:
+                   po_korekcie=(), wycinki=None) -> None:
     """Ten sam raport na ekran i do pliku — plan G1.2.2 każe go porównać z sondą."""
     sciezka = sciezka or (KORZEN_REPO / "data" / "reports"
                           / ("ingest-%s.txt" % time.strftime("%Y-%m-%d")))
@@ -294,7 +300,7 @@ def _zapisz_raport(sciezka, con, wyniki, pominiete, bledy, czas, lad,
     sciezka.parent.mkdir(parents=True, exist_ok=True)
     with (open(sciezka, "w", encoding="utf-8") as fh,
           contextlib.redirect_stdout(_Tee(sys.stdout, fh))):
-        _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie)
+        _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie, wycinki)
     print("\nRaport zapisany: %s" % sciezka)
 
 
@@ -351,7 +357,8 @@ def _blizniakow(blizniaki: dict, warianty: str) -> int:
                for w in (warianty or "").split(",") if w.strip())
 
 
-def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
+def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=(),
+            wycinki=None) -> None:
     print("\n" + "─" * 74)
     print("CO WESZŁO DO BAZY")
     print("─" * 74)
@@ -494,6 +501,10 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
                WHERE c.points > t.max_points LIMIT 5"""):
         print("    ↳ %s zad. %s: pula 0–%d, a próg za %d pkt"
               % (os.path.basename(sciezka), numer, pmax, pkt))
+
+    if wycinki:
+        print("\n" + "─" * 74)
+        print(crops.report(wycinki))
 
     print("\n" + "─" * 74)
     print("PODSUMOWANIE")

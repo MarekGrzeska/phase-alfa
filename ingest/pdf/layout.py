@@ -42,6 +42,28 @@ class Bar:
 
 
 @dataclass
+class Shape:
+    """Obiekt graficzny strony — obraz, krzywa, prostokąt albo linia.
+
+    Współrzędne jak u znaków: `top`/`bottom` liczone od GÓRNEJ krawędzi strony.
+    Silniki podają je inaczej, więc ujednolicenie stoi w czytnikach.
+    """
+    kind: str
+    x0: float
+    top: float
+    x1: float
+    bottom: float
+
+    @property
+    def width(self) -> float:
+        return self.x1 - self.x0
+
+    @property
+    def height(self) -> float:
+        return self.bottom - self.top
+
+
+@dataclass
 class Table:
     """Wykryta tabela: prostokąt i wiersze z rozwiniętymi komórkami scalonymi."""
     bbox: Tuple[float, float, float, float]
@@ -62,16 +84,24 @@ class Page:
         self._chars: List[Char] | None = None
         self._bars: List[Bar] | None = None
         self._tables: List[Table] | None = None
+        self._shapes: List[Shape] | None = None
 
     def _read_chars(self) -> List[Char]: raise NotImplementedError
     def _read_bars(self) -> List[Bar]: raise NotImplementedError
     def _read_tables(self) -> List[Table]: raise NotImplementedError
+    def _read_shapes(self) -> List[Shape]: raise NotImplementedError
 
     @property
     def chars(self) -> List[Char]:
         if self._chars is None:
             self._chars = self._read_chars()
         return self._chars
+
+    @property
+    def shapes(self) -> List[Shape]:
+        if self._shapes is None:
+            self._shapes = self._read_shapes()
+        return self._shapes
 
     @property
     def tables(self) -> List[Table]:
@@ -117,6 +147,14 @@ class _PlumberPage(Page):
         for t in self._raw.find_tables():
             out.append(Table(tuple(t.bbox),
                              [[(c or "") for c in row] for row in t.extract()]))
+        return out
+
+    def _read_shapes(self):
+        out = []
+        for rodzaj, obiekty in (("image", self._raw.images), ("curve", self._raw.curves),
+                                ("rect", self._raw.rects), ("line", self._raw.lines)):
+            for o in obiekty:
+                out.append(Shape(rodzaj, o["x0"], o["top"], o["x1"], o["bottom"]))
         return out
 
 
@@ -184,6 +222,13 @@ class _MuPage(Page):
         return [Table(tuple(t.bbox), [[(c or "") for c in row] for row in t.extract()])
                 for t in found]
 
+    def _read_shapes(self):
+        out = [Shape("curve", d["rect"].x0, d["rect"].y0, d["rect"].x1, d["rect"].y1)
+               for d in self._raw.get_drawings()]
+        out += [Shape("image", i["bbox"][0], i["bbox"][1], i["bbox"][2], i["bbox"][3])
+                for i in self._raw.get_image_info()]
+        return out
+
 
 class _MuDoc:
     def __init__(self, path):
@@ -236,6 +281,7 @@ def zrzut_strony(page: Page) -> dict:
         "kreski": [[b.x0, b.x1, b.y] for b in page.bars],
         "kreski_kandydujace": [[b.x0, b.x1, b.y] for b in page._read_bars()],
         "tabele": [{"bbox": list(t.bbox), "wiersze": t.rows} for t in page.tables],
+        "ksztalty": [[s.kind, s.x0, s.top, s.x1, s.bottom] for s in page.shapes],
     }
 
 
@@ -255,3 +301,10 @@ class StronaZeZrzutu(Page):
 
     def _read_tables(self) -> List[Table]:
         return [Table(tuple(t["bbox"]), t["wiersze"]) for t in self._dane["tabele"]]
+
+    def _read_shapes(self) -> List[Shape]:
+        # `.get`, bo zrzuty sprzed G2.4.1 kształtów nie mają. Test regionów
+        # asercją na NIEPUSTEJ liście broni się przed cichym przejściem
+        # na zrzucie, w którym ich po prostu nie zapisano.
+        return [Shape(kind, x0, top, x1, bottom)
+                for kind, x0, top, x1, bottom in self._dane.get("ksztalty", [])]
