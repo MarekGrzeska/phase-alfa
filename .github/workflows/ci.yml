@@ -89,6 +89,19 @@ jobs:
         working-directory: ingest
         run: uv sync --frozen --extra dev
 
+      # Konwerter MathJSON stoi na Node (G2.6) i bez jego zależności test
+      # `test_konwerter_oddaje_utrwalony_mathjson` POMIJA się z widocznym powodem.
+      # Pominięcie jest lepsze od zieleni z niczego, ale gorsze od sprawdzenia:
+      # to ten test pilnuje, że Compute Engine nie zmienił wyniku pod nami,
+      # a jest jedynym miejscem, gdzie kontrakt z A3 da się zweryfikować.
+      # Node stoi na runnerze z definicji, więc kosztem są sekundy na `install`.
+      - uses: pnpm/action-setup@v5
+        with:
+          package_json_file: web/package.json
+
+      - name: Zależności konwertera MathJSON
+        run: pnpm -C ingest/mathjson install --frozen-lockfile --ignore-workspace
+
       - name: Migracje schematu
         working-directory: ingest
         run: uv run python -m schema.migrate
