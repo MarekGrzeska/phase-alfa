@@ -9,6 +9,7 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from correction import assets
 from schema.migrate import polaczenie
 
 STATUSES = ("pending", "approved", "corrected", "rejected")
@@ -103,36 +104,56 @@ def filters(cur) -> dict[str, list]:
     years = [r["year"] for r in cur.fetchall()]
     cur.execute("SELECT DISTINCT code FROM document WHERE kind = 'marking_scheme'"
                 " ORDER BY code")
-    return {"years": years, "codes": [r["code"] for r in cur.fetchall()]}
+    codes = [r["code"] for r in cur.fetchall()]
+    # `unnest`, bo klucz bywa wspólny dla kilku wariantów i trzyma je w jednej
+    # kolumnie po przecinku — lista wyboru ma pokazywać warianty, nie ich zlepki.
+    cur.execute("SELECT DISTINCT unnest(string_to_array(variants, ',')) AS variant"
+                " FROM document WHERE kind = 'marking_scheme' AND variants IS NOT NULL"
+                " ORDER BY variant")
+    return {"years": years, "codes": codes,
+            "variants": [r["variant"] for r in cur.fetchall()]}
+
+
+# Zakres pracy: pilot G2.2 to JEDEN rocznik i JEDEN wariant z ośmiu roczników
+# w bazie. Ten sam warunek obowiązuje listę i „następne do korekty" — inaczej
+# przycisk wyprowadza z pilotu do pierwszego czekającego zadania z 2019 r.
+# Rzutowania są konieczne, nie ozdobne: nieotypowany NULL w `IS NULL` każe
+# Postgresowi zgadywać typ parametru i kończy się błędem.
+SCOPE_SQL = """(%(year)s::smallint  IS NULL OR d.year = %(year)s)
+             AND (%(code)s::text    IS NULL OR d.code = %(code)s)
+             AND (%(variant)s::text IS NULL
+                  OR %(variant)s = ANY(string_to_array(d.variants, ',')))"""
 
 
 def list_tasks(cur, status: str | None = None, year: int | None = None,
-               code: str | None = None, limit: int = 200) -> list[dict]:
+               code: str | None = None, variant: str | None = None,
+               limit: int = 200) -> list[dict]:
     cur.execute(
-        """SELECT t.id, t.number, t.max_points, t.kind, t.review_status,
-                  t.reviewed_at, d.code, d.session, d.year, d.path
-           FROM task t
-           JOIN document d ON d.id = t.marking_scheme_id
-           -- Rzutowania są konieczne, nie ozdobne: nieotypowany NULL w `IS NULL`
-           -- każe Postgresowi zgadywać typ parametru i kończy się błędem.
-           WHERE (%(status)s::text     IS NULL OR t.review_status = %(status)s)
-             AND (%(year)s::smallint   IS NULL OR d.year = %(year)s)
-             AND (%(code)s::text       IS NULL OR d.code = %(code)s)
-           ORDER BY d.session, d.path, t.position
-           LIMIT %(limit)s""",
-        {"status": status, "year": year, "code": code, "limit": limit},
+        f"""SELECT t.id, t.number, t.max_points, t.kind, t.review_status,
+                   t.reviewed_at, d.code, d.session, d.year, d.variants, d.path
+            FROM task t
+            JOIN document d ON d.id = t.marking_scheme_id
+            WHERE (%(status)s::text IS NULL OR t.review_status = %(status)s)
+              AND {SCOPE_SQL}
+            ORDER BY d.session, d.path, t.position
+            LIMIT %(limit)s""",  # noqa: S608
+        {"status": status, "year": year, "code": code, "variant": variant,
+         "limit": limit},
     )
     return cur.fetchall()
 
 
-def next_pending(cur) -> int | None:
-    """Następne zadanie do rozstrzygnięcia — domyślne wejście do pracy."""
+def next_pending(cur, year: int | None = None, code: str | None = None,
+                 variant: str | None = None) -> int | None:
+    """Następne zadanie do rozstrzygnięcia w zakresie — domyślne wejście do pracy."""
     cur.execute(
-        """SELECT t.id FROM task t
-           JOIN document d ON d.id = t.marking_scheme_id
-           WHERE t.review_status = 'pending'
-           ORDER BY d.session, d.path, t.position
-           LIMIT 1"""
+        f"""SELECT t.id FROM task t
+            JOIN document d ON d.id = t.marking_scheme_id
+            WHERE t.review_status = 'pending'
+              AND {SCOPE_SQL}
+            ORDER BY d.session, d.path, t.position
+            LIMIT 1""",  # noqa: S608
+        {"year": year, "code": code, "variant": variant},
     )
     row = cur.fetchone()
     return row["id"] if row else None
@@ -270,6 +291,7 @@ def load_task(cur, task_id: int) -> dict | None:
     )
     task["rules"] = [r for r in cur.fetchall() if rule_applies(r, task["number"])]
     task["versions"] = versions
+    task["assets"] = assets.for_task(cur, task_id)
     return task
 
 
@@ -376,6 +398,14 @@ def save(cur, task_id: int, form: Mapping[str, str]) -> dict[str, dict[str, int]
                    edited, problems)
     _save_requirements(cur, task_id, form, edited, deleted)
 
+    # Cięcie PNG dotyka DYSKU, a dysk nie cofa się razem z transakcją: plik
+    # wycięty przed nieudaną walidacją zostałby na miejscu, pokazując ramkę,
+    # której w bazie nie ma. Dlatego najpierw wywracamy zapis na tekście,
+    # a dopiero potem ruszamy zasoby.
+    if problems:
+        raise ValidationError(problems)
+
+    assets.save(cur, task_id, form, edited, problems)
     if problems:
         raise ValidationError(problems)
     return {"edited": edited, "deleted": deleted}

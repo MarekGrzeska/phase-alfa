@@ -63,10 +63,10 @@ def task(con) -> dict:
         )
         requirement = cur.fetchone()["id"]
         cur.execute(
-            "INSERT INTO document (segment, year, code, session, kind, kind_source, "
-            "url, path, pages) VALUES ('e8', 2025, 'OMAP', '2025-05-01', "
-            "'marking_scheme', 'suffix', 'test://app', 'OMAP-100-2505-zasady.pdf', 30) "
-            "RETURNING id"
+            "INSERT INTO document (segment, year, code, variants, session, kind, "
+            "kind_source, url, path, pages) VALUES ('e8', 2025, 'OMAP', '100', "
+            "'2025-05-01', 'marking_scheme', 'suffix', 'test://app', "
+            "'OMAP-100-2505-zasady.pdf', 30) RETURNING id"
         )
         document = cur.fetchone()["id"]
         cur.execute(
@@ -460,3 +460,213 @@ def test_nastepne_do_korekty_prowadzi_do_zadania(client, con, task):
 
     response = client.get("/next", follow_redirects=False)
     assert response.headers["location"] == "/", "nie ma czego korygować, a ekran wysyła w zadanie"
+
+
+@pytest.fixture
+def klucz_z_innego_rocznika(con, task) -> int:
+    """Zadanie z innego rocznika i wariantu — wcześniejsze w kolejności arkuszy."""
+    with con.cursor() as cur:
+        cur.execute(
+            "INSERT INTO document (segment, year, code, variants, session, kind, "
+            "kind_source, url, path, pages) VALUES ('e8', 2019, 'OMAP', '700', "
+            "'2019-04-01', 'marking_scheme', 'suffix', 'test://obok', "
+            "'OMAP-700-1904-zasady.pdf', 20) RETURNING id"
+        )
+        document = cur.fetchone()["id"]
+        cur.execute(
+            "INSERT INTO task (marking_scheme_id, number, position, max_points, kind, "
+            "page) VALUES (%s, '1', 1, 1, 'closed', 3) RETURNING id",
+            (document,),
+        )
+        return cur.fetchone()["id"]
+
+
+def test_nastepne_do_korekty_zostaje_w_zakresie(client, task, klucz_z_innego_rocznika):
+    """Pilot G2.2 pracuje na jednym roczniku, a w bazie leży osiem.
+
+    Bez zakresu „następne do korekty" wyprowadza korektora do najstarszego
+    czekającego klucza — czyli pilot kończy się na pierwszym zadaniu.
+    """
+    bez_zakresu = client.get("/next", follow_redirects=False)
+    assert bez_zakresu.headers["location"] == f"/task/{klucz_z_innego_rocznika}"
+
+    w_zakresie = client.get("/next?year=2025&variant=100", follow_redirects=False)
+    assert w_zakresie.headers["location"] == f"/task/{task['id']}?year=2025&variant=100"
+
+
+def test_zapis_nie_gubi_zakresu(client, con, task):
+    """Zakres przeżywa POST: rozstrzygnięcie wraca do `/next` TEGO SAMEGO rocznika."""
+    response = _post(client, task, action="approve", year="2025", variant="100",
+                     **_full(task))
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/next?year=2025&variant=100"
+
+
+def test_lista_filtruje_po_wariancie(client, task, klucz_z_innego_rocznika):
+    """Adresy porównujemy ZE ZNAKIEM ZAPYTANIA, bo `/task/1` jest podciągiem `/task/12`.
+
+    Bez domknięcia numeru test zaczyna kłamać, gdy tylko fixture urośnie
+    do dwucyfrowych identyfikatorów.
+    """
+    tylko_700 = client.get("/?variant=700")
+    assert f"/task/{klucz_z_innego_rocznika}?" in tylko_700.text
+    assert f"/task/{task['id']}?" not in tylko_700.text
+
+    tylko_100 = client.get("/?variant=100")
+    assert f"/task/{task['id']}?" in tylko_100.text
+    assert f"/task/{klucz_z_innego_rocznika}?" not in tylko_100.text
+
+
+@pytest.fixture
+def zasob(con, task, tmp_path, monkeypatch) -> dict:
+    """Zasób z ramką „cała strona" plus zeszyt zadań na dysku, z czego go wyciąć."""
+    pdfium = pytest.importorskip("pypdfium2")
+    monkeypatch.setenv("MIRROR_ROOT", str(tmp_path))
+    monkeypatch.setenv("BLOB_ROOT", str(tmp_path / "blob"))
+    (tmp_path / "raw").mkdir()
+    document = pdfium.PdfDocument.new()
+    document.new_page(595.0, 842.0)
+    document.save(str(tmp_path / "raw" / "zeszyt.pdf"))
+    document.close()
+
+    with con.cursor() as cur:
+        cur.execute(
+            "INSERT INTO document (segment, year, code, variants, session, kind, "
+            "kind_source, url, path, pages) VALUES ('e8', 2025, 'OMAP', '100,X', "
+            "'2025-05-01', 'paper', 'suffix', 'test://zeszyt', 'raw/zeszyt.pdf', 1) "
+            "RETURNING id"
+        )
+        paper = cur.fetchone()["id"]
+        cur.execute("SELECT exam_form_id FROM task_version WHERE id = %s",
+                    (task["version"],))
+        form_id = cur.fetchone()["exam_form_id"]
+        cur.execute("INSERT INTO exam_form_document VALUES (%s, %s, 'paper')",
+                    (form_id, paper))
+        cur.execute(
+            "INSERT INTO asset (task_version_id, kind, path, page, bbox) "
+            "VALUES (%s, 'diagram', 'TEST/z20-0.png', 1, '{0,0,595,842}') RETURNING id",
+            (task["version"],),
+        )
+        return {"id": cur.fetchone()["id"], "blob": tmp_path / "blob"}
+
+
+def _ramka(zasob, x0="100", top="50", x1="300", bottom="150") -> dict:
+    return {f"asset.{zasob['id']}.x0": x0, f"asset.{zasob['id']}.top": top,
+            f"asset.{zasob['id']}.x1": x1, f"asset.{zasob['id']}.bottom": bottom,
+            f"asset.{zasob['id']}.page": "1"}
+
+
+def test_reczna_ramka_tnie_wycinek_i_liczy_sie_jako_poprawka(client, con, task, zasob):
+    """Zawór nr 3: ramka dociągnięta ręcznie zamyka temat wycinka (G2.4.2).
+
+    Zmiana ramki jest zmianą rekordu, więc zadanie ma wyjść jako `corrected` —
+    inaczej S6 policzyłby ręczną robotę jako trafienie parsera.
+    """
+    response = _post(client, task, action="approve", **_full(task), **_ramka(zasob))
+
+    assert response.status_code == 303
+    assert (zasob["blob"] / "TEST" / "z20-0.png").exists()
+    assert _state(con, task["id"])["review_status"] == "corrected"
+    bbox = con.execute("SELECT bbox FROM asset WHERE id = %s",
+                       (zasob["id"],)).fetchone()["bbox"]
+    assert [float(v) for v in bbox] == [100.0, 50.0, 300.0, 150.0]
+
+
+def test_ramka_poza_strona_nie_zapisuje_niczego(client, con, task, zasob):
+    response = _post(client, task, action="approve", **_full(task),
+                     **_ramka(zasob, x1="900"))
+
+    assert response.status_code == 422
+    assert "poza stronę" in response.text
+    assert not (zasob["blob"] / "TEST" / "z20-0.png").exists()
+    assert _state(con, task["id"])["review_status"] == "pending"
+
+
+def test_przycisk_wytnij_nie_rozstrzyga_zadania(client, con, task, zasob):
+    """„Wytnij" to podgląd ramki, nie zatwierdzenie — dziennik ma zostać pusty."""
+    response = _post(client, task, action="crop", **_full(task), **_ramka(zasob))
+
+    assert response.status_code == 303
+    assert response.headers["location"].startswith(f"/task/{task['id']}?")
+    assert (zasob["blob"] / "TEST" / "z20-0.png").exists()
+    assert _state(con, task["id"])["review_status"] == "pending"
+    assert _events(con) == []
+
+
+def test_runda_wytnij_pamieta_usuniecie(client, con, task, zasob):
+    """Skasowany wiersz w rundzie „Wytnij" jest poprawką, nie trafieniem parsera.
+
+    Znacznik `edited_before` niósł wcześniej tylko edycje. Usunięcie wypadało
+    z pomiaru: zadanie zatwierdzone zaraz potem wchodziło do S6 jako rekord,
+    który parser trafił sam.
+    """
+    formularz = _full(task)
+    formularz[f"delete.answer.{task['answer']}"] = "1"
+    formularz.pop(f"answer.{task['answer']}.answer")
+
+    wytnij = _post(client, task, action="crop", **formularz)
+    assert "edited_before=1" in wytnij.headers["location"]
+
+    bez_odpowiedzi = _full(task)
+    bez_odpowiedzi.pop(f"answer.{task['answer']}.answer")
+    _post(client, task, action="approve", edited_before="1", **bez_odpowiedzi)
+
+    assert _state(con, task["id"])["review_status"] == "corrected"
+
+
+def test_wycinek_nie_powstaje_gdy_zapis_sie_wycofuje(client, con, task, zasob):
+    """Dysk nie cofa się razem z transakcją, więc cięcie idzie PO walidacji tekstu.
+
+    Inaczej w blobie zostaje plik z ramką, której w bazie nie ma: ekran pokazuje
+    wtedy wycinek niezgodny z polami obok, a licznik liczy go jako gotowy.
+    """
+    response = _post(client, task, action="approve",
+                     **_full(task, **{f"condition.{task['condition']}.description": ""}),
+                     **_ramka(zasob))
+
+    assert response.status_code == 422
+    assert not (zasob["blob"] / "TEST" / "z20-0.png").exists()
+
+
+def test_ramka_wraca_do_formularza_po_bledzie(client, task, zasob):
+    """Po nieudanej walidacji człowiek dostaje z powrotem TO, CO WPISAŁ.
+
+    Odczyt czterech liczb z siatki kosztuje minutę; kasowanie go za cudzą
+    literówkę w innym polu formularza jest karą bez związku z przewinieniem.
+    """
+    response = _post(client, task, action="approve",
+                     **_full(task, **{f"condition.{task['condition']}.description": ""}),
+                     **_ramka(zasob))
+
+    assert response.status_code == 422
+    for pole, wartosc in (("x0", "100"), ("top", "50"), ("x1", "300"), ("bottom", "150")):
+        assert f'name="asset.{zasob["id"]}.{pole}" value="{wartosc}"' in response.text
+
+
+def test_podglad_wycinka_i_strony_zeszytu(client, task, zasob):
+    """Trasy obrazków: bez wycinka 404 z podpowiedzią, po wycięciu — PNG."""
+    przed = client.get(f"/asset/{zasob['id']}.png")
+    assert przed.status_code == 404
+    assert "ramkę" in przed.text
+
+    _post(client, task, action="crop", **_full(task), **_ramka(zasob))
+
+    po = client.get(f"/asset/{zasob['id']}.png")
+    assert po.status_code == 200
+    assert po.headers["content-type"] == "image/png"
+
+    strona = client.get(f"/asset/{zasob['id']}/page.png")
+    assert strona.status_code == 200
+    assert strona.headers["content-type"] == "image/png"
+
+
+def test_strona_zeszytu_bez_zeszytu_mowi_co_zrobic(client, con, task, zasob):
+    """Zasób bez wczytanego zeszytu ma powiedzieć, którym poleceniem go dowieźć."""
+    with con.cursor() as cur:
+        cur.execute("DELETE FROM exam_form_document WHERE role = 'paper'")
+
+    response = client.get(f"/asset/{zasob['id']}/page.png")
+
+    assert response.status_code == 404
+    assert "--with-papers" in response.text

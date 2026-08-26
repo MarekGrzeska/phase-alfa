@@ -4,8 +4,8 @@
   {{ numbers.status.decided }}/{{ numbers.status.total }} rozstrzygniętych
 {% endblock %}
 {% block actions %}
-  {% if next_id %}<a href="/next"><button class="primary">Następne do korekty →</button></a>
-  {% else %}<span class="small">wszystko rozstrzygnięte</span>{% endif %}
+  {% if next_id %}<a href="/next{% if scope_query %}?{{ scope_query }}{% endif %}"><button class="primary">Następne do korekty →</button></a>
+  {% else %}<span class="small">{% if scope_query %}zakres rozstrzygnięty{% else %}wszystko rozstrzygnięte{% endif %}</span>{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -31,6 +31,10 @@
     <div class="metric">
       <b>{{ numbers.status.rejected }}</b>
       <span>odrzucone<br>(dziury w korpusie)</span>
+    </div>
+    <div class="metric">
+      <b>{{ numbers.assets.cropped }}/{{ numbers.assets.total }}</b>
+      <span>wycinków w blobie<br>(ramka dociągnięta: {{ numbers.assets.framed }})</span>
     </div>
   </div>
   <p class="small" style="margin-bottom:0">
@@ -93,8 +97,20 @@
         {% endfor %}
       </select>
     </label>
+    <label>wariant
+      <select name="variant">
+        <option value="">wszystkie</option>
+        {% for v in options.variants %}
+          <option value="{{ v }}" {% if selected.variant == v %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </label>
     <button>Filtruj</button>
   </form>
+  <p class="small" style="margin:-.4rem 0 .8rem">
+    Rocznik, kod i wariant wyznaczają też zakres przycisku „Następne do korekty" —
+    pilot zostaje w swoim roczniku.
+  </p>
 
   <table>
     <thead><tr>
@@ -103,12 +119,12 @@
     <tbody>
     {% for t in tasks %}
       <tr>
-        <td class="mono small">{{ t.code }} · {{ t.session }}</td>
+        <td class="mono small">{{ t.code }}-{{ t.variants or '—' }} · {{ t.session }}</td>
         <td class="mono">{{ t.number }}</td>
         <td class="n">{{ t.max_points }}</td>
         <td class="small">{{ t.kind }}</td>
         <td><span class="tag {{ t.review_status }}">{{ STATUS_LABELS[t.review_status] }}</span></td>
-        <td><a href="/task/{{ t.id }}">otwórz</a></td>
+        <td><a href="/task/{{ t.id }}{% if scope_query %}?{{ scope_query }}{% endif %}">otwórz</a></td>
       </tr>
     {% else %}
       <tr><td colspan="6" class="small">Nic nie pasuje do filtra.</td></tr>

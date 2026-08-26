@@ -33,14 +33,27 @@ PROG_KRYTERIA = 0.90         # udział zadań otwartych z kryteriami
 MIN_ZADAN = 10
 
 
-def wiersze(kody, segmenty, typ="zasady_oceniania"):
+def base_variant(variants: str | None) -> str:
+    """Pierwszy człon kolumny `warianty`: "100,X" → "100"; litera to wersja zeszytu."""
+    return (variants or "").split(",")[0]
+
+
+def matches(row: dict, kind: str, codes, segments, years, variants) -> bool:
+    """Czy wiersz spisu wchodzi do przebiegu. Pusty filtr znaczy „wszystko"."""
+    return (row["typ"] == kind
+            and (not codes or row["kod"] in codes)
+            and (not segments or row["segment"] in segments)
+            and (not years or row["rocznik"] in years)
+            # Wariant po pierwszym członie: zeszyty zadań trzymają w tej kolumnie
+            # także wersję („100,X"), więc filtr na całość by ich nie znalazł
+            # i pilot dostałby klucz bez arkuszy.
+            and (not variants or base_variant(row["warianty"]) in variants))
+
+
+def wiersze(kody, segmenty, typ="zasady_oceniania", years=(), variants=()):
     with open(URLS, encoding="utf-8") as fh:
         for r in csv.DictReader(fh, delimiter="\t"):
-            if r["typ"] != typ:
-                continue
-            if kody and r["kod"] not in kody:
-                continue
-            if segmenty and r["segment"] not in segmenty:
+            if not matches(r, typ, kody, segmenty, years, variants):
                 continue
             r["sciezka_lokalna"] = r["sciezka_lokalna"].replace("\\", "/")
             yield r
@@ -69,7 +82,7 @@ def przedmiot(kod: str) -> str:
 
 def arkusze_dla(r: dict, wersje, spis) -> dict:
     """Zeszyty zadań tej samej formy — po jednym na wersję."""
-    wlasny = (r["warianty"] or "").split(",")[0]
+    wlasny = base_variant(r["warianty"])
     znalezione = {}
     for a in spis:
         if a["kod"] != r["kod"] or a["sesja"] != r["sesja"]:
@@ -101,27 +114,50 @@ def reviewed_by_url(con) -> dict[str, int]:
            GROUP BY d.url""").fetchall())
 
 
+def wipe_refusal(con) -> str | None:
+    """Powód, dla którego `--wipe` ma odmówić — albo `None`, gdy wolno.
+
+    Dwie rzeczy, nie jedna: korekta zadań i dziennik `correction_event`.
+    Dziennik ginie razem z korpusem mimo `ON DELETE SET NULL`, bo kaskada
+    TRUNCATE-a nie pyta o akcję kasowania, tylko czyści każdą tabelę, która
+    odwołuje się do czyszczonej. A dziennik jest pomiarem S8, czyli wynikiem
+    alfy — po przeładowaniu kluczy z `--overwrite-reviewed` zostaje w bazie
+    jedyny ślad, ile ta praca kosztowała.
+    """
+    (reviewed,) = con.execute(
+        "SELECT count(*) FROM task WHERE review_status <> 'pending'").fetchone()
+    if reviewed:
+        return ("ODMOWA: --wipe kasuje CAŁY korpus, a zadań po korekcie "
+                "jest w nim %d." % reviewed)
+    (events,) = con.execute("SELECT count(*) FROM correction_event").fetchone()
+    if events:
+        return ("ODMOWA: --wipe kasuje TAKŻE dziennik korekty (kaskada "
+                "TRUNCATE-a), a ma on %d wpisów — to jest pomiar S8." % events)
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--kod", default="OMAP", help="kody arkuszy po przecinku (domyślnie OMAP)")
+    ap.add_argument("--code", default="OMAP", help="kody arkuszy po przecinku (domyślnie OMAP)")
     ap.add_argument("--segment", default="", help="segmenty po przecinku (domyślnie wszystkie)")
-    ap.add_argument("--wyczysc", action="store_true",
+    # Pilot z G2.2.1 to JEDEN klucz z 75: bez zawężenia przebieg z arkuszami
+    # bierze cały korpus i trwa kwadrans zamiast minuty.
+    ap.add_argument("--year", default="", help="roczniki po przecinku, np. 2025")
+    ap.add_argument("--variant", default="",
+                    help="warianty arkusza po przecinku, np. 100 (wariant bazowy)")
+    ap.add_argument("--wipe", action="store_true",
                     help="opróżnij tabele korpusu przed ładowaniem (baza jest trwała)")
     ap.add_argument("--limit", type=int, default=None, help="ile kluczy przetworzyć")
-    ap.add_argument("--silnik", default="pdfplumber", choices=["pdfplumber", "pymupdf"])
-    ap.add_argument("--z-arkuszami", action="store_true",
+    ap.add_argument("--engine", default="pdfplumber", choices=["pdfplumber", "pymupdf"])
+    ap.add_argument("--with-papers", action="store_true",
                     help="doczytaj zeszyty zadań — treść zadań i zasoby "
                          "(8× wolniej: 15 min zamiast 2, bo arkusze są pełne grafiki)")
-    # Nazwa po angielsku, jak każdy nowy identyfikator w tym repozytorium
-    # (CLAUDE.md, zasada 4). Polskie flagi obok są długiem z G1.2 i schodzą
-    # osobnym commitem — przemianowanie razem ze zmianą zachowania zaciera,
-    # co było regresją, a co zmianą nazwy.
     ap.add_argument("--overwrite-reviewed", action="store_true",
                     help="przeładuj TAKŻE klucze po korekcie — kasuje ręczne "
                          "rozstrzygnięcia razem z zadaniami")
-    ap.add_argument("--szczegoly", action="store_true", help="wiersz na każdy klucz")
-    ap.add_argument("--raport", default=None,
+    ap.add_argument("--verbose", action="store_true", help="wiersz na każdy klucz")
+    ap.add_argument("--report", default=None,
                     help="gdzie zapisać raport (domyślnie data/reports/ingest-RRRR-MM-DD.txt)")
     args = ap.parse_args()
 
@@ -130,8 +166,10 @@ def main() -> int:
     for modul in ("pdfplumber", "pdfminer", "pypdf"):
         warnings.filterwarnings("ignore", category=UserWarning, module=modul)
 
-    kody = {k.strip() for k in args.kod.split(",") if k.strip()}
+    kody = {k.strip() for k in args.code.split(",") if k.strip()}
     segmenty = {s.strip() for s in args.segment.split(",") if s.strip()}
+    years = {y.strip() for y in args.year.split(",") if y.strip()}
+    variants = {v.strip() for v in args.variant.split(",") if v.strip()}
 
     if not os.path.exists(URLS):
         print(f"brak {URLS}")
@@ -139,28 +177,30 @@ def main() -> int:
         print("  task mirror -- --filtr matematyka")
         return 2
 
-    zadania_do_zrobienia = list(wiersze(kody, segmenty))
+    zadania_do_zrobienia = list(wiersze(kody, segmenty, years=years,
+                                        variants=variants))
     if args.limit:
         zadania_do_zrobienia = zadania_do_zrobienia[:args.limit]
     if not zadania_do_zrobienia:
-        print("nic nie pasuje do filtra kod=%s segment=%s" % (args.kod, args.segment))
+        print("nic nie pasuje do filtra code=%s segment=%s year=%s variant=%s"
+              % (args.code, args.segment, args.year or "—", args.variant or "—"))
         return 2
 
-    spis_arkuszy = list(wiersze(kody, segmenty, typ="arkusz")) if args.z_arkuszami else []
+    spis_arkuszy = (list(wiersze(kody, segmenty, typ="arkusz", years=years,
+                                 variants=variants))
+                    if args.with_papers else [])
 
     # autocommit=True, żeby `con.transaction()` zakładał PRAWDZIWĄ transakcję na klucz —
     # inaczej błąd ostatniego cofa cały przebieg.
     con = psycopg.connect(polaczenie(), autocommit=True)
-    if args.wyczysc:
+    if args.wipe:
         # TRUNCATE jest większym młotem niż przeładowanie jednego klucza: bierze
         # CAŁY korpus razem z korektą każdego rocznika. Bramka z ładowarki tu nie
         # sięga, bo ten SQL omija ją z definicji.
-        (po_korekcie,) = con.execute(
-            "SELECT count(*) FROM task WHERE review_status <> 'pending'").fetchone()
-        if po_korekcie and not args.overwrite_reviewed:
-            print("ODMOWA: --wyczysc kasuje CAŁY korpus, a zadań po korekcie "
-                  "jest w nim %d." % po_korekcie)
-            print("Jeśli naprawdę o to chodzi: --wyczysc --overwrite-reviewed.")
+        refusal = None if args.overwrite_reviewed else wipe_refusal(con)
+        if refusal:
+            print(refusal)
+            print("Jeśli naprawdę o to chodzi: --wipe --overwrite-reviewed.")
             con.close()
             return 2
         with con.cursor() as cur:
@@ -192,15 +232,15 @@ def main() -> int:
                   % (r["plik"][:34], po_korekcie_url[r["url"]]))
             continue
         try:
-            k = K.czytaj_klucz(p, silnik=args.silnik)
+            k = K.czytaj_klucz(p, silnik=args.engine)
             arkusze = {}
-            if args.z_arkuszami:
-                wlasny = (r["warianty"] or "").split(",")[0]
+            if args.with_papers:
+                wlasny = base_variant(r["warianty"])
                 wersje = sorted({w for f in k.formy if f["wariant"] == wlasny
                                  for w in f["wersje"]}, key=lambda w: (w is None, w))
                 for w, dane in arkusze_dla(r, wersje or [None], spis_arkuszy).items():
-                    dane["zadania"] = K.czytaj_arkusz(os.path.join(ROOT, dane["sciezka"]),
-                                                      silnik=args.silnik)
+                    dane["zadania"], dane["stron"] = K.czytaj_arkusz(
+                        os.path.join(ROOT, dane["sciezka"]), silnik=args.engine)
                     arkusze[w] = dane
             stat = lad.zaladuj(k, meta_z_wiersza(r), arkusze)
         except loader.ReviewedKeyError as e:
@@ -217,7 +257,7 @@ def main() -> int:
 
         w = _ocena(k, stat, r)
         wyniki.append(w)
-        if args.szczegoly or w["uwagi"]:
+        if args.verbose or w["uwagi"]:
             print("%-34s %-10s %5d %5d %5.0f %5.0f %5.0f  %s"
                   % (r["plik"][:34], k.dialekt, w["zadan"], w["punkty"],
                      100 * w["wym"], 100 * w["odp"], 100 * w["kryt"],
@@ -225,7 +265,7 @@ def main() -> int:
     czas = time.perf_counter() - t0
 
     try:
-        _zapisz_raport(args.raport, con, wyniki, pominiete, bledy, czas, lad, po_korekcie)
+        _zapisz_raport(args.report, con, wyniki, pominiete, bledy, czas, lad, po_korekcie)
     finally:
         # W `finally`, bo raport potrafi się wywalić na zapytaniu i zostawić połączenie.
         con.close()

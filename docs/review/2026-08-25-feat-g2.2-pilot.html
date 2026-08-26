@@ -1,0 +1,717 @@
+<title>Przegląd kodu — feat/g2.2-pilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+  /* kolory składni — osobne od semantycznych, żeby zmiana jednych nie ruszała drugich */
+  --t-kw:#8B3E8F; --t-str:#2C7355; --t-com:#6B7C79;
+  --t-num:#B0651A; --t-fn:#2B5C86; --t-type:#0E5B4F; --t-ann:#9E2E2E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+    --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+    --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+  --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:68ch}
+h1,h2,h3,.tag,th,.knum{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:0 0 .3rem;text-wrap:balance}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:52px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-kryt{color:var(--crit)} .n-istot{color:var(--warn)}
+.n-drob{color:var(--accent)} .n-rozw{color:var(--info)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-kryt{background:var(--crit-soft);color:var(--crit)}
+.st-istot{background:var(--warn-soft);color:var(--warn)}
+.st-drob{background:var(--accent-soft);color:var(--accent)}
+.st-rozw{background:var(--info-soft);color:var(--info)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+/* karta komentarza */
+.k{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px 22px;border-left:3px solid var(--rule);box-shadow:var(--shadow);
+  margin:0 0 16px;scroll-margin-top:20px}
+.k.kryt{border-left-color:var(--crit)}
+.k.istot{border-left-color:var(--warn)}
+.k.drob{border-left-color:var(--accent)}
+.k.rozw{border-left-color:var(--info)}
+.k-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+.knum{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+  color:var(--ink-3);min-width:1.6rem}
+.k h3{flex:1 1 18ch;margin:0}
+.k-gdzie{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-3);
+  margin:0 0 .9rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule-soft)}
+.k p{font-size:.95rem;color:var(--ink-2);margin-bottom:.75em}
+.k p:last-child{margin-bottom:0}
+.fix{font-size:.92rem;color:var(--ink);border-top:1px solid var(--rule-soft);
+  padding-top:.8rem;margin-top:1rem}
+.fix b{font-family:Archivo,sans-serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:.4rem}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+/* kolorowanie składni — klasy nadaje skrypt na dole dokumentu */
+.t-kw{color:var(--t-kw);font-weight:600}
+.t-str{color:var(--t-str)}
+.t-com{color:var(--t-com);font-style:italic}
+.t-num{color:var(--t-num)}
+.t-fn{color:var(--t-fn)}
+.t-type{color:var(--t-type)}
+.t-ann{color:var(--t-ann);font-weight:600}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">przegląd kodu · 25.08.2026 · feat/g2.2-pilot</span>
+  <h1>Pilot 2025: narzędzia gotowe, dwa błędy z wcześniejszych kamieni naprawione</h1>
+  <p class="lede">Siedem commitów gałęzi <code>feat/g2.2-pilot</code> wobec <code>main</code>: filtry runnera i zakres pracy w ekranie (G2.2.1), ręczna ramka wycinka (G2.4.2) oraz dwie poprawki wyciągnięte przez pilot — numeracja stron od zera i bramka <code>--wyczysc</code>. Nic nie blokuje scalenia; przed rozpoczęciem korekty warto naprawić komentarze 1–3, bo dwa pierwsze dotykają liczby S8, a trzeci kosztuje czas przy każdej ramce.</p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n n-kryt">0</span><span class="metric-l">krytyczne</span></div>
+    <div class="metric"><span class="metric-n n-istot">3</span><span class="metric-l">istotne</span></div>
+    <div class="metric"><span class="metric-n n-drob">4</span><span class="metric-l">drobne</span></div>
+    <div class="metric"><span class="metric-n n-rozw">2</span><span class="metric-l">do rozważenia</span></div>
+    <div class="metric"><span class="metric-n">19</span><span class="metric-l">plików · +972 / −80 linii</span></div>
+  </div>
+</header>
+
+<section id="spis">
+  <div class="sec-head">
+    <span class="num">01</span>
+    <h2>Spis komentarzy</h2>
+  </div>
+  <p class="sec-sub">Posortowane malejąco wg skutku. Trzy pierwsze dotykają pomiaru S8 albo
+  spójności danych z dyskiem — reszta to wygoda pracy i luki w testach.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th class="n">#</th><th>stopień</th><th>co</th><th>gdzie</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="id"><a href="#k1">1</a></td><td><span class="tag st-istot">istotny</span></td>
+            <td>Runda „Wytnij" gubi usunięcia — zadanie wychodzi jako trafienie parsera</td>
+            <td class="dim"><code>correction/app.py:298</code></td></tr>
+        <tr><td class="id"><a href="#k2">2</a></td><td><span class="tag st-istot">istotny</span></td>
+            <td>Wycinek PNG powstaje mimo wycofania zapisu, a komentarz obok twierdzi coś przeciwnego</td>
+            <td class="dim"><code>correction/db.py:400</code></td></tr>
+        <tr><td class="id"><a href="#k3">3</a></td><td><span class="tag st-istot">istotny</span></td>
+            <td>Po błędzie walidacji wpisana ramka znika z formularza</td>
+            <td class="dim"><code>correction/app.py:93</code></td></tr>
+        <tr><td class="id"><a href="#k4">4</a></td><td><span class="tag st-drob">drobny</span></td>
+            <td>Nagłówek „Ekran korekty" gubi zakres pracy</td>
+            <td class="dim"><code>templates/base.html:77</code></td></tr>
+        <tr><td class="id"><a href="#k5">5</a></td><td><span class="tag st-drob">drobny</span></td>
+            <td>Zeszyty zadań nie mają zapisanej liczby stron — karta wycinka nie zna zakresu</td>
+            <td class="dim"><code>parsers/omap_e8/loader.py:327</code></td></tr>
+        <tr><td class="id"><a href="#k6">6</a></td><td><span class="tag st-drob">drobny</span></td>
+            <td>Dwie nowe trasy obrazków bez ani jednego testu</td>
+            <td class="dim"><code>correction/app.py:225</code></td></tr>
+        <tr><td class="id"><a href="#k7">7</a></td><td><span class="tag st-drob">drobny</span></td>
+            <td>Test filtra sprawdza obecność adresu przez podciąg</td>
+            <td class="dim"><code>tests/test_correction_app.py</code></td></tr>
+        <tr><td class="id"><a href="#k8">8</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+            <td>Licznik wycinków odpytuje dysk raz na zasób przy każdym otwarciu strony głównej</td>
+            <td class="dim"><code>correction/assets.py:128</code></td></tr>
+        <tr><td class="id"><a href="#k9">9</a></td><td><span class="tag st-rozw">do rozważenia</span></td>
+            <td>Polskie i angielskie flagi obok siebie w jednym poleceniu</td>
+            <td class="dim"><code>parsers/omap_e8/run.py:120</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="komentarze">
+  <div class="sec-head">
+    <span class="num">02</span>
+    <h2>Komentarze</h2>
+  </div>
+
+  <article class="k istot" id="k1">
+    <div class="k-head">
+      <span class="knum">1</span>
+      <h3>Runda „Wytnij" gubi usunięcia — zadanie wychodzi potem jako trafienie parsera</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/app.py:298–308 · gałąź <code>action == "crop"</code></p>
+
+    <p>Przycisk „Wytnij" zapisuje formularz i wraca do zadania, przenosząc w adresie znacznik
+    <code>edited_before=1</code> — po to, żeby poprawka zrobiona w tej rundzie nie zginęła przed
+    zatwierdzeniem. Znacznik stawia się jednak wyłącznie wtedy, gdy coś było <b>edytowane</b>.
+    Usunięcia siedzą w drugim worku (<code>changes["deleted"]</code>) i nie są sprawdzane.</p>
+
+    <p>Skutek jest wprost w pomiarze: skasuj odpowiedź wzorcową, kliknij „Wytnij", a potem
+    „Zatwierdź" bez dalszych zmian — zadanie zapisze się jako <code>approved</code>, czyli
+    „parser trafił sam". Na odsetku <code>approved</code> stoi S6/S8 i decyzja o zaworze
+    z G2.2.2, więc każdy taki przypadek podnosi liczbę do wniosku grantowego bez pokrycia.</p>
+
+    <div class="ev">
+      <div class="ev-h">sonda: runda „Wytnij" z usunięciem odpowiedzi, potem zatwierdzenie bez zmian</div>
+      <div class="ev-b"><pre data-lang="out">SONDA A krok 1 (crop + delete): 303 /task/1?started_at=2026-08-25T21%3A36%3A27
+SONDA A znacznik poprawki w adresie powrotnym: False   ← usunięcie nie postawiło znacznika
+SONDA A krok 2 (approve): 303
+SONDA A status koncowy: approved                       ← powinno być corrected
+SONDA A dziennik: [('approve', None)]                  ← w dzienniku też trafienie parsera</pre></div>
+    </div>
+
+    <p>Gałąź <code>add:</code> tuż obok tego problemu nie ma, bo wpisuje <code>"edited_before": "1"</code>
+    na sztywno. Rozjazd wziął się z tego, że nowa gałąź próbowała być mądrzejsza.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <pre data-lang="python">**({"edited_before": "1"}
+   if edited_before or changes["edited"] or changes["deleted"] else {}),</pre>
+      <p>Do tego test: runda „Wytnij" z samym <code>delete.answer.N</code>, potem
+      <code>approve</code> → status ma być <code>corrected</code>. Bez testu ta gałąź
+      rozjedzie się drugi raz przy pierwszej zmianie w <code>db.save</code>.</p>
+    </div>
+  </article>
+
+  <article class="k istot" id="k2">
+    <div class="k-head">
+      <span class="knum">2</span>
+      <h3>Wycinek PNG powstaje mimo wycofania zapisu, a komentarz obok twierdzi coś przeciwnego</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/db.py:399–405 · ingest/correction/assets.py:55–79</p>
+
+    <p><code>assets.save</code> stoi na końcu <code>db.save</code> z komentarzem, że to celowo:
+    „gdy walidacja tekstu i tak wywróci zapis, plik nie ma po co powstawać". Tak nie jest.
+    Wcześniejsze kroki <b>zbierają</b> problemy do listy, a wyjątek leci dopiero
+    <b>po</b> cięciu — więc plik powstaje zawsze, także wtedy, gdy zapis zaraz się wycofa.</p>
+
+    <p>Efekt: na dysku leży wycinek z nową ramką, a w bazie została stara. Ekran pokazuje wtedy
+    obrazek, który nie odpowiada polom obok, licznik „wycinków w blobie" liczy go jako gotowy,
+    a człowiek widzi wynik pracy, której baza nie zna. Komentarz w kodzie jest tu groźniejszy
+    niż sam błąd: mówi, że problem jest rozwiązany.</p>
+
+    <div class="ev">
+      <div class="ev-h">sonda: poprawna ramka + puste pole wymagane (warunek kryterium)</div>
+      <div class="ev-b"><pre data-lang="out">SONDA B odpowiedz: 422
+SONDA B status zadania: pending
+SONDA B plik PNG istnieje: True                     ← plik został, choć zapis się wycofał
+SONDA B bbox w bazie: [0.0, 0.0, 595.0, 842.0]      ← baza nadal ma ramkę „cała strona"</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Najprościej: sprawdzić <code>problems</code> przed cięciem i wtedy dopiero wołać
+      <code>assets.save</code> — komentarz stanie się prawdziwy.</p>
+      <pre data-lang="python">_save_requirements(cur, task_id, form, edited, deleted)
+if problems:                    # tekst nie przeszedł — nie ma po co dotykać dysku
+    raise ValidationError(problems)
+assets.save(cur, task_id, form, edited, problems)
+if problems:
+    raise ValidationError(problems)</pre>
+      <p>Wariant ostrożniejszy: rozdzielić <code>assets.save</code> na sprawdzenie ramek
+      (w transakcji) i cięcie plików (po zatwierdzeniu transakcji, w <code>app.py</code>).
+      Wtedy dysk nigdy nie wyprzedza bazy — ale wołający musi pamiętać o drugim kroku,
+      więc pierwszy wariant jest tańszy i wystarcza.</p>
+    </div>
+  </article>
+
+  <article class="k istot" id="k3">
+    <div class="k-head">
+      <span class="knum">3</span>
+      <h3>Po błędzie walidacji wpisana ramka znika z formularza</h3>
+      <span class="tag st-istot">istotny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/app.py:93 · funkcja <code>_overlay</code></p>
+
+    <p><code>_overlay</code> istnieje po to, żeby po nieudanej walidacji człowiek dostał
+    z powrotem to, co wpisał — jej docstring mówi wprost, że inaczej „kara za literówkę jest
+    wielokrotnie większa niż literówka". Pola ramki wycinka nie zostały do niej dopisane,
+    więc wracają wartości z bazy.</p>
+
+    <p>Praktycznie: odczytujesz cztery liczby z siatki, wpisujesz je, ale w innym miejscu
+    formularza brakuje opisu warunku — po powrocie ramka jest znowu „cała strona"
+    i odczyt trzeba zrobić od nowa. Przy 14 zasobach pilotu to drobiazg, przy 587
+    w pełnym korpusie to godziny.</p>
+
+    <div class="ev">
+      <div class="ev-h">sonda: POST z ramką 100/50/300/150 i pustym opisem warunku</div>
+      <div class="ev-b"><pre data-lang="out">SONDA B ramka w formularzu po bledzie:
+  [('x0', '0.0'), ('top', '0.0'), ('x1', '595.0'), ('bottom', '842.0')]
+                                                    ← wpisane 100/50/300/150 przepadło</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <pre data-lang="python">for asset in task["assets"]:
+    for name in ("x0", "top", "x1", "bottom"):
+        key = f"asset.{asset['id']}.{name}"
+        if key in form:
+            asset["box"][name] = form[key]
+    key = f"asset.{asset['id']}.page"
+    if key in form:
+        asset["page"] = form[key]</pre>
+      <p>Szablon formatuje ramkę przez <code>'%.1f'|format(...)</code>, więc przy wartości
+      tekstowej z formularza filtr wywali stronę — albo formatować warunkowo, albo trzymać
+      w <code>box</code> tekst i formatować przy ładowaniu z bazy.</p>
+    </div>
+  </article>
+
+  <article class="k drob" id="k4">
+    <div class="k-head">
+      <span class="knum">4</span>
+      <h3>Nagłówek „Ekran korekty" gubi zakres pracy</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/templates/base.html:77</p>
+
+    <p>Zakres (rocznik, kod, wariant) jedzie teraz w adresie i przeżywa zapis, przyciski
+    „poprzednie/następne" oraz przekierowanie na <code>/next</code>. Jedno miejsce go gubi:
+    link z tytułem w nagłówku prowadzi do gołego <code>/</code>. Po kliknięciu filtry wracają
+    na „wszystkie", a „Następne do korekty" wyprowadza z pilotu do najstarszego czekającego
+    klucza — czyli dokładnie do problemu, dla którego zakres powstał.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <pre data-lang="python">&lt;h1&gt;&lt;a href="/{% if scope_query %}?{{ scope_query }}{% endif %}"&gt;Ekran korekty&lt;/a&gt;&lt;/h1&gt;</pre>
+      <p><code>scope_query</code> jest już w kontekście obu szablonów, więc to jedna linijka.
+      Alternatywnie: wstawić <code>scope_query</code> do globalnych zmiennych Jinji przy
+      renderowaniu, żeby żaden nowy szablon nie musiał o tym pamiętać.</p>
+    </div>
+  </article>
+
+  <article class="k drob" id="k5">
+    <div class="k-head">
+      <span class="knum">5</span>
+      <h3>Zeszyty zadań nie mają zapisanej liczby stron — karta wycinka nie zna zakresu</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/loader.py:327 (wstawianie dokumentu arkusza)</p>
+
+    <p>Karta wycinka pokazuje „strona N z M" tylko wtedy, gdy dokument ma wypełnioną kolumnę
+    <code>pages</code>. Klucze ją mają, zeszyty zadań nie — więc przy ramce, gdzie numer strony
+    wpisuje się ręcznie, człowiek nie widzi górnej granicy. Pomyłka wychodzi dopiero po
+    kliknięciu „Wytnij", komunikatem <code>strona 99 poza dokumentem</code>.</p>
+
+    <div class="ev">
+      <div class="ev-h">stan bazy po przeładowaniu pilotu</div>
+      <div class="ev-b"><pre data-lang="out">      kind      | ile | z_liczba_stron
+----------------+-----+----------------
+ paper          |   2 |              0     ← zeszyty bez liczby stron
+ marking_scheme |  75 |             75</pre></div>
+    </div>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Przy wczytywaniu zeszytu ustawić <code>pages</code> tak samo jak dla klucza —
+      parser i tak otwiera plik, więc liczba stron jest pod ręką. Po zmianie karta pokaże
+      zakres sama, bez dodatkowej logiki w szablonie.</p>
+    </div>
+  </article>
+
+  <article class="k drob" id="k6">
+    <div class="k-head">
+      <span class="knum">6</span>
+      <h3>Dwie nowe trasy obrazków bez ani jednego testu</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/app.py:225 (<code>/asset/{id}.png</code>) i :241
+    (<code>/asset/{id}/page.png</code>)</p>
+
+    <p>Obie trasy sprawdziłem ręcznie na żywym korpusie (200 dla strony z siatką, 404 dla
+    niewyciętego zasobu), ale w zestawie testów ich nie ma. To jedyne miejsca, gdzie ekran
+    sięga po plik z bloba i po stronę zeszytu — czyli te, w których zmiana ścieżki albo
+    układu katalogów uderzy najciszej: obrazek po prostu przestanie się pokazywać, a formularz
+    będzie działał dalej.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Trzy przypadki w <code>test_correction_app.py</code>, na istniejącym fixture
+      <code>zasob</code>: (1) przed wycięciem <code>/asset/{id}.png</code> → 404 z komunikatem
+      o ramce, (2) po wycięciu → 200 i typ <code>image/png</code>, (3)
+      <code>/asset/{id}/page.png</code> dla zasobu bez zeszytu → 404 mówiące o
+      <code>--z-arkuszami</code>.</p>
+    </div>
+  </article>
+
+  <article class="k drob" id="k7">
+    <div class="k-head">
+      <span class="knum">7</span>
+      <h3>Test filtra sprawdza obecność adresu przez podciąg</h3>
+      <span class="tag st-drob">drobny</span>
+    </div>
+    <p class="k-gdzie">ingest/tests/test_correction_app.py ·
+    <code>test_lista_filtruje_po_wariancie</code></p>
+
+    <p>Asercje mają postać <code>f"/task/{id}" not in tekst</code>. W bazie testowej
+    identyfikatory są jednocyfrowe, więc dziś to działa, ale <code>/task/1</code> jest
+    podciągiem <code>/task/12</code>: gdy fixture urośnie o kilka zadań, test zacznie
+    kłamać — i to w stronę fałszywej porażki albo fałszywego sukcesu, zależnie od tego,
+    która asercja trafi na kolizję.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <pre data-lang="python">assert f'/task/{klucz_z_innego_rocznika}?' in tylko_700.text
+assert f'/task/{task["id"]}?' not in tylko_700.text</pre>
+      <p>Znak zapytania (albo cudzysłów zamykający atrybut) domyka numer i kolizja znika.
+      Czytelniej: policzyć wiersze tabeli, zamiast szukać po tekście.</p>
+    </div>
+  </article>
+
+  <article class="k rozw" id="k8">
+    <div class="k-head">
+      <span class="knum">8</span>
+      <h3>Licznik wycinków odpytuje dysk raz na zasób przy każdym otwarciu strony głównej</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">ingest/correction/assets.py:128 · <code>counts()</code></p>
+
+    <p><code>counts()</code> czyta wszystkie zasoby i dla każdego sprawdza, czy plik istnieje.
+    Przy pilocie to 14 sprawdzeń, przy pełnym korpusie będzie ich 587 — na każde odświeżenie
+    strony głównej. Na dysku lokalnym to milisekundy; piszę o tym, bo licznik ma być tani,
+    a łatwo o nim zapomnieć, gdy korpus urośnie.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Do wyboru: (a) liczyć jedno przejście po katalogu blobów zamiast <code>stat()</code>
+      na zasób, (b) zawęzić licznik do bieżącego zakresu pracy — i tak interesuje pilot,
+      nie cały korpus, (c) zostawić i wrócić do tego w G2.4.1, gdy wycinki zacznie robić
+      automat. Wybór (b) jest przy okazji uczciwszy: licznik globalny w widoku filtrowanym
+      po roczniku myli.</p>
+    </div>
+  </article>
+
+  <article class="k rozw" id="k9">
+    <div class="k-head">
+      <span class="knum">9</span>
+      <h3>Polskie i angielskie flagi obok siebie w jednym poleceniu</h3>
+      <span class="tag st-rozw">do rozważenia</span>
+    </div>
+    <p class="k-gdzie">ingest/parsers/omap_e8/run.py:120–127</p>
+
+    <p>Nowe flagi są po angielsku, bo tak każe zasada 4 z <code>CLAUDE.md</code>, i to jest
+    poprawne. Skutek uboczny widać jednak w poleceniu, które trzeba wpisać ręcznie:</p>
+
+    <div class="ev">
+      <div class="ev-h">polecenie pilotu</div>
+      <div class="ev-b"><pre data-lang="bash">task ingest -- --year 2025 --variant 100 --z-arkuszami --szczegoly</pre></div>
+    </div>
+
+    <p>Trzy słowniki w jednej linii. Dług jest zapisany (<code>ingest/</code> czeka na
+    przemianowanie osobnym commitem), więc to nie jest błąd — pytanie brzmi tylko,
+    czy nie przemianować flag <b>przed</b> pilotem, skoro to jedyne polecenie, które
+    człowiek będzie wpisywał przez najbliższe trzy tygodnie.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Jeśli tak: <code>--wyczysc → --wipe</code>, <code>--z-arkuszami → --with-papers</code>,
+      <code>--silnik → --engine</code>, <code>--szczegoly → --verbose</code>,
+      <code>--kod → --code</code>, <code>--segment</code> zostaje. Osobny commit, bez zmiany
+      zachowania, plus stare nazwy jako aliasy na jeden kamień albo od razu twarde cięcie —
+      poleceń używa jedna osoba.</p>
+    </div>
+  </article>
+</section>
+
+<section id="plan">
+  <div class="sec-head">
+    <span class="num">03</span>
+    <h2>Zgodność z planem</h2>
+  </div>
+  <p class="sec-sub">Plan: <code>docs/plan-A2.md</code>, punkty G2.2.1, G2.2.2 i G2.4.2.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>punkt planu</th><th>stan</th><th>uwaga</th></tr></thead>
+      <tbody>
+        <tr><td>G2.2.1 krok 1 — przebieg parsera z arkuszami na roczniku 2025</td>
+            <td><span class="tag st-ok">zrobione</span></td>
+            <td class="dim">liczby kontrolne z sondy zgadzają się co do jednego:
+            21 / 42 / 51 / 73 / 14 / 30 / 17 / 14</td></tr>
+        <tr><td>G2.2.1 krok 2 — korekta całego rocznika z pomiarem czasu</td>
+            <td><span class="tag st-istot">nie</span></td>
+            <td class="dim">praca człowieka; dziennik <code>correction_event</code> pusty</td></tr>
+        <tr><td>G2.2.1 krok 3 — wycinki dla zadań z rysunkiem</td>
+            <td><span class="tag st-drob">częściowo</span></td>
+            <td class="dim">narzędzie gotowe (G2.4.2), ale 0 z 14 zasobów ma dociągniętą ramkę</td></tr>
+        <tr><td>G2.2.1 krok 4 — raport S8 z pilotu do <code>data/reports/</code></td>
+            <td><span class="tag st-istot">nie</span></td>
+            <td class="dim">czeka na krok 2</td></tr>
+        <tr><td>G2.2.2 — decyzja o zaworze</td>
+            <td><span class="tag st-istot">nie</span></td>
+            <td class="dim">wymaga tempa z pilotu</td></tr>
+        <tr><td>G2.4.2 — fallback: ręczna ramka</td>
+            <td><span class="tag st-ok">zrobione</span></td>
+            <td class="dim">weszło PRZED G2.4.1, bo krok 3 pilotu inaczej się nie domyka</td></tr>
+        <tr><td>Plan: „termin dodatkowy <code>OMAP-100-2506</code>"</td>
+            <td><span class="tag st-rozw">plan nieaktualny</span></td>
+            <td class="dim">spis zna dla każdego rocznika jedną sesję; pilot to jeden klucz</td></tr>
+        <tr><td>Plan: ścieżka wycinka <code>omap/&lt;sesja&gt;/&lt;forma&gt;/task-&lt;nr&gt;-&lt;wersja&gt;.png</code></td>
+            <td><span class="tag st-rozw">plan nieaktualny</span></td>
+            <td class="dim">ładowarka z G1.2 zapisuje <code>OMAP/2025-05-14/100/X/z1-0.png</code>;
+            zmiana teraz zerwałaby ścieżki w bazie</td></tr>
+        <tr><td>Plan: „canvas albo zwykłe <code>&lt;input&gt;</code> na współrzędne"</td>
+            <td><span class="tag st-ok">zrobione inaczej</span></td>
+            <td class="dim">inputy + siatka współrzędnych na podglądzie strony; canvas
+            wymagałby JavaScriptu, którego ekran nie ma</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <p><b>Rozjazd wart odnotowania:</b> plan zakładał, że G2.2 to sam przebieg i korekta.
+    W praktyce pilot wyciągnął dwa błędy z wcześniejszych kamieni — numerację stron od zera
+    (G1.2) i dziurę w bramce <code>--wyczysc</code> (G2.1.1). Oba są naprawione na tej gałęzi,
+    oba mają test widziany na czerwono. To jest argument za tym, żeby pilot robić wcześnie,
+    a nie za tym, żeby poszerzać jego zakres.</p>
+  </div>
+</section>
+
+<section id="dobre">
+  <div class="sec-head">
+    <span class="num">04</span>
+    <h2>Co jest dobre</h2>
+  </div>
+  <p class="sec-sub">Rzeczy warte utrzymania przy kolejnych zmianach — nie kurtuazja.</p>
+
+  <ul class="plain">
+    <li><b>Test układu współrzędnych sprawdza piksele, nie rozmiar.</b> Wycinek przy
+    odwróconej osi ma poprawne wymiary i wygląda wiarygodnie — łapie go dopiero czarny pas
+    na stronie testowej. Ten test był widziany na czerwono i to jest jedyny powód, dla
+    którego wiadomo, że działa.</li>
+    <li><b>Jedna funkcja <code>crop()</code> dla obu dróg ramki.</b> Automat z G2.4.1 dostanie
+    gotowe cięcie i będzie się różnił wyłącznie tym, skąd bierze <code>bbox</code> — dokładnie
+    tak, jak zapowiadał plan.</li>
+    <li><b>Zakres pracy trzymany w adresie, nie w stanie sesji.</b> Wynika z tego, że da się
+    go zapisać w zakładce, wkleić i przewidzieć — a ekran dalej nie ma ani jednej linijki
+    JavaScriptu.</li>
+    <li><b>Korzeń blobów liczony tak samo po obu stronach granicy.</b> Python
+    (<code>crop.blob_root</code>) i C# (<code>CorpusModule</code> →
+    <code>RepositoryRoot.Resolve</code>) rozwijają <code>BLOB_ROOT</code> względem korzenia
+    repozytorium, więc pliki wycięte przez ingest trafiają tam, gdzie backend już umie czytać.
+    Sprawdzone w kodzie obu warstw.</li>
+    <li><b>Identyfikatory zasobów nie przychodzą z formularza.</b> <code>assets.save</code>
+    iteruje po zasobach zadania z bazy i tylko dla nich czyta pola — podmieniony numer
+    w formularzu nie sięgnie cudzego zadania, bez dopisywania osobnej klauzuli własności.</li>
+    <li><b>Bramka <code>--wyczysc</code> mówi, ile wpisów dziennika by zniknęło.</b> Odmowa
+    z liczbą jest odmową, którą da się ocenić; odmowa bez liczby uczy klikać dalej.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Przegląd wykonany wg <code>.claude/skills/code-review</code> na podstawie
+  <code>git diff main...HEAD</code> (7 commitów, 19 plików) i planu <code>docs/plan-A2.md</code>.</p>
+  <p><b>Sprawdzone uruchomieniem:</b> <code>task test</code> (120 pytest + 2 xfail, web, dotnet,
+  bramka kontraktu — kod wyjścia 0); dwie sondy na bazie testowej, których wydruki stoją
+  przy komentarzach 1, 2 i 3; zapytania SQL o stan korpusu po przeładowaniu
+  (<code>min(task.page) = 2</code>, 0 kluczy bez wariantu, 0 form z dwoma zeszytami);
+  ręczne wywołania tras ekranu (<code>/next</code> z zakresem, karta wycinka, strona z siatką).</p>
+  <p><b>Poza zakresem:</b> sama korekta 21 zadań (praca człowieka, jeszcze niezaczęta, więc
+  przepływ „ramka → wycinek → zatwierdzenie" nie został przejechany na prawdziwych danych);
+  zachowanie przy 587 zasobach pełnego korpusu; renderowanie w przeglądarce innej niż
+  ta, w której oglądano wyniki; migracje schematu — na tej gałęzi żadnej nie ma.</p>
+</footer>
+
+</div>
+
+<script>
+/* Kolorowanie składni bez żadnej biblioteki — dokument ma zostać samodzielny.
+ *
+ * Użycie:  <pre data-lang="python">…</pre>
+ * Języki:  python · yaml · sql · bash · conf · out (wydruk z konsoli)
+ *
+ * Jak działa: reguły każdego języka sklejane są w JEDEN regex z grupami
+ * nazwanymi, więc tekst jest przechodzony raz, a pierwsza pasująca reguła
+ * wygrywa. Dlatego komentarze i napisy stoją na początku listy — inaczej
+ * słowo kluczowe wewnątrz napisu zostałoby pokolorowane osobno.
+ *
+ * Bez skryptu (albo przy jego błędzie) blok zostaje zwykłym tekstem —
+ * czytelnym, tylko czarno-białym.
+ */
+(function () {
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+  function esc(s) { return s.replace(/[&<>]/g, function (c) { return ESC[c]; }); }
+
+  // UWAGA: wewnątrz reguł tylko grupy nieprzechwytujące (?:...) —
+  // zwykły nawias rozjechałby numerację grup w sklejonym wyrażeniu.
+  var RULES = {
+    python: [
+      ['com',  /#[^\n]*/],
+      ['str',  /(?:[rbfu]{0,2})(?:"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/],
+      ['kw',   /\b(?:def|class|return|if|elif|else|for|while|with|as|import|from|try|except|finally|raise|yield|lambda|not|and|or|in|is|None|True|False|pass|assert|del|async|await|global|nonlocal)\b/],
+      ['fn',   /@[A-Za-z_][\w.]*|\b[A-Za-z_]\w*(?=\()/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    yaml: [
+      ['com',  /#[^\n]*/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['fn',   /^[ \t]*(?:-[ \t]+)?[A-Za-z_][\w.\/-]*(?=[ \t]*:)/],
+      ['kw',   /\b(?:true|false|null|yes|no)\b/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    sql: [
+      ['com',  /--[^\n]*/],
+      ['str',  /'(?:[^']|'')*'/],
+      ['kw',   /\b(?:CREATE|TABLE|INDEX|VIEW|COLLATION|SELECT|FROM|WHERE|JOIN|LEFT|INNER|ON|GROUP|ORDER|BY|HAVING|INSERT|INTO|VALUES|UPDATE|DELETE|SET|RETURNING|CONFLICT|DO|NOTHING|NOT|NULL|PRIMARY|FOREIGN|KEY|REFERENCES|UNIQUE|CHECK|DEFAULT|CONSTRAINT|CASCADE|AND|OR|IN|AS|IF|EXISTS|BETWEEN|PROVIDER|LOCALE|COLLATE|BEGIN|COMMIT|DISTINCT|COUNT|SUM|ARRAY_AGG|LIMIT)\b/i],
+      ['type', /\b(?:text|integer|smallint|bigint|serial|smallserial|boolean|date|timestamptz|numeric|jsonb|char|varchar)\b/i],
+      ['num',  /\b\d+\b/]
+    ],
+    bash: [
+      ['com',  /#[^\n]*/],
+      ['ann',  /^\$/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['kw',   /\b(?:if|then|elif|else|fi|for|in|do|done|while|case|esac|function|return|exit|test|echo|cd|export|local)\b/],
+      ['num',  /(?:^|[ \t])-{1,2}[A-Za-z][\w-]*|\b\d+\b/]
+    ],
+    conf: [
+      ['com',  /#[^\n]*/],
+      ['kw',   /^!/],
+      ['fn',   /^[A-Za-z_][A-Za-z0-9_]*(?==)/],
+      ['str',  /(?<==)[^\n]+/]
+    ],
+    out: [
+      ['ann',  /←[^\n]*|^\$/],
+      ['str',  /"[^"]*"|'[^']*'/],
+      ['num',  /\b\d+\b/]
+    ]
+  };
+
+  function podswietl(kod, jezyk) {
+    var reguly = RULES[jezyk];
+    if (!reguly) { return esc(kod); }
+    var wzor = reguly.map(function (r, i) {
+      return '(?<g' + i + '>' + r[1].source + ')';
+    }).join('|');
+    var re;
+    try {
+      re = new RegExp(wzor, 'gm');
+    } catch (e) {
+      return esc(kod);           // starsza przeglądarka — zostaje zwykły tekst
+    }
+    var wynik = '', koniec = 0, m;
+    while ((m = re.exec(kod)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      wynik += esc(kod.slice(koniec, m.index));
+      var klasa = null;
+      for (var i = 0; i < reguly.length; i++) {
+        if (m.groups['g' + i] !== undefined) { klasa = reguly[i][0]; break; }
+      }
+      wynik += '<span class="t-' + klasa + '">' + esc(m[0]) + '</span>';
+      koniec = m.index + m[0].length;
+    }
+    return wynik + esc(kod.slice(koniec));
+  }
+
+  var bloki = document.querySelectorAll('pre[data-lang]');
+  for (var i = 0; i < bloki.length; i++) {
+    try {
+      bloki[i].innerHTML = podswietl(bloki[i].textContent, bloki[i].dataset.lang);
+    } catch (e) { /* blok zostaje zwykłym tekstem — lepsze niż pusty */ }
+  }
+})();
+</script>

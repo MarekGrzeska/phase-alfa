@@ -14,6 +14,12 @@ CACHE = KORZEN_REPO / "data" / "cache" / "pages"
 # kilkaset kilobajtów zamiast kilku megabajtów.
 SCALE = 2.0
 
+# Siatka współrzędnych pod ręczną ramkę (G2.4.2): kreska co 50 pt, podpis co 100.
+# Bez niej wpisanie bboxa jest zgadywaniem, a ekran nie ma ani linijki
+# JavaScriptu, więc przeciąganie myszą nie wchodzi w grę.
+GRID_STEP = 50
+GRID_LABEL_EVERY = 100
+
 
 class PageUnavailable(Exception):
     """Nie ma czego pokazać — z powodem po polsku, do wyświetlenia w ekranie."""
@@ -32,7 +38,7 @@ def source_pdf(relative_path: str) -> Path:
     return candidate
 
 
-def render(relative_path: str, page: int) -> Path:
+def render(relative_path: str, page: int, grid: bool = False) -> Path:
     """Strona (numerowana od 1) jako PNG w pamięci podręcznej."""
     pdf_path = source_pdf(relative_path)
     if not pdf_path.exists():
@@ -45,7 +51,7 @@ def render(relative_path: str, page: int) -> Path:
     stamp = hashlib.sha256(relative_path.encode("utf-8")).hexdigest()[:16]
     # Skala w nazwie, bo `SCALE` jest stała do podkręcenia — a bez niej ekran
     # po jej zmianie dalej trafiał w stary plik i pokazywał starą rozdzielczość.
-    out = CACHE / f"{stamp}-{page}-{SCALE:g}.png"
+    out = CACHE / f"{stamp}-{page}-{SCALE:g}{'-grid' if grid else ''}.png"
     if out.exists():
         return out
 
@@ -63,8 +69,11 @@ def render(relative_path: str, page: int) -> Path:
                 raise PageUnavailable(
                     f"strona {page} poza dokumentem (stron: {len(document)})")
             bitmap = document[page - 1].render(scale=SCALE)
+            image = bitmap.to_pil()
+            if grid:
+                _draw_grid(image)
             out.parent.mkdir(parents=True, exist_ok=True)
-            bitmap.to_pil().save(out)
+            image.save(out)
         finally:
             document.close()
     except PageUnavailable:
@@ -72,3 +81,23 @@ def render(relative_path: str, page: int) -> Path:
     except Exception as e:
         raise PageUnavailable(f"nie da się wyrenderować strony: {e}") from e
     return out
+
+
+def _draw_grid(image) -> None:
+    """Siatka w PUNKTACH PDF, nie w pikselach — bo w punktach liczy się bbox."""
+    from PIL import ImageDraw
+
+    draw = ImageDraw.Draw(image)
+    for axis in range(2):
+        limit = image.size[axis] / SCALE
+        point = 0
+        while point <= limit:
+            at = point * SCALE
+            line = ((at, 0, at, image.size[1]) if axis == 0
+                    else (0, at, image.size[0], at))
+            labelled = point % GRID_LABEL_EVERY == 0
+            draw.line(line, fill=(210, 60, 60) if labelled else (150, 190, 220), width=1)
+            if labelled and point:
+                spot = (at + 2, 2) if axis == 0 else (2, at + 2)
+                draw.text(spot, str(point), fill=(210, 60, 60))
+            point += GRID_STEP

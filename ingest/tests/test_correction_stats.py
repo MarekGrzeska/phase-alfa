@@ -89,12 +89,16 @@ def test_raport_tekstowy_niesie_liczby_do_wniosku():
         "forecast": stats.forecast(4, 90.0),
         "years": [{"year": 2025, "total": 10, "pending": 4, "approved": 3,
                    "corrected": 2, "rejected": 1}],
+        "assets": {"total": 14, "framed": 9, "cropped": 9},
     }
     text = stats.as_text(numbers)
 
     assert "S8 — trafienia parsera : 60.0%" in text
     assert "2025" in text
     assert "PROGNOZA" in text
+    # Krok 3 pilotu domyka się, gdy zadania z rysunkiem MAJĄ wycinek — raport
+    # ma to mówić liczbą, bo inaczej „zrobione" opiera się na pamięci.
+    assert "z plikiem PNG w blobie : 9" in text
 
 
 def test_sciezka_z_bazy_nie_wychodzi_poza_mirror():

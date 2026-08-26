@@ -76,7 +76,7 @@ Co już istnieje i czego A2 **nie** buduje od nowa:
 | 75 kluczy E8 ładuje się do Postgresa, pokrycie 100/100/100 | `ingest/parsers/omap_e8/` | A2 nie pisze parsera — dociska dialekt 2019 i luki |
 | Statusy w schemacie: `document.ingest_status`, `task_version.content_status`, `asset.description_status` | `0001_corpus.sql` | brakuje statusu na **zadaniu** — to jest migracja 0004 |
 | `condition_expression.mathjson jsonb` — kolumna pusta | `0001_corpus.sql` | G2.6 ją wypełnia; migracja dokłada tylko status konwersji |
-| `asset.bbox` = cała strona; `--z-arkuszami` dokłada treść i zasoby | `run.py` | G2.4 zawęża bbox i tnie PNG |
+| `asset.bbox` = cała strona; `--with-papers` dokłada treść i zasoby | `run.py` | G2.4 zawęża bbox i tnie PNG |
 | Luki rekonstrukcji zamrożone testami `xfail` (liczby mieszane, pierwiastki) | `ingest/tests/` | G2.3.2 gasi je świadomą decyzją per luka |
 | Ponowny przebieg klucza kasuje i wstawia jego zadania od nowa | `loader.py` | **koliduje z korektą** — ochrona w G2.1.1, zanim powstanie pierwsza poprawka |
 | `IBlobStore` + `DiskBlobStore`, korzeń `data/blob/`, ścieżki względne | `backend/` | wycinki z G2.4 lądują tam, gdzie C# już umie czytać |
@@ -161,10 +161,10 @@ człowieka**, najdroższego zasobu tego kamienia. Zanim powstanie UI:
 > identyfikatory w tym repozytorium są po angielsku (CLAUDE.md, zasada 4), a polskie
 > flagi obok są długiem z G1.2 i schodzą osobnym commitem.
 > **(3)** Doszła kolumna `task.page` — strona w KLUCZU. `task_version.page` po wczytaniu
-> z `--z-arkuszami` trzyma stronę w ARKUSZU i wtedy numeru strony klucza nie ma nigdzie,
+> z `--with-papers` trzyma stronę w ARKUSZU i wtedy numeru strony klucza nie ma nigdzie,
 > a ekran korekty renderuje właśnie ją. Migracja uzupełnia ją dla korpusu wczytanego
 > bez arkuszy; reszta domaga się przeładowania i mówi to wprost.
-> **(4)** Bramka `--wyczysc` (TRUNCATE) jest osobna od bramki w ładowarce — ten SQL
+> **(4)** Bramka `--wipe` (TRUNCATE) jest osobna od bramki w ładowarce — ten SQL
 > omija ładowarkę z definicji, więc ochrona przed skasowaniem całego korpusu musi stać
 > w runnerze.
 
@@ -270,7 +270,7 @@ Postgresa. Wycinki PNG dla zadań z rysunkiem — na etapie pilotu **fallbackiem
 
 **Kroki**
 
-1. `task ingest -- --z-arkuszami` na roczniku 2025 (`--limit`/filtr sesji wg potrzeby).
+1. `task ingest -- --with-papers` na roczniku 2025 (`--limit`/filtr sesji wg potrzeby).
    Liczby kontrolne z sondy: `OMAP-100-2505` = 21 zadań, 42 wersje, 51 kryteriów,
    73 warunki, 14 zapisów, 30 odpowiedzi, 17 reguł, 14 zasobów.
 2. Korekta wszystkich zadań rocznika w ekranie — **mierząc czas** (dziennik robi to sam).
@@ -280,6 +280,38 @@ Postgresa. Wycinki PNG dla zadań z rysunkiem — na etapie pilotu **fallbackiem
 
 **Zrobione, gdy:** pierwszy rocznik w bazie w 100% zatwierdzony; czas korekty
 na rocznik zmierzony i zapisany.
+
+> **Poprawki z implementacji (G2.2.1).**
+> **(1) Terminu dodatkowego `OMAP-100-2506` nie ma w mirrorze** — spis zna dla 2025 r.
+> jedną sesję (`2025-05`), i tak samo dla każdego rocznika 2019–2026. Pilot to jeden
+> klucz `OMAP-100-2505` z dwoma zeszytami (X/Y), nie dwa klucze.
+> **(2) Runner dostał `--year` i `--variant`.** Zawężenie przebiegu umiały wcześniej
+> tylko `--code` i `--segment`, więc pilot z arkuszami brał cały korpus: kwadrans
+> zamiast minuty i 74 klucze przeładowane bez powodu. Wariant porównuje się po
+> **pierwszym członie** kolumny `warianty`, bo zeszyty trzymają tam także wersję
+> („100,X") — filtr na całość nie znalazłby ani jednego arkusza.
+> **(3) Ekran korekty dostał zakres pracy** (rocznik + kod + wariant). „Następne do
+> korekty" brało pierwsze czekające zadanie z **całego** korpusu, czyli z 2019 r.:
+> pilot kończył się na pierwszym zapisie. Zakres jedzie w adresie i w ukrytych polach
+> formularza, więc przeżywa przekierowanie po zapisie.
+> **(4) Pułapka: przebieg BEZ `--with-papers` kasuje treści i zasoby** wczytane
+> wcześniej z arkuszami. Bramka z G2.1.1 chroni tylko zadania po korekcie, a te
+> `pending` ładowarka kasuje i wstawia od nowa — bez zeszytów, czyli bez `content`
+> i bez `asset`. W pilocie każdy kolejny przebieg tego klucza musi mieć tę flagę.
+> Liczby kontrolne z sondy zgadzają się co do jednego: 21 / 42 / 51 / 73 / 14 / 30 /
+> 17 / 14, pokrycie wymagań, odpowiedzi i kryteriów 100%.
+> **(5) Numery stron w bazie były indeksami od zera.** Warstwa pozycyjna numeruje
+> strony od zera, a `task.page`, `task_version.page` i `asset.page` czyta ekran jako
+> numer strony — więc podgląd pokazywał stronę **wcześniejszą** niż rekord. Zadanie 1
+> klucza OMAP-100-2505 stoi na stronie 2, a nie 1; jego rysunek na stronie 4 zeszytu,
+> a nie 3. Błąd nie rzucał się w oczy, bo sąsiednia strona klucza wygląda wiarygodnie;
+> wyszedł dopiero przy składaniu ramki wycinka. Korpus wczytany wcześniej wymaga
+> przeładowania.
+> **(6) `--wipe` nie bronił dziennika korekty.** `ON DELETE SET NULL` na
+> `correction_event.task_id` chroni pomiar S8 przed kasowaniem zadań, ale kaskada
+> TRUNCATE-a nie pyta o akcję kasowania i czyści każdą tabelę wskazującą na czyszczoną.
+> Po przeładowaniu z `--overwrite-reviewed` statusy wracają do `pending`, więc stara
+> bramka przepuszczała — a razem z korpusem znikał cały zmierzony czas pracy.
 
 ---
 
@@ -424,6 +456,24 @@ dociągnięcie ramki jest akceptowalnym zamknięciem tematu. 84 zadania × minut
 to półtorej godziny — automat, który zjada dzień strojenia, przegrywa ten rachunek.
 
 **Zrobione, gdy:** 0 zadań z rysunkiem bez wycinka — niezależnie od drogi.
+
+> **Poprawki z implementacji (G2.4.2).**
+> **(1) Weszło PRZED G2.4.1**, bo krok 3 pilotu bez tego nie ma jak się domknąć:
+> automat wykrywania regionu jeszcze nie istnieje, a rocznik 2025 ma 14 zasobów.
+> Kolejność z planu (G2.4.1 równolegle) zostaje — zmienia się tylko to, która droga
+> była pierwsza.
+> **(2) Zamiast canvasu — siatka współrzędnych na podglądzie strony.** Ekran korekty
+> nie ma ani linijki JavaScriptu (decyzja z G2.1.2), więc przeciąganie prostokąta
+> myszą wymagałoby wprowadzenia go z powrotem. Strona zeszytu renderuje się z siatką
+> (kreska co 50 pt, podpis co 100), a ramkę wpisuje się w cztery pola.
+> **(3) `bbox` to `(x0, top, x1, bottom)` liczone od LEWEGO GÓRNEGO rogu** — tak samo
+> jak `top`/`bottom` w warstwie pozycyjnej, z której wezmą się ramki automatu.
+> pdfium przyjmuje marginesy od krawędzi; pomyłka daje wycinek poprawnego **rozmiaru**
+> pokazujący nie ten fragment, więc test sprawdza piksele, a nie wymiary.
+> **(4) Przycisk „Wytnij" nie rozstrzyga zadania.** Ramkę dociąga się na raty:
+> wpisz → obejrzyj wycinek → popraw. Dziennik S8 dostaje wpis dopiero przy
+> zatwierdzeniu, a zmiana ramki liczy się jako poprawka (`corrected`), więc
+> ręczna robota nie wejdzie do S6 jako trafienie parsera.
 
 ---
 

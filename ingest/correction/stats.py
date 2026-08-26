@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from statistics import median
 
-from correction import db
+from correction import assets, db
 
 # Formularz otwarty i porzucony na noc wchodzi do dziennika jako „praca".
 # Mediana jest odporna na takie wiersze i to ona jest tu liczbą wiodącą;
@@ -89,6 +89,7 @@ def collect(cur) -> dict:
         "durations": durations,
         "forecast": forecast(status["pending"], durations["median"]),
         "years": cur.fetchall(),
+        "assets": assets.counts(cur),
     }
 
 
@@ -118,6 +119,12 @@ def as_text(numbers: dict) -> str:
         f"  suma                      : {durations['total'] / 3600:.1f} h",
         f"  sesji dłuższych niż {LONG_SESSION_SECONDS // 60} min : {durations['long']}"
         " (zawyżają sumę, nie medianę)",
+        "",
+        "WYCINKI GRAFICZNE",
+        rule,
+        f"  zasobów razem          : {numbers['assets']['total']}",
+        f"  z dociągniętą ramką    : {numbers['assets']['framed']}",
+        f"  z plikiem PNG w blobie : {numbers['assets']['cropped']}",
         "",
         "PROGNOZA",
         rule,

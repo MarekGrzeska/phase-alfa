@@ -8,11 +8,18 @@ są dane. C# czyta gotową strukturę i nigdy nie otwiera PDF-a.
 task mirror -- --filtr matematyka   # zwózka (idempotentna, dosypuje brakujące)
 task mirror -- --dry-run            # nic nie pobiera: raport z tego, co leży na dysku
 task ingest -- --limit 8            # szybki przebieg parsera
-task ingest -- --wyczysc            # cały zakres od zera (~2,5 min)
+task ingest -- --wipe               # cały zakres od zera (~2,5 min)
+task ingest -- --year 2025 --variant 100 --with-papers   # pilot G2.2: jeden klucz z treściami
 task correction                     # ekran korekty na localhoście (G2.1)
 task correction:report              # pomiar S8 do data/reports/
 task test:python                    # ruff + pytest
 ```
+
+Flagi runnera są po angielsku (`--wipe`, `--with-papers`, `--engine`, `--verbose`,
+`--report`, `--code`, `--year`, `--variant`) — zasada 4 z `CLAUDE.md`. **Mirror ich
+jeszcze nie ma** (`--filtr`, `--rocznik`, `--tylko-spis`, `--cicho`): ten sam plik
+stoi w repozytorium `cke-mirror`, więc przemianowanie wymaga zmiany w obu miejscach
+naraz i schodzi osobno.
 
 ## Mirror raz, potem tylko kopia
 
@@ -53,12 +60,12 @@ pliku — nie rozsypany po kodzie parsera.
 **`run.py`** to punkt wejścia: czyta spis, woła parser, ładuje, drukuje raport
 pokrycia i **zwraca kod 1**, gdy którykolwiek klucz spadł poniżej progów.
 To jest test regresji parsera, nie tylko raport. Raport ląduje też na dysku
-(`data/reports/ingest-RRRR-MM-DD.txt`, inne miejsce przez `--raport`) — porównanie
+(`data/reports/ingest-RRRR-MM-DD.txt`, inne miejsce przez `--report`) — porównanie
 z sondą „z pamięci" nie jest porównaniem.
 
 Ponowne uruchomienie jest bezpieczne: klucz zastępuje to, co sam zapisał poprzednio
 (kasowane są jego zadania i reguły, dokument wchodzi przez `ON CONFLICT (url)`).
-`--wyczysc` jest do czyszczenia CAŁEGO korpusu, nie do powtórki jednego przebiegu.
+`--wipe` jest do czyszczenia CAŁEGO korpusu, nie do powtórki jednego przebiegu.
 
 ## Ekran korekty — bramka między parserem a korpusem
 
@@ -96,7 +103,7 @@ dopóki nikt tych rekordów nie tknął. Po pierwszej ręcznej poprawce ta sama 
 ```bash
 task ingest                                  # klucze po korekcie POMIJA, wypisuje które
 task ingest -- --overwrite-reviewed          # przeładowuje je, KASUJĄC rozstrzygnięcia
-task ingest -- --wyczysc                     # odmawia, gdy w korpusie jest korekta
+task ingest -- --wipe                     # odmawia, gdy w korpusie jest korekta
 ```
 
 Pominięcie nie jest błędem: im dalej w A2, tym więcej kluczy przebieg omija, a raport
@@ -108,6 +115,47 @@ klucz nie kosztował 1,5 s parsowania.
 Dziennik `correction_event` przeżywa przeładowanie (`ON DELETE SET NULL`): pomiar S8 jest
 wynikiem alfy i nie ma znikać razem z zadaniami, bo wiersz bez zadania wciąż niesie czas
 i rodzaj decyzji.
+
+**Czego bramka NIE łapie: `--with-papers` pominięte w powtórce.** Zadania `pending`
+przeładowują się bez pytania — i jeśli poprzedni przebieg czytał zeszyty, a ten nie,
+klucz zostaje bez `task_version.content` i bez ani jednego `asset`. Widać to dopiero
+w ekranie, po pustej treści zadania. Klucz raz wczytany z arkuszami wczytuje się z nimi
+zawsze.
+
+### Wycinki graficzne — ręczna ramka (G2.4.2)
+
+Zadanie z rysunkiem ma w widoku kartę „Wycinki graficzne": po lewej strona **zeszytu
+zadań** z siatką współrzędnych (kreska co 50 pt, podpis co 100), po prawej wycinek.
+Ramkę wpisuje się w cztery pola — `x0`, `top`, `x1`, `bottom` w punktach PDF, liczone
+od **lewego górnego** rogu strony — i klika „Wytnij".
+
+```
+data/blob/OMAP/2025-05-14/100/X/z1-0.png     # ścieżka z asset.path, względna
+```
+
+Cięcie robi `pdf/crop.py` (200 DPI) i to ta sama funkcja, której użyje automat
+wykrywania regionu z G2.4.1: automat i ręczna ramka różnią się wyłącznie tym, skąd
+bierze się `bbox`. „Wytnij" nie rozstrzyga zadania — ramkę dociąga się na raty,
+a wpis w dzienniku S8 powstaje dopiero przy zatwierdzeniu. Zmiana ramki liczy się
+jako poprawka, więc nie zasili S6 jako trafienie parsera.
+
+Licznik „wycinków w blobie" na stronie głównej mówi, ile zostało: definicja „zrobione"
+dla G2.4.2 to **zero zadań z rysunkiem bez wycinka**.
+
+### Numery stron są liczone od 1
+
+`task.page`, `task_version.page` i `asset.page` trzymają numer strony taki, jaki stoi
+w stopce PDF-a. Warstwa pozycyjna (`pdf/layout.py`) indeksuje strony **od zera** i ten
+indeks szedł kiedyś wprost do bazy — podgląd pokazywał wtedy stronę wcześniejszą niż
+rekord, co wygląda wiarygodnie i dlatego długo nie rzucało się w oczy. Korpus wczytany
+przed tą poprawką trzeba przeładować.
+
+### Zakres pracy w ekranie
+
+Rocznik, kod i wariant filtrują listę **oraz** przycisk „Następne do korekty" —
+i jadą dalej w adresie (`/next?year=2025&variant=100`). Bez zakresu przycisk bierze
+pierwsze czekające zadanie z całego korpusu, więc pilot jednego rocznika kończyłby się
+na pierwszym zapisie.
 
 ## Uruchamianie modułami, nie ścieżkami
 

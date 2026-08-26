@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from parsers.omap_e8 import loader
+from parsers.omap_e8 import loader, run
 from parsers.omap_e8 import parser as K
 from parsers.omap_e8.run import _blizniakow
 
@@ -67,3 +67,41 @@ def test_parsuj_wymagania_zwraca_listy_takze_dla_pustej_tabeli():
     dial = K.SLOWNIK["e8-2019"]
     assert K.parsuj_wymagania(None, dial) == ([], [])
     assert K.parsuj_wymagania(Table((0, 0, 10, 10), []), dial) == ([], [])
+
+
+def _wiersz(**pola):
+    """Wiersz spisu w tylu kolumnach, ile czyta filtr."""
+    return {"typ": "zasady_oceniania", "kod": "OMAP", "segment": "e8",
+            "rocznik": "2025", "warianty": "100", **pola}
+
+
+def test_filtr_rocznika_odcina_pozostale_roczniki():
+    """Pilot G2.2 jedzie na jednym roczniku — reszta korpusu ma zostać nietknięta."""
+    assert run.matches(_wiersz(), "zasady_oceniania", (), (), {"2025"}, ())
+    assert not run.matches(_wiersz(rocznik="2024"), "zasady_oceniania",
+                          (), (), {"2025"}, ())
+
+
+def test_filtr_wariantu_znajduje_zeszyt_zadan_mimo_litery_wersji():
+    """Zeszyt ma w `warianty` także wersję („100,X") — filtr patrzy na pierwszy człon.
+
+    Bez tego `--with-papers` z filtrem wariantu wczytywał klucz bez ani jednego
+    arkusza: spis zeszytów wychodził pusty, a treści zadań nie miał kto dowieźć.
+    """
+    zeszyt = _wiersz(typ="arkusz", warianty="100,X")
+    assert run.matches(zeszyt, "arkusz", (), (), (), {"100"})
+    assert not run.matches(_wiersz(typ="arkusz", warianty="700,X"), "arkusz",
+                          (), (), (), {"100"})
+
+
+def test_pusty_filtr_znaczy_wszystko_ale_typ_obowiazuje():
+    assert run.matches(_wiersz(rocznik="2019", warianty="800"),
+                      "zasady_oceniania", (), (), (), ())
+    assert not run.matches(_wiersz(typ="karta_odpowiedzi"),
+                          "zasady_oceniania", (), (), (), ())
+
+
+def test_wariant_bazowy_znosi_brak_kolumny():
+    assert run.base_variant("100,X") == "100"
+    assert run.base_variant("") == ""
+    assert run.base_variant(None) == ""
