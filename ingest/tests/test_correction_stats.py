@@ -89,13 +89,30 @@ def test_raport_tekstowy_niesie_liczby_do_wniosku():
         "forecast": stats.forecast(4, 90.0),
         "years": [{"year": 2025, "total": 10, "pending": 4, "approved": 3,
                    "corrected": 2, "rejected": 1}],
-        "assets": {"total": 14, "framed": 9, "cropped": 9},
+        "assets": {"total": 14, "framed": 9, "cropped": 9,
+                   "description_none": 2, "description_auto": 4,
+                   "description_approved": 6, "description_corrected": 2},
+    }
+    numbers["s7"] = stats.s7(numbers["assets"])
+    numbers["s6"] = {
+        "with_prefill": stats.arm_summary(
+            [{"review_status": "approved", "seconds": 50.0},
+             {"review_status": "corrected", "seconds": 70.0}]),
+        "without_prefill": stats.arm_summary(
+            [{"review_status": "corrected", "seconds": 120.0},
+             {"review_status": "corrected", "seconds": 140.0}]),
+        "hit_share_gain": 0.5,
+        "median_gain": -70.0,
     }
     text = stats.as_text(numbers)
 
     assert "S8 — trafienia parsera : 60.0%" in text
     assert "2025" in text
     assert "PROGNOZA" in text
+    # S6 i S7 to liczby do wniosku grantowego i mają stać w tym samym raporcie
+    # co S8 — rozrzucone po trzech plikach nie dają się porównać.
+    assert "zysk trafień: +50.0 pkt proc., czas: -70 s na zadanie" in text
+    assert "S7                     : 75.0%" in text
     # Krok 3 pilotu domyka się, gdy zadania z rysunkiem MAJĄ wycinek — raport
     # ma to mówić liczbą, bo inaczej „zrobione" opiera się na pamięci.
     assert "z plikiem PNG w blobie : 9" in text

@@ -62,6 +62,71 @@ def forecast(pending: int, median_seconds: float) -> dict:
     }
 
 
+def arm_summary(rows: list[dict]) -> dict:
+    """Jedno ramię eksperymentu S6: ile zadań, ile trafień parsera, jaki czas.
+
+    Funkcja czysta, bo to ona rozstrzyga o decyzji „prefill w przepływie czy
+    nie" (G2.2.2) — a decyzja podjęta na liczbie policzonej w SQL-u, którego
+    nikt nie przetestował, jest wrażeniem w przebraniu.
+    """
+    decided = [r for r in rows if r["review_status"] in ("approved", "corrected")]
+    seconds = [float(r["seconds"]) for r in rows if r.get("seconds") is not None]
+    return {
+        "tasks": len(rows),
+        "decided": len(decided),
+        "hits": sum(1 for r in decided if r["review_status"] == "approved"),
+        "hit_share": (sum(1 for r in decided if r["review_status"] == "approved")
+                      / len(decided)) if decided else 0.0,
+        "median": median(seconds) if seconds else 0.0,
+    }
+
+
+def s6(cur) -> dict:
+    """Pomiar S6: korekta Z PODPOWIEDZIĄ modelu kontra korekta bez niej.
+
+    Ramię wyznacza istnienie wiersza w `prefill_suggestion` — nie pamięć,
+    kiedy prefill był włączony.
+    """
+    cur.execute(
+        """SELECT t.id, t.review_status,
+                  EXISTS (SELECT 1 FROM prefill_suggestion p WHERE p.task_id = t.id)
+                      AS prefilled,
+                  (SELECT extract(epoch FROM (e.finished_at - e.started_at))
+                     FROM correction_event e
+                    WHERE e.task_id = t.id AND e.action IN ('approve', 'correct')
+                    ORDER BY e.id DESC LIMIT 1) AS seconds
+           FROM task t
+           WHERE t.kind <> 'closed'"""
+    )
+    rows = cur.fetchall()
+    with_hint = arm_summary([r for r in rows if r["prefilled"]])
+    without = arm_summary([r for r in rows if not r["prefilled"]])
+    return {
+        "with_prefill": with_hint,
+        "without_prefill": without,
+        "hit_share_gain": with_hint["hit_share"] - without["hit_share"],
+        # Ujemna różnica czasu znaczy „z podpowiedzią SZYBCIEJ" — tak jest
+        # czytelniej niż iloraz, bo mediana bywa zerem, dopóki ramię jest puste.
+        "median_gain": with_hint["median"] - without["median"],
+    }
+
+
+def s7(counts: dict[str, int]) -> dict:
+    """Pomiar S7: odsetek opisów rysunków zatwierdzonych BEZ poprawki."""
+    approved = counts.get("description_approved", 0)
+    corrected = counts.get("description_corrected", 0)
+    decided = approved + corrected
+    return {
+        "total": counts.get("total", 0),
+        "decided": decided,
+        "approved": approved,
+        "corrected": corrected,
+        "auto": counts.get("description_auto", 0),
+        "none": counts.get("description_none", 0),
+        "hit_share": approved / decided if decided else 0.0,
+    }
+
+
 def collect(cur) -> dict:
     """Komplet liczb S8 — stan, czasy, prognoza, rozbicie na roczniki."""
     counts = db.counts_by_status(cur)
@@ -84,13 +149,49 @@ def collect(cur) -> dict:
            JOIN document d ON d.id = t.marking_scheme_id
            GROUP BY d.year ORDER BY d.year"""
     )
+    years = cur.fetchall()
+    asset_counts = assets.counts(cur)
     return {
         "status": status,
         "durations": durations,
         "forecast": forecast(status["pending"], durations["median"]),
-        "years": cur.fetchall(),
-        "assets": assets.counts(cur),
+        "years": years,
+        "assets": asset_counts,
+        "s6": s6(cur),
+        "s7": s7(asset_counts),
     }
+
+
+def s6_lines(measure: dict, rule: str) -> list[str]:
+    with_hint, without = measure["with_prefill"], measure["without_prefill"]
+    lines = ["S6 — PREFILL LLM: KOREKTA Z PODPOWIEDZIĄ KONTRA BEZ", rule,
+             f"  {'ramię':<18} {'zadań':>7} {'rozstrz.':>9} {'bez popr.':>10}"
+             f" {'mediana':>9}"]
+    for label, arm in (("z podpowiedzią", with_hint), ("bez podpowiedzi", without)):
+        lines.append(f"  {label:<18} {arm['tasks']:>7} {arm['decided']:>9}"
+                     f" {100 * arm['hit_share']:>9.1f}% {arm['median']:>8.0f}s")
+    if not with_hint["decided"] or not without["decided"]:
+        lines.append("  (pomiar niegotowy — puste ramię; uruchom `task prefill`"
+                     " i skoryguj obie próby)")
+    else:
+        lines.append(f"  zysk trafień: {100 * measure['hit_share_gain']:+.1f} pkt proc.,"
+                     f" czas: {measure['median_gain']:+.0f} s na zadanie")
+    return lines
+
+
+def s7_lines(measure: dict, rule: str) -> list[str]:
+    lines = ["S7 — OPISY RYSUNKÓW ZATWIERDZONE BEZ POPRAWKI", rule,
+             f"  zasobów razem          : {measure['total']}",
+             f"  bez opisu              : {measure['none']}",
+             f"  opis z modelu (auto)   : {measure['auto']}",
+             f"  zatwierdzone bez zmian : {measure['approved']}",
+             f"  poprawione             : {measure['corrected']}"]
+    if measure["decided"]:
+        lines.append(f"  S7                     : {100 * measure['hit_share']:.1f}%"
+                     " opisów modelu przyjętych bez poprawki")
+    else:
+        lines.append("  S7                     : brak rozstrzygnięć — pomiar niegotowy")
+    return lines
 
 
 def as_text(numbers: dict) -> str:
@@ -125,6 +226,10 @@ def as_text(numbers: dict) -> str:
         f"  zasobów razem          : {numbers['assets']['total']}",
         f"  z dociągniętą ramką    : {numbers['assets']['framed']}",
         f"  z plikiem PNG w blobie : {numbers['assets']['cropped']}",
+        "",
+        *s6_lines(numbers["s6"], rule),
+        "",
+        *s7_lines(numbers["s7"], rule),
         "",
         "PROGNOZA",
         rule,

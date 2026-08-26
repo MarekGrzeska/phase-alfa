@@ -306,7 +306,36 @@ def load_task(cur, task_id: int) -> dict | None:
     task["rules"] = [r for r in cur.fetchall() if rule_applies(r, task["number"])]
     task["versions"] = versions
     task["assets"] = assets.for_task(cur, task_id)
+    task["hints"] = prefill_hints(cur, task_id, criteria)
     return task
+
+
+def prefill_hints(cur, task_id: int, criteria: list[dict]) -> list[dict]:
+    """Różnice parser vs LLM jako podpowiedzi przy polach (G2.5.1).
+
+    Import w środku funkcji, bo `prefill` ciągnie SDK Anthropic, a ekran korekty
+    ma wstawać także na maszynie bez niego — podpowiedzi są dodatkiem, nie
+    warunkiem pracy.
+    """
+    cur.execute(
+        "SELECT model, payload FROM prefill_suggestion WHERE task_id = %s"
+        " ORDER BY created_at DESC LIMIT 1",
+        (task_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return []
+    try:
+        from correction import prefill
+        suggestion = prefill.parse_payload(row["payload"])
+    except Exception:
+        # Podpowiedź w kształcie, którego już nie rozumiemy, nie ma prawa
+        # zablokować korekty — ekran działa bez niej od zawsze.
+        return []
+    hints = prefill.differences(criteria, suggestion)
+    for hint in hints:
+        hint["model"] = row["model"]
+    return hints
 
 
 def neighbours(cur, task: Mapping[str, Any]) -> dict[str, int | None]:

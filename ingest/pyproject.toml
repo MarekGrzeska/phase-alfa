@@ -24,6 +24,16 @@ dependencies = [
     "pypdfium2>=4",
     "python-multipart>=0.0.9",
     "uvicorn>=0.30",
+    # --- G2.5: LLM w ingescie ---
+    # Klucz WYLACZNIE z .env (wzor w .env.example), nigdy w repozytorium.
+    # Wywolan modelu NIE MA w CI: testy chodza na utrwalonych odpowiedziach,
+    # przebieg z zywym modelem jest reczny.
+    #
+    # `pydantic` jawnie, choc wchodzi tranzytywnie z fastapi: schematy
+    # structured output sa naszym kontraktem z modelem, wiec zaleznosc
+    # ma byc zadeklarowana tam, gdzie jest uzywana.
+    "anthropic>=1",
+    "pydantic>=2",
 ]
 
 [project.optional-dependencies]
@@ -55,7 +65,9 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 # W testach asercje sa cala trescia (S101), haslo do bazy deweloperskiej stoi
 # jawnie w docker-compose.yml, wiec nie jest sekretem (S105/S106), a subprocess
 # uruchamia NASZ wlasny runner przez sys.executable, nie dane z zewnatrz (S603).
-"tests/*" = ["S101", "S105", "S106", "S603"]
+# S607: testy wolaja `node` po nazwie, tak samo jak pnpm i generator
+# klienta OpenAPI — repozytorium wymaga go w PATH (`task setup`).
+"tests/*" = ["S101", "S105", "S106", "S603", "S607"]
 
 # --- kod awansowany z research/ (G1.2) ---
 # Te trzy moduly przeszly z research/ BEZ ZMIAN LOGIKI i taka byla teza

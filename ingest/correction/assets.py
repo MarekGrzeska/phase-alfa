@@ -1,9 +1,13 @@
-"""Wycinki graficzne w ekranie korekty — ręczna ramka i cięcie PNG (G2.4.2).
+"""Wycinki graficzne i opisy rysunków w ekranie korekty (G2.4.2, G2.5.2).
 
-Automat wykrywający region (G2.4.1) jeszcze nie istnieje, a pilot 2025 ma
-zadania z rysunkiem. Ramka wpisana ręcznie i wycinek robiony tą samą funkcją
-`pdf.crop.crop` są tu zaworem: jeśli automat nie domknie tematu, ta droga
-zamyka go i tak.
+Ramkę wykrywa automat z `pdf.regions` (G2.4.1), a gdy nie domknie — dociąga
+ją człowiek w formularzu. Obie drogi tną tą samą funkcją `pdf.crop.crop`
+i różnią się WYŁĄCZNIE źródłem `bbox`; ręczna jest zaworem nr 3 z Planu
+Implementacji, nie awarią.
+
+Opis rysunku (alt-text) proponuje model, a rozstrzyga człowiek: `approved`
+znaczy „model trafił sam", `corrected` — „człowiek poprawił". Na tej różnicy
+stoi pomiar S7.
 """
 
 from __future__ import annotations
@@ -22,6 +26,7 @@ def for_task(cur, task_id: int) -> list[dict]:
     cur.execute(
         """SELECT DISTINCT ON (a.id)
                   a.id, a.kind, a.path, a.page, a.bbox,
+                  a.description, a.description_status,
                   f.variant, f.version, d.path AS paper_path, d.pages AS paper_pages
            FROM asset a
            JOIN task_version tv ON tv.id = a.task_version_id
@@ -56,10 +61,54 @@ def _has_file(relative: str) -> bool:
         return False
 
 
+DESCRIPTION_STATUSES = ("none", "auto", "approved", "corrected")
+
+
+def save_description(cur, asset: dict, form: Mapping[str, str],
+                     edited: dict[str, int], problems: list[str]) -> None:
+    """Opis rysunku i jego rozstrzygnięcie — pomiar S7 (G2.5.2).
+
+    Status podnosi WYŁĄCZNIE zaznaczone „zatwierdź opis"; sama edycja tekstu
+    zapisuje treść i nic nie rozstrzyga. `approved` znaczy „model trafił sam",
+    `corrected` — „człowiek poprawił", i rozstrzyga o tym PORÓWNANIE z bazą,
+    nie deklaracja: inaczej S7 dałoby się przekłamać kliknięciem.
+    """
+    submitted = form.get(f"asset.{asset['id']}.description")
+    if submitted is None:
+        return
+    approving = form.get(f"asset.{asset['id']}.approve_description") is not None
+    text = submitted.strip() or None
+    changed = text != (asset["description"] or None)
+    status = asset["description_status"]
+
+    if approving:
+        if text is None:
+            problems.append(f"Zasób {asset['path']}: nie ma czego zatwierdzić — "
+                            "opis jest pusty.")
+            return
+        # Trafieniem modelu jest WYŁĄCZNIE opis z modelu przyjęty bez zmiany.
+        # Opis wpisany ręcznie od zera i opis poprawiony to praca człowieka.
+        status = ("approved" if not changed and status in ("auto", "approved")
+                  else "corrected")
+    elif changed and status in ("approved", "corrected"):
+        # Zatwierdzenie dotyczyło treści, której już nie ma — wraca do walidacji.
+        status = "auto"
+
+    if not changed and status == asset["description_status"]:
+        return
+    cur.execute(
+        "UPDATE asset SET description = %s, description_status = %s WHERE id = %s",
+        (text, status, asset["id"]),
+    )
+    if cur.rowcount:
+        edited["asset_description"] = edited.get("asset_description", 0) + cur.rowcount
+
+
 def save(cur, task_id: int, form: Mapping[str, str], edited: dict[str, int],
          problems: list[str]) -> None:
-    """Ramki z formularza → baza i pliki PNG. Wołać w transakcji, jak `db.save`."""
+    """Ramki i opisy z formularza → baza i pliki PNG. Wołać w transakcji, jak `db.save`."""
     for asset in for_task(cur, task_id):
+        save_description(cur, asset, form, edited, problems)
         box, page = _submitted(asset, form, problems)
         if box is None:
             continue
@@ -157,4 +206,14 @@ def counts(cur) -> dict[str, int]:
     return {"total": len(rows),
             "framed": framed,
             "cropped": sum(1 for r in rows
-                           if r["path"].replace("\\", "/") in na_dysku)}
+                           if r["path"].replace("\\", "/") in na_dysku),
+            **describe_counts(cur)}
+
+
+def describe_counts(cur) -> dict[str, int]:
+    """Stan opisów rysunków — surowiec pomiaru S7."""
+    cur.execute("SELECT description_status, count(*) AS n FROM asset"
+                " GROUP BY description_status")
+    found = {r["description_status"]: r["n"] for r in cur.fetchall()}
+    return {f"description_{status}": found.get(status, 0)
+            for status in DESCRIPTION_STATUSES}
