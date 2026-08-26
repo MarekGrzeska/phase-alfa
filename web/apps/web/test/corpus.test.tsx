@@ -1,7 +1,8 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { readRoute, writeRoute } from "../src/App";
+import { CorpusBrowser } from "../src/corpus/CorpusBrowser";
 import { ProgressView } from "../src/corpus/ProgressDashboard";
 import { TaskDetailView } from "../src/corpus/TaskDetailView";
 import { count, decidedShare, formName, versionsInOrder } from "../src/corpus/format";
@@ -172,5 +173,47 @@ describe("pulpit postępu", () => {
 
     const bars = screen.getAllByRole("progressbar") as HTMLProgressElement[];
     expect(bars[1]!.value).toBe(0);
+  });
+});
+
+// Przeglądarka pobiera dane sama, więc podstawia się wyłącznie klienta API.
+vi.mock("../src/corpus/api", async () => {
+  const real = await vi.importActual<typeof import("../src/corpus/api")>(
+    "../src/corpus/api",
+  );
+  return {
+    ...real,
+    corpus: {
+      GET: (path: string) =>
+        Promise.resolve({
+          data:
+            path === "/corpus/forms"
+              ? [{ id: 1, code: "OMAP", year: 2025, session: "2505", variant: "100", tasks: 21 }]
+              : path === "/corpus/forms/{id}/tasks"
+                ? [{ id: 7, number: "16", maxPoints: 2, kind: "open_short", hasAsset: true }]
+                : TASK,
+          error: undefined,
+        }),
+    },
+  };
+});
+
+describe("przeglądarka korpusu", () => {
+  it("pokazuje zadanie wybrane z listy", async () => {
+    render(<CorpusBrowser formId={1} taskId={7} onSelect={() => {}} />);
+
+    expect(await screen.findByText("Treść wersji X")).toBeDefined();
+  });
+
+  it("zmiana arkusza zabiera zadanie z panelu, a nie zostawia poprzedniego", async () => {
+    // Bez bramki na `taskId` panel pokazywał zadanie z poprzedniego arkusza
+    // pod napisem „wybierz zadanie z listy".
+    const view = render(<CorpusBrowser formId={1} taskId={7} onSelect={() => {}} />);
+    await screen.findByText("Treść wersji X");
+
+    view.rerender(<CorpusBrowser formId={2} taskId={null} onSelect={() => {}} />);
+
+    expect(screen.queryByText("Treść wersji X")).toBeNull();
+    expect(screen.getByText("Wybierz zadanie z listy.")).toBeDefined();
   });
 });

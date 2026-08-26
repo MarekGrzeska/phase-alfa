@@ -844,6 +844,15 @@ GRAPHIC_KINDS = (
 MAX_ASSETS_PER_PAGE = 3
 
 
+def frames_for_assets(frames: Sequence) -> list:
+    """Ramki wchodzące do korpusu; pusta lista oddaje ramkę człowiekowi (G2.4.2).
+
+    Rozsypany klaster idzie tą samą drogą co brak wykrycia — przycięcie listy
+    zostawiało kilka przypadkowych kawałków rysunku oznaczonych jako gotowe.
+    """
+    return [] if len(frames) > MAX_ASSETS_PER_PAGE else list(frames)
+
+
 def graphic_kind(tresc: str) -> Optional[str]:
     for wzor, rodzaj in GRAPHIC_KINDS:
         if wzor.search(tresc):
@@ -881,8 +890,8 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
                 if rodzaj is None or page.number + 1 in strony_zasobow:
                     continue
                 band = bands.get(nr)
-                frames = regions.detect(page, *band) if band else []
-                for bbox in frames[:MAX_ASSETS_PER_PAGE]:
+                frames = frames_for_assets(regions.detect(page, *band) if band else [])
+                for bbox in frames:
                     out[nr]["zasoby"].append({"rodzaj": rodzaj,
                                               "strona": page.number + 1,
                                               "bbox": [float(v) for v in bbox]})

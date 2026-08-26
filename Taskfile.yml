@@ -248,8 +248,9 @@ tasks:
   # ------------------------------------------------------------ wycinki i dane
   # `task db:reset` kasuje wolumen Postgresa, ale ZOSTAWIA pliki PNG w data/blob.
   # Sprzątaniem zajmuje się narzędzie, nie `rm` w tym pliku — na Windows go nie ma.
-  #   task crops            # dotnij brakujące wycinki
-  #   task crops -- --prune # skasuj pliki, do których nie prowadzi żaden zasób
+  #   task crops                    # dotnij brakujące wycinki
+  #   task crops -- --prune         # POKAŻ osierocone wycinki (nic nie kasuje)
+  #   task crops -- --prune --yes   # skasuj to, co wypisała linijka wyżej
   crops:
     desc: Wycinki PNG zasobów graficznych — dotnij brakujące, posprzątaj osierocone
     dir: ingest

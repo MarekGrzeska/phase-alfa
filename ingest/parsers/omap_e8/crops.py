@@ -15,6 +15,7 @@ narzędzie, nie `rm` w Taskfile (na Windows go zresztą nie ma).
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 
 import psycopg
@@ -26,6 +27,10 @@ from schema.migrate import polaczenie
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
+
+# Kształt ścieżki z `loader.py`: kod/sesja/wariant/wersja/zNR-I.png. Korzeń
+# blobów dzielimy z `DiskBlobStore`, więc sprzątanie musi poznać SWOJE pliki.
+CROP_PATH = re.compile(r"[^/]+/[^/]+/[^/]+/[^/]+/z[^/]+-\d+\.png$")
 
 # Parser wstawia ramkę „cała strona" z zerem w lewym górnym rogu, gdy automat
 # nie domknął regionu. Takiego zasobu NIE tniemy: wycinkiem byłby cały arkusz,
@@ -83,21 +88,32 @@ def cut_missing(con, document: int | None = None, force: bool = False) -> dict:
 
 
 def _paper(relative_path: str):
-    """Zeszyt zadań leży w mirrorze — ta sama ochrona ścieżki co w ekranie korekty."""
-    from correction.pages import source_pdf
-    return source_pdf(relative_path)
+    """Zeszyt zadań z mirrora — ta sama ochrona ścieżki co w ekranie korekty.
+
+    `PageUnavailable` wychodzi jako `CropError`, bo dla wołającego to ten sam
+    wypadek; we własnym typie leciał przez `cut_missing` i zabierał raport.
+    """
+    from correction.pages import PageUnavailable, source_pdf
+    try:
+        return source_pdf(relative_path)
+    except PageUnavailable as e:
+        raise crop_pdf.CropError(str(e)) from e
 
 
 def orphans(con) -> list[str]:
-    """Pliki w blobie, do których nie prowadzi żaden wiersz `asset`."""
+    """Wycinki w blobie, do których nie prowadzi żaden wiersz `asset`.
+
+    Sito jest podwójne — kształt ścieżki ORAZ brak w bazie. Plik nierozpoznany
+    jako nasz wycinek zostaje.
+    """
     root = crop_pdf.blob_root()
     if not root.exists():
         return []
     with con.cursor() as cur:
         cur.execute("SELECT path FROM asset")
         known = {p.replace("\\", "/") for (p,) in cur.fetchall()}
-    return sorted(f.relative_to(root).as_posix() for f in root.rglob("*")
-                  if f.is_file() and f.relative_to(root).as_posix() not in known)
+    found = (f.relative_to(root).as_posix() for f in root.rglob("*") if f.is_file())
+    return sorted(p for p in found if CROP_PATH.match(p) and p not in known)
 
 
 def report(summary: dict) -> str:
@@ -118,10 +134,48 @@ def report(summary: dict) -> str:
         lines.append(f"  BŁĘDY CIĘCIA               : {len(summary['failed'])}")
         for path, why in summary["failed"][:5]:
             lines.append(f"    ↳ {path}: {why}")
-    if summary["framed"]:
-        share = 100 * summary["manual"] / max(summary["total"], 1)
+    # Warunek na `total`, a NIE na `framed`: przebieg bez ani jednej ramki
+    # z automatu to ten, w którym ta linia jest najbardziej potrzebna.
+    if summary["total"]:
+        share = 100 * summary["manual"] / summary["total"]
         lines.append(f"  do ręcznego dociągnięcia   : {share:.0f}% zasobów")
     return "\n".join(lines)
+
+
+def _prune(con, delete: bool) -> int:
+    """Osierocone wycinki: najpierw lista, kasowanie dopiero na `--yes`.
+
+    Kasowanie nie ma wycofania, a lista bierze się z bazy — pomylony
+    `DATABASE_URL` wskazuje pustą bazę i KAŻDY wycinek jest wtedy osierocony.
+    """
+    to_delete = orphans(con)
+    root = crop_pdf.blob_root()
+    if not to_delete:
+        print("Osieroconych wycinków nie ma.")
+        return 0
+
+    if not delete:
+        print(f"Osieroconych wycinków: {len(to_delete)} (nic nie skasowano)")
+        for relative in to_delete[:10]:
+            print(f"  - {relative}")
+        if len(to_delete) > 10:
+            print(f"  … i jeszcze {len(to_delete) - 10}")
+        print("Kasowanie: task crops -- --prune --yes")
+        return 0
+
+    removed, failed = 0, []
+    for relative in to_delete:
+        try:
+            # Plik mógł zniknąć między listą a kasowaniem — to nie powód,
+            # żeby przerwać sprzątanie w połowie.
+            (root / relative).unlink(missing_ok=True)
+            removed += 1
+        except OSError as e:
+            failed.append((relative, str(e)))
+    print(f"Osieroconych wycinków skasowanych: {removed} z {len(to_delete)}")
+    for relative, why in failed[:5]:
+        print(f"  ! {relative}: {why}")
+    return 1 if failed else 0
 
 
 def main() -> int:
@@ -130,20 +184,16 @@ def main() -> int:
     ap.add_argument("--force", action="store_true",
                     help="przetnij od nowa także te, które mają już plik")
     ap.add_argument("--prune", action="store_true",
-                    help="skasuj pliki w blobie, do których nie prowadzi żaden zasób "
-                         "(po `task db:reset` blob zostaje, a baza jest pusta)")
+                    help="pokaż osierocone wycinki — pliki w blobie, do których "
+                         "nie prowadzi żaden zasób (po `task db:reset` blob "
+                         "zostaje, a baza jest pusta). Samo w sobie nic nie kasuje")
+    ap.add_argument("--yes", action="store_true",
+                    help="skasuj to, co wypisał --prune")
     args = ap.parse_args()
 
     with psycopg.connect(polaczenie(), autocommit=True) as con:
         if args.prune:
-            to_delete = orphans(con)
-            root = crop_pdf.blob_root()
-            for relative in to_delete:
-                (root / relative).unlink()
-            print(f"Osieroconych plików skasowanych: {len(to_delete)}")
-            for relative in to_delete[:10]:
-                print(f"  - {relative}")
-            return 0
+            return _prune(con, delete=args.yes)
         print(report(cut_missing(con, force=args.force)))
     return 0
 

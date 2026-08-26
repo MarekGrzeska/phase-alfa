@@ -107,8 +107,8 @@ def test_wariant_bazowy_znosi_brak_kolumny():
     assert run.base_variant(None) == ""
 
 
-# Pola `K.Klucz` i `K.Zadanie` sa po polsku — to dlug `ingest/` z CLAUDE.md,
-# splacany osobnym zadaniem. Nazwy wlasne testu trzymaja sie reguly 4.
+# Pola `K.Klucz` i `K.Zadanie` są po polsku — to dług `ingest/` z CLAUDE.md,
+# spłacany osobnym zadaniem. Nazwy własne testu trzymają się reguły 4.
 def _key(*tasks) -> K.Klucz:
     key = K.Klucz(plik="x.pdf", dialekt="e8-2019", egzamin="e8")
     key.zadania = list(tasks)
@@ -136,3 +136,25 @@ def test_half_the_closed_tasks_without_criteria_is_a_gap():
 def test_a_key_without_closed_tasks_answers_nothing():
     """`None`, nie `True`: pytanie bez treści ma wyglądać inaczej niż norma."""
     assert K.closed_without_criteria(_key(_task("16", "otwarte_krotkie"))) is None
+
+
+def test_one_drawing_becomes_one_asset():
+    assert K.frames_for_assets([(1, 2, 3, 4)]) == [(1, 2, 3, 4)]
+
+
+def test_three_drawings_on_a_page_are_still_three_assets():
+    frames = [(1, 2, 3, 4), (5, 6, 7, 8), (9, 10, 11, 12)]
+
+    assert K.frames_for_assets(frames) == frames
+
+
+def test_a_scattered_cluster_goes_to_manual_framing_whole():
+    """Przycięcie listy zapisywało trzy przypadkowe kawałki jako zasoby
+    Z RAMKĄ — czyli gotowe — a pozostałe siedem znikało bez śladu."""
+    frames = [(i, i, i + 1, i + 1) for i in range(10)]
+
+    assert K.frames_for_assets(frames) == []
+
+
+def test_no_detection_stays_no_detection():
+    assert K.frames_for_assets([]) == []

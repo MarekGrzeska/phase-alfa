@@ -10,7 +10,9 @@ patrzenia na rysunek**. „Ładny opis" nie jest kryterium — to wejście do A/
 czy z opisu da się odtworzyć dane.
 
 Provenance niesie schemat, nie pamięć: `description_status` w stanach
-'none' → 'auto' → 'approved'. Do korpusu wchodzi wyłącznie `approved`.
+'none' → 'auto' → 'approved' (model trafił sam) albo 'corrected' (człowiek
+poprawił opis modelu); 'manual' to opis napisany od zera, gdy modelu tu
+nie było, i stoi POZA pomiarem S7.
 """
 
 from __future__ import annotations
@@ -23,12 +25,17 @@ import psycopg
 from psycopg.rows import dict_row
 
 from correction import llm
+from correction.assets import DESCRIPTION_STATUSES
 from pdf import crop as crop_pdf
 from schema.migrate import polaczenie
 
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
+
+# Praca człowieka — nie tyka jej nawet `--force`. Przebieg modelu kosztuje
+# kilka centów i da się powtórzyć; zatwierdzony opis nie.
+HUMAN_STATUSES = ("approved", "corrected", "manual")
 
 SYSTEM = """Opisujesz rysunek z arkusza egzaminacyjnego dla ucznia, który go
 nie widzi.
@@ -53,7 +60,8 @@ SQL_ASSETS = """
     JOIN task_version tv ON tv.id = a.task_version_id
     JOIN task t ON t.id = tv.task_id
     JOIN document d ON d.id = t.marking_scheme_id
-    WHERE (%(force)s OR a.description_status = 'none')
+    WHERE NOT (a.description_status = ANY(%(human)s))
+      AND (%(force)s OR a.description_status = 'none')
       AND (%(year)s::smallint IS NULL OR d.year = %(year)s)
       AND (%(variant)s::text IS NULL
            OR %(variant)s = ANY(string_to_array(d.variants, ',')))
@@ -88,7 +96,7 @@ def message_for(asset: dict) -> list[dict]:
 
 def collect_assets(cur, year, variant, limit, force) -> list[dict]:
     cur.execute(SQL_ASSETS, {"year": year, "variant": variant, "limit": limit,
-                             "force": force})
+                             "force": force, "human": list(HUMAN_STATUSES)})
     return cur.fetchall()
 
 
@@ -99,26 +107,35 @@ def run(con, year=None, variant=None, model=llm.DEFAULT_MODEL, limit=20,
     spend = llm.Spend(model=model, batch=batch)
 
     with con.cursor(row_factory=dict_row) as cur:
-        assets = collect_assets(cur, year, variant, limit, force)
-    if not assets:
+        wanted = collect_assets(cur, year, variant, limit, force)
+    if not wanted:
         return spend
 
-    described = (_ask_batch(anthropic_client, assets, model, spend) if batch
-                 else _ask_one_by_one(anthropic_client, assets, model, spend))
-    with con.cursor() as cur:
-        for asset_id, description in described.items():
-            # `auto`, nigdy `approved`: to model, a nie człowiek. Bramka stoi
-            # w ekranie korekty i tylko ona podnosi status.
-            cur.execute(
-                "UPDATE asset SET description = %s, description_status = 'auto' "
-                "WHERE id = %s",
-                (description, asset_id),
-            )
+    described: dict[int, str] = {}
+    try:
+        ask = _ask_batch if batch else _ask_one_by_one
+        ask(anthropic_client, wanted, model, spend, described)
+    finally:
+        # Odpowiedź jest opłacona, gdy wróci — awaria na dwunastym zasobie
+        # nie ma prawa skasować jedenastu poprzednich.
+        _store(con, described)
     return spend
 
 
-def _ask_one_by_one(anthropic_client, assets, model, spend) -> dict[int, str]:
-    out: dict[int, str] = {}
+def _store(con, described: dict[int, str]) -> None:
+    with con.cursor() as cur:
+        for asset_id, description in described.items():
+            # `auto`, nigdy `approved`: status podnosi tylko ekran korekty.
+            # Warunek powtarza sito zapytania — między odczytem a zapisem
+            # człowiek mógł zdążyć zatwierdzić opis.
+            cur.execute(
+                "UPDATE asset SET description = %s, description_status = 'auto' "
+                "WHERE id = %s AND NOT (description_status = ANY(%s))",
+                (description, asset_id, list(HUMAN_STATUSES)),
+            )
+
+
+def _ask_one_by_one(anthropic_client, assets, model, spend, out) -> dict[int, str]:
     for asset in assets:
         try:
             messages = message_for(asset)
@@ -141,7 +158,7 @@ def _ask_one_by_one(anthropic_client, assets, model, spend) -> dict[int, str]:
     return out
 
 
-def _ask_batch(anthropic_client, assets, model, spend) -> dict[int, str]:
+def _ask_batch(anthropic_client, assets, model, spend, out) -> dict[int, str]:
     from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
     from anthropic.types.messages.batch_create_params import Request
 
@@ -159,10 +176,9 @@ def _ask_batch(anthropic_client, assets, model, spend) -> dict[int, str]:
                 model=model, max_tokens=2000, system=SYSTEM, messages=messages),
         ))
     if not requests:
-        return {}
+        return out
     results = llm.run_batch(anthropic_client, requests, model)
 
-    out: dict[int, str] = {}
     for asset in wanted:
         result = results.get(f"asset-{asset['id']}")
         if result is None or result.type != "succeeded":
@@ -180,25 +196,32 @@ def _ask_batch(anthropic_client, assets, model, spend) -> dict[int, str]:
 
 
 def counts(con) -> dict[str, int]:
+    """Stan opisów w całej bazie — mianownik pokrycia.
+
+    Listę stanów bierze `assets`: wypisana tu z pamięci gubiła stan dodany
+    migracją, a wtedy mianownik kurczy się z każdą poprawką człowieka.
+    """
     with con.cursor() as cur:
         cur.execute("SELECT description_status, count(*) FROM asset"
                     " GROUP BY description_status")
         found = dict(cur.fetchall())
-    return {status: found.get(status, 0) for status in ("none", "auto", "approved")}
+    return {status: found.get(status, 0) for status in DESCRIPTION_STATUSES}
 
 
 def report(spend: llm.Spend, totals: dict[str, int]) -> str:
     rule = "─" * 74
     total = sum(totals.values())
-    decided = totals["auto"] + totals["approved"]
+    described = total - totals["none"]
     lines = ["OPISY RYSUNKÓW — ALT-TEXT (S7)", rule, *spend.as_lines(), "",
              f"  zasobów razem          : {total}",
              f"  bez opisu              : {totals['none']}",
              f"  opis z modelu (auto)   : {totals['auto']}",
              f"  zatwierdzone (approved): {totals['approved']}",
+             f"  poprawione (corrected) : {totals['corrected']}",
+             f"  własne człowieka       : {totals['manual']}",
              "  S7 — zatwierdzone bez poprawki: liczy `task correction:report`"]
     if total:
-        lines.append(f"  pokrycie opisami       : {100 * decided / total:.1f}%")
+        lines.append(f"  pokrycie opisami       : {100 * described / total:.1f}%")
     if spend.failures:
         lines += ["", f"  NIEUDANE: {len(spend.failures)}"]
         lines += [f"    ↳ {path}: {why}" for path, why in spend.failures[:8]]
@@ -215,8 +238,9 @@ def main() -> int:
     ap.add_argument("--batch", action="store_true",
                     help="przez Batch API — o połowę taniej, całe roczniki naraz")
     ap.add_argument("--force", action="store_true",
-                    help="opisz także te, które mają już opis (zatwierdzonych "
-                         "przez człowieka to NIE cofa — status zostaje)")
+                    help="opisz od nowa także te, które mają już opis z modelu; "
+                         "opisów zatwierdzonych, poprawionych i własnych "
+                         "człowieka nie tyka ani treścią, ani statusem")
     ap.add_argument("--report", default=None)
     args = ap.parse_args()
 

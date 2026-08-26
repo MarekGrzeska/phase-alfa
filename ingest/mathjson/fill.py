@@ -38,6 +38,8 @@ CONVERTER = HERE / "convert.mjs"
 
 # Zakres pracy jak w ekranie korekty i w runnerze parsera: rocznik i wariant.
 # Pilot G2.6 idzie na roczniku 2025, a nie na 514 zapisach naraz.
+# `approved` odsiewa SAMO ZAPYTANIE, więc `--force` nie sięga po pracę człowieka
+# ani poza wybrany rocznik — osobny UPDATE w `main()` szedł po całej tabeli.
 SQL_EXPRESSIONS = """
     SELECT ce.id, ce.expression, ce.mathjson_status
     FROM condition_expression ce
@@ -45,7 +47,8 @@ SQL_EXPRESSIONS = """
     JOIN criterion c ON c.id = cc.criterion_id
     JOIN task t ON t.id = c.task_id
     JOIN document d ON d.id = t.marking_scheme_id
-    WHERE (%(year)s::smallint IS NULL OR d.year = %(year)s)
+    WHERE ce.mathjson_status <> 'approved'
+      AND (%(year)s::smallint IS NULL OR d.year = %(year)s)
       AND (%(variant)s::text IS NULL
            OR %(variant)s = ANY(string_to_array(d.variants, ',')))
       AND (%(force)s OR ce.mathjson_status IN ('none', 'failed'))
@@ -97,7 +100,8 @@ def run_converter(records: list[dict]) -> dict[int, dict]:
 def fill(con, year: int | None = None, variant: str | None = None,
          force: bool = False) -> dict:
     with con.cursor(row_factory=dict_row) as cur:
-        cur.execute(SQL_EXPRESSIONS, {"year": year, "variant": variant, "force": force})
+        cur.execute(SQL_EXPRESSIONS,
+                    {"year": year, "variant": variant, "force": force})
         rows = cur.fetchall()
 
     to_convert: list[dict] = []
@@ -125,10 +129,12 @@ def fill(con, year: int | None = None, variant: str | None = None,
                 _mark_failed(cur, record["id"],
                              f"Compute Engine: {answer['error']}"[:400], summary)
             else:
+                # Warunek powtarza sito zapytania: między odczytem a zapisem
+                # człowiek mógł zdążyć zatwierdzić ten zapis.
                 cur.execute(
                     """UPDATE condition_expression
                        SET mathjson = %s, mathjson_status = 'auto', mathjson_error = NULL
-                       WHERE id = %s""",
+                       WHERE id = %s AND mathjson_status <> 'approved'""",
                     (Jsonb(answer["mathjson"]), record["id"]),
                 )
                 summary["auto"] += 1
@@ -136,10 +142,12 @@ def fill(con, year: int | None = None, variant: str | None = None,
 
 
 def _mark_failed(cur, expression_id: int, why: str, summary: dict) -> None:
+    # `mathjson` leci razem ze statusem: zapis przeliczany ponownie miał już
+    # wynik, a obok stanu `failed` byłby MathJSON-em, którego nikt nie potwierdził.
     cur.execute(
         """UPDATE condition_expression
-           SET mathjson_status = 'failed', mathjson_error = %s
-           WHERE id = %s""",
+           SET mathjson = NULL, mathjson_status = 'failed', mathjson_error = %s
+           WHERE id = %s AND mathjson_status <> 'approved'""",
         (why, expression_id),
     )
     summary["failed"] += 1
@@ -195,21 +203,16 @@ def main() -> int:
     ap.add_argument("--year", type=int, default=None, help="tylko ten rocznik")
     ap.add_argument("--variant", default=None, help="tylko ten wariant, np. 100")
     ap.add_argument("--force", action="store_true",
-                    help="przelicz także te, które mają już MathJSON "
-                         "(zatwierdzonych przez człowieka to NIE cofa)")
+                    help="przelicz od nowa także te, które mają już MathJSON; "
+                         "działa w granicach --year/--variant i nie tyka "
+                         "zapisów zatwierdzonych przez człowieka")
     ap.add_argument("--report", default=None,
                     help="gdzie zapisać (domyślnie data/reports/mathjson-RRRR-MM-DD.txt)")
     args = ap.parse_args()
 
     with psycopg.connect(polaczenie(), autocommit=True) as con:
-        if args.force:
-            # `approved` znaczy „człowiek to sprawdził" — przeliczenie skasowałoby
-            # jego pracę, a jest ona w tym kamieniu najdroższym zasobem.
-            with con.cursor() as cur:
-                cur.execute("UPDATE condition_expression SET mathjson_status = 'none'"
-                            " WHERE mathjson_status IN ('auto', 'failed')")
         try:
-            summary = fill(con, args.year, args.variant, force=False)
+            summary = fill(con, args.year, args.variant, force=args.force)
         except ConverterUnavailable as e:
             print(e)
             return 2

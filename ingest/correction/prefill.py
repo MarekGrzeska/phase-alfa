@@ -31,9 +31,16 @@ from pydantic import BaseModel, Field
 from correction import llm
 from schema.migrate import polaczenie
 
-for _stream in (sys.stdout, sys.stderr):
-    if hasattr(_stream, "reconfigure"):
-        _stream.reconfigure(encoding="utf-8", errors="replace")
+
+def _console_utf8() -> None:
+    """Konsola Windows na UTF-8 — sprawa POLECENIA, nie modułu.
+
+    Na poziomie modułu przestawiała strumienie serwera korekty, który importuje
+    ten plik dla podpowiedzi (`db.prefill_hints`). Tak samo robi `parser._main`.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
 
 # ── kontrakt odpowiedzi ────────────────────────────────────────────────────
@@ -85,6 +92,36 @@ def parse_payload(payload: dict | str) -> Prefill:
     """Odpowiedź modelu → zwalidowana struktura. Rzuca, gdy kształt się nie zgadza."""
     return Prefill.model_validate(json.loads(payload) if isinstance(payload, str)
                                   else payload)
+
+
+def strict_schema(model: type[BaseModel]) -> dict:
+    """Schemat pydantica → schemat, który przechodzi przez `json_schema`.
+
+    Tryb `json_schema` żąda `additionalProperties: false` i KOMPLETNEGO
+    `required` w KAŻDYM obiekcie, także w `$defs` — pydantic nie stawia ani
+    jednego, ani drugiego dla pól z wartością domyślną. Bez wsadu schemat
+    buduje SDK, więc 400 dostawało tylko to ramię S6, które rzadziej widać.
+    """
+    schema = model.model_json_schema()
+    _tighten(schema)
+    return schema
+
+
+def _tighten(node: object) -> None:
+    if isinstance(node, list):
+        for item in node:
+            _tighten(item)
+        return
+    if not isinstance(node, dict):
+        return
+    if node.get("type") == "object" and "properties" in node:
+        node["additionalProperties"] = False
+        # Pole z wartością domyślną jest dla API WYMAGANE: pustą listę model
+        # ma napisać. U pydantica wstawia ją konstruktor, którego tam nie ma.
+        node["required"] = list(node["properties"])
+    node.pop("default", None)
+    for value in list(node.values()):
+        _tighten(value)
 
 
 # ── różnice parser vs model ────────────────────────────────────────────────
@@ -178,7 +215,7 @@ def marking_text(cur, task_id: int) -> str:
 
 def collect_tasks(cur, year, variant, model, limit) -> list[dict]:
     cur.execute(SQL_TASKS, {"year": year, "variant": variant, "model": model,
-                              "limit": limit})
+                            "limit": limit})
     tasks = cur.fetchall()
     for task in tasks:
         task["marking_text"] = marking_text(cur, task["id"])
@@ -196,8 +233,18 @@ def run(con, year=None, variant=None, model=llm.DEFAULT_MODEL, limit=20,
     if not tasks:
         return spend
 
-    answers = (_ask_batch(anthropic_client, tasks, model, spend) if batch
-               else _ask_one_by_one(anthropic_client, tasks, model, spend))
+    answers: dict[int, dict] = {}
+    try:
+        ask = _ask_batch if batch else _ask_one_by_one
+        ask(anthropic_client, tasks, model, spend, answers)
+    finally:
+        # Odpowiedź jest opłacona, gdy wróci — awaria na dwunastym zadaniu
+        # nie ma prawa skasować jedenastu poprzednich.
+        _store(con, answers, model, batch)
+    return spend
+
+
+def _store(con, answers: dict[int, dict], model: str, batch: bool) -> None:
     with con.cursor() as cur:
         for task_id, payload in answers.items():
             cur.execute(
@@ -213,11 +260,9 @@ def run(con, year=None, variant=None, model=llm.DEFAULT_MODEL, limit=20,
                 (task_id, model, Jsonb(payload["data"]), payload["input"],
                  payload["output"], batch),
             )
-    return spend
 
 
-def _ask_one_by_one(anthropic_client, tasks, model, spend) -> dict[int, dict]:
-    out: dict[int, dict] = {}
+def _ask_one_by_one(anthropic_client, tasks, model, spend, out) -> dict[int, dict]:
     for task in tasks:
         try:
             response = anthropic_client.messages.parse(
@@ -230,20 +275,29 @@ def _ask_one_by_one(anthropic_client, tasks, model, spend) -> dict[int, dict]:
         except Exception as e:
             spend.failures.append((str(task["id"]), f"{type(e).__name__}: {e}"))
             continue
+        # Rachunek przed sprawdzeniem: odmowa i ucięcie na `max_tokens` też
+        # kosztują.
         spend.add(response.usage.input_tokens, response.usage.output_tokens)
-        out[task["id"]] = {"data": response.parsed_output.model_dump(),
+        parsed = response.parsed_output
+        if parsed is None:
+            # Odmowa wraca z kodem 200 i pustą strukturą; bez tego warunku
+            # `.model_dump()` leciał AttributeError POZA pętlę.
+            spend.failures.append(
+                (str(task["id"]),
+                 f"model nie oddał struktury (stop_reason: {response.stop_reason})"))
+            continue
+        out[task["id"]] = {"data": parsed.model_dump(),
                            "input": response.usage.input_tokens,
                            "output": response.usage.output_tokens}
-        print(f"  zadanie {task['number']:>4}: progów {len(response.parsed_output.criteria)}")
+        print(f"  zadanie {task['number']:>4}: progów {len(parsed.criteria)}")
     return out
 
 
-def _ask_batch(anthropic_client, tasks, model, spend) -> dict[int, dict]:
+def _ask_batch(anthropic_client, tasks, model, spend, out) -> dict[int, dict]:
     from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
     from anthropic.types.messages.batch_create_params import Request
 
-    schema = Prefill.model_json_schema()
-    schema["additionalProperties"] = False
+    schema = strict_schema(Prefill)
     requests = [
         Request(
             custom_id=f"task-{task['id']}",
@@ -259,7 +313,6 @@ def _ask_batch(anthropic_client, tasks, model, spend) -> dict[int, dict]:
     ]
     results = llm.run_batch(anthropic_client, requests, model)
 
-    out: dict[int, dict] = {}
     for task in tasks:
         result = results.get(f"task-{task['id']}")
         if result is None or result.type != "succeeded":
@@ -295,6 +348,7 @@ def report(spend: llm.Spend, suggestions: int) -> str:
 
 
 def main() -> int:
+    _console_utf8()
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--year", type=int, default=None)

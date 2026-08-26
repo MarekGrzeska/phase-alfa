@@ -280,7 +280,14 @@ def main() -> int:
     # Cięcie PNG PO pętli ładowania, nie w niej: dysk nie cofa się razem
     # z transakcją, a tak przebieg dorzuca też wycinki, których zabrakło
     # po `task db:reset` (baza wraca pusta, blob zostaje).
-    wycinki = crops.cut_missing(con)
+    # Pod strażą, bo to DODATEK do ładowania: wyjątek stąd zabierał ze sobą
+    # raport z całego korpusu i zamknięcie połączenia.
+    try:
+        wycinki = crops.cut_missing(con)
+    except Exception as e:
+        wycinki = None
+        bledy.append(("wycinki", "%s: %s" % (type(e).__name__, e)))
+        print("wycinki%-28s BŁĄD %s: %s" % ("", type(e).__name__, e))
 
     try:
         _zapisz_raport(args.report, con, wyniki, pominiete, bledy, czas, lad,

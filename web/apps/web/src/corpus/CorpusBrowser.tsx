@@ -62,7 +62,9 @@ export function CorpusBrowser({
         {taskId === null && <p className="muted">Wybierz zadanie z listy.</p>}
         {taskId !== null && task.state === "loading" && <p className="muted">Wczytuję…</p>}
         {taskId !== null && task.state === "error" && <p className="error">{task.message}</p>}
-        {task.state === "ready" && <TaskDetailView task={task.data} />}
+        {/* `useTask` przy `taskId === null` wychodzi bez resetu stanu, więc
+            zostaje w nim zadanie z poprzedniego arkusza. */}
+        {taskId !== null && task.state === "ready" && <TaskDetailView task={task.data} />}
       </div>
     </div>
   );

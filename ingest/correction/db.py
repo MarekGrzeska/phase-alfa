@@ -313,9 +313,9 @@ def load_task(cur, task_id: int) -> dict | None:
 def prefill_hints(cur, task_id: int, criteria: list[dict]) -> list[dict]:
     """Różnice parser vs LLM jako podpowiedzi przy polach (G2.5.1).
 
-    Import w środku funkcji, bo `prefill` ciągnie SDK Anthropic, a ekran korekty
-    ma wstawać także na maszynie bez niego — podpowiedzi są dodatkiem, nie
-    warunkiem pracy.
+    Import w środku funkcji trzyma start serwera z dala od modułu, który jest
+    przede wszystkim poleceniem CLI. SDK Anthropic nie jest tu powodem —
+    `llm.client()` importuje `anthropic` dopiero przy wywołaniu.
     """
     cur.execute(
         "SELECT model, payload FROM prefill_suggestion WHERE task_id = %s"
@@ -325,12 +325,12 @@ def prefill_hints(cur, task_id: int, criteria: list[dict]) -> list[dict]:
     row = cur.fetchone()
     if row is None:
         return []
+    from correction import prefill
     try:
-        from correction import prefill
         suggestion = prefill.parse_payload(row["payload"])
     except Exception:
-        # Podpowiedź w kształcie, którego już nie rozumiemy, nie ma prawa
-        # zablokować korekty — ekran działa bez niej od zawsze.
+        # Podpowiedź w nieznanym kształcie nie ma prawa zablokować korekty.
+        # Import poza `try`, żeby awaria środowiska jej nie udawała.
         return []
     hints = prefill.differences(criteria, suggestion)
     for hint in hints:
@@ -421,9 +421,12 @@ def save(cur, task_id: int, form: Mapping[str, str]) -> dict[str, dict[str, int]
     """Edycje z formularza → baza. Zwraca, co się naprawdę zmieniło.
 
     Zwracany słownik jest jednocześnie treścią `correction_event.fields_changed`
-    i odpowiedzią na pytanie „czy parser trafił sam": pusty znaczy `approved`,
-    niepusty — `corrected`. Rozstrzyga porównanie z bazą, nie deklaracja
-    człowieka, więc statusu nie da się przypadkiem przekłamać.
+    i odpowiedzią na pytanie „czy parser trafił sam": puste `edited` i `deleted`
+    znaczą `approved`, niepuste — `corrected`. Rozstrzyga porównanie z bazą,
+    nie deklaracja człowieka, więc statusu nie da się przypadkiem przekłamać.
+
+    `described` celowo NIE wchodzi do tego rozstrzygnięcia: w `edited` każde
+    zatwierdzenie opisu znaczyło „parser się pomylił" i obniżało S8.
 
     WOŁAĆ W TRANSAKCJI. `ValidationError` leci PO wykonaniu części zapisów
     (kasowanie idzie pierwsze), więc bez wycofania zostawiłoby zadanie
@@ -431,6 +434,7 @@ def save(cur, task_id: int, form: Mapping[str, str]) -> dict[str, dict[str, int]
     """
     edited: dict[str, int] = {}
     deleted: dict[str, int] = {}
+    described: dict[str, int] = {}
     problems: list[str] = []
 
     skips = _rows_to_vanish(cur, task_id, form)
@@ -448,10 +452,10 @@ def save(cur, task_id: int, form: Mapping[str, str]) -> dict[str, dict[str, int]
     if problems:
         raise ValidationError(problems)
 
-    assets.save(cur, task_id, form, edited, problems)
+    assets.save(cur, task_id, form, edited, described, problems)
     if problems:
         raise ValidationError(problems)
-    return {"edited": edited, "deleted": deleted}
+    return {"edited": edited, "deleted": deleted, "described": described}
 
 
 def _rows_to_vanish(cur, task_id: int, form: Mapping[str, str]) -> dict[str, set[int]]:
@@ -699,6 +703,8 @@ def was_corrected(cur, task_id: int) -> bool:
 def decide(cur, task_id: int, action: str, started_at, changes: dict,
            edited_before: bool = False) -> str:
     changed_now = bool(changes.get("edited") or changes.get("deleted"))
+    # Opis nie rozstrzyga o statusie zadania, ale ma zostać w dzienniku.
+    recorded = changed_now or bool(changes.get("described"))
 
     if action == "reopen":
         status, event = "pending", "reopen"
@@ -731,7 +737,7 @@ def decide(cur, task_id: int, action: str, started_at, changes: dict,
         # treść była w porządku.
         """INSERT INTO correction_event (task_id, action, started_at, fields_changed)
            VALUES (%s, %s, LEAST(%s, now()), %s)""",
-        (task_id, event, started_at, Jsonb(changes) if changed_now else None),
+        (task_id, event, started_at, Jsonb(changes) if recorded else None),
     )
     refresh_document_status(cur, task_id)
     return status

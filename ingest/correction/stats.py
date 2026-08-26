@@ -112,7 +112,11 @@ def s6(cur) -> dict:
 
 
 def s7(counts: dict[str, int]) -> dict:
-    """Pomiar S7: odsetek opisów rysunków zatwierdzonych BEZ poprawki."""
+    """Pomiar S7: odsetek opisów rysunków zatwierdzonych BEZ poprawki.
+
+    `manual` stoi poza ilorazem: w mianowniku obniżałby S7 za każdym razem,
+    gdy człowiek opisał rysunek sam — czyli za pracę, o którą pomiar nie pyta.
+    """
     approved = counts.get("description_approved", 0)
     corrected = counts.get("description_corrected", 0)
     decided = approved + corrected
@@ -121,6 +125,7 @@ def s7(counts: dict[str, int]) -> dict:
         "decided": decided,
         "approved": approved,
         "corrected": corrected,
+        "manual": counts.get("description_manual", 0),
         "auto": counts.get("description_auto", 0),
         "none": counts.get("description_none", 0),
         "hit_share": approved / decided if decided else 0.0,
@@ -185,7 +190,9 @@ def s7_lines(measure: dict, rule: str) -> list[str]:
              f"  bez opisu              : {measure['none']}",
              f"  opis z modelu (auto)   : {measure['auto']}",
              f"  zatwierdzone bez zmian : {measure['approved']}",
-             f"  poprawione             : {measure['corrected']}"]
+             f"  poprawione             : {measure['corrected']}",
+             f"  własne człowieka       : {measure['manual']}  (poza S7 —"
+             " model nic tu nie proponował)"]
     if measure["decided"]:
         lines.append(f"  S7                     : {100 * measure['hit_share']:.1f}%"
                      " opisów modelu przyjętych bez poprawki")

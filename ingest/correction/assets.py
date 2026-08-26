@@ -61,54 +61,68 @@ def _has_file(relative: str) -> bool:
         return False
 
 
-DESCRIPTION_STATUSES = ("none", "auto", "approved", "corrected")
+# `manual` — opis człowieka tam, gdzie modelu nie było — stoi poza S7 tak samo,
+# jak `rejected` stoi poza S8: nie ma czego przepuścić ani poprawić.
+DESCRIPTION_STATUSES = ("none", "auto", "approved", "corrected", "manual")
+
+# O rodowodzie rozstrzyga stan POPRZEDNI: po edycji tekst w bazie jest już
+# tekstem człowieka, więc porównanie z nim mówi tylko, czy ktoś kliknął dwa razy.
+_AFTER_HUMAN_EDIT = {"none": "manual", "manual": "manual",
+                     "auto": "corrected", "approved": "corrected",
+                     "corrected": "corrected"}
 
 
 def save_description(cur, asset: dict, form: Mapping[str, str],
-                     edited: dict[str, int], problems: list[str]) -> None:
+                     described: dict[str, int], problems: list[str]) -> None:
     """Opis rysunku i jego rozstrzygnięcie — pomiar S7 (G2.5.2).
 
-    Status podnosi WYŁĄCZNIE zaznaczone „zatwierdź opis"; sama edycja tekstu
-    zapisuje treść i nic nie rozstrzyga. `approved` znaczy „model trafił sam",
-    `corrected` — „człowiek poprawił", i rozstrzyga o tym PORÓWNANIE z bazą,
-    nie deklaracja: inaczej S7 dałoby się przekłamać kliknięciem.
+    Trafieniem jest wyłącznie stan `auto` przyjęty bez zmiany; sama edycja
+    rozstrzyga S7 na „nie" i nie czeka na zatwierdzenie. Wynik idzie do
+    `described`, nie do `edited` — zatwierdzenie opisu nie jest poprawką
+    parsera i nie ma prawa ruszyć S8.
     """
     submitted = form.get(f"asset.{asset['id']}.description")
     if submitted is None:
         return
     approving = form.get(f"asset.{asset['id']}.approve_description") is not None
     text = submitted.strip() or None
+    was = asset["description_status"]
     changed = text != (asset["description"] or None)
-    status = asset["description_status"]
 
-    if approving:
-        if text is None:
-            problems.append(f"Zasób {asset['path']}: nie ma czego zatwierdzić — "
-                            "opis jest pusty.")
-            return
-        # Trafieniem modelu jest WYŁĄCZNIE opis z modelu przyjęty bez zmiany.
-        # Opis wpisany ręcznie od zera i opis poprawiony to praca człowieka.
-        status = ("approved" if not changed and status in ("auto", "approved")
-                  else "corrected")
-    elif changed and status in ("approved", "corrected"):
-        # Zatwierdzenie dotyczyło treści, której już nie ma — wraca do walidacji.
-        status = "auto"
+    if approving and text is None:
+        problems.append(f"Zasób {asset['path']}: nie ma czego zatwierdzić — "
+                        "opis jest pusty.")
+        return
 
-    if not changed and status == asset["description_status"]:
+    if text is None:
+        # Pusty rekord w mianowniku S7 byłby rozstrzygnięciem, którego nie ma.
+        status = "none"
+    elif changed:
+        status = _AFTER_HUMAN_EDIT[was]
+    elif approving:
+        status = {"auto": "approved", "none": "manual"}.get(was, was)
+    else:
+        status = was
+
+    if not changed and status == was:
         return
     cur.execute(
         "UPDATE asset SET description = %s, description_status = %s WHERE id = %s",
         (text, status, asset["id"]),
     )
     if cur.rowcount:
-        edited["asset_description"] = edited.get("asset_description", 0) + cur.rowcount
+        described[status] = described.get(status, 0) + cur.rowcount
 
 
 def save(cur, task_id: int, form: Mapping[str, str], edited: dict[str, int],
-         problems: list[str]) -> None:
-    """Ramki i opisy z formularza → baza i pliki PNG. Wołać w transakcji, jak `db.save`."""
+         described: dict[str, int], problems: list[str]) -> None:
+    """Ramki i opisy z formularza → baza i pliki PNG. Wołać w transakcji, jak `db.save`.
+
+    Ramki idą do `edited` (S8), opisy do `described` (S7) — wspólny licznik
+    mieszałby dwie niezależne liczby.
+    """
     for asset in for_task(cur, task_id):
-        save_description(cur, asset, form, edited, problems)
+        save_description(cur, asset, form, described, problems)
         box, page = _submitted(asset, form, problems)
         if box is None:
             continue

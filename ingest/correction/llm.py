@@ -107,20 +107,53 @@ def report_path(name: str, given: str | None = None) -> Path:
     return path
 
 
-def run_batch(anthropic_client, requests: list, model: str) -> dict[str, object]:
+# Okno Batch API to 24 h, ale przebieg alfy ma się zamknąć w dniu pracy:
+# po terminie wsad żyje dalej po stronie API, a konsola wraca do człowieka.
+BATCH_POLL_SECONDS = 30
+BATCH_TIMEOUT_SECONDS = 6 * 3600
+MAX_BATCH_STUMBLES = 5
+
+
+def run_batch(anthropic_client, requests: list, model: str, *,
+              poll_seconds: int = BATCH_POLL_SECONDS,
+              timeout_seconds: int = BATCH_TIMEOUT_SECONDS) -> dict[str, object]:
     """Przebieg wsadowy: wysyła, czeka, oddaje wyniki po `custom_id`.
 
     Wyniki wracają w DOWOLNEJ kolejności — kluczem jest `custom_id`, nigdy
-    pozycja na liście.
+    pozycja na liście. Czekanie ma termin i znosi drgnięcia sieci: `while True`
+    bez jednego i drugiego dawał się przerwać wyłącznie Ctrl-C, czyli kosztem
+    całej opłaconej roboty.
     """
     batch = anthropic_client.messages.batches.create(requests=requests)
+    print(f"  wsad {batch.id}: wysłany, żądań {len(requests)}")
+    deadline = time.monotonic() + timeout_seconds
+    stumbles = 0
     while True:
-        status = anthropic_client.messages.batches.retrieve(batch.id)
-        if status.processing_status == "ended":
-            break
-        print(f"  wsad {batch.id}: {status.processing_status}, "
-              f"w toku {status.request_counts.processing}")
-        time.sleep(30)
+        try:
+            status = anthropic_client.messages.batches.retrieve(batch.id)
+        except Exception as e:
+            stumbles += 1
+            if stumbles > MAX_BATCH_STUMBLES:
+                raise LlmUnavailable(
+                    f"Wsad {batch.id}: {MAX_BATCH_STUMBLES} razy z rzędu nie udało "
+                    f"się zapytać o stan ({type(e).__name__}: {e}). Wsad liczy się "
+                    f"dalej po stronie API pod tym identyfikatorem."
+                ) from e
+            print(f"  wsad {batch.id}: nie udało się zapytać o stan "
+                  f"({type(e).__name__}), próba {stumbles}/{MAX_BATCH_STUMBLES}")
+        else:
+            stumbles = 0
+            if status.processing_status == "ended":
+                break
+            print(f"  wsad {batch.id}: {status.processing_status}, "
+                  f"w toku {status.request_counts.processing}")
+        if time.monotonic() >= deadline:
+            raise LlmUnavailable(
+                f"Wsad {batch.id} nie skończył się w {timeout_seconds // 3600} h. "
+                f"Nie przepadł — liczy się dalej po stronie API pod tym "
+                f"identyfikatorem, a wyniki odbierze ponowny przebieg."
+            )
+        time.sleep(poll_seconds)
     out: dict[str, object] = {}
     for result in anthropic_client.messages.batches.results(batch.id):
         out[result.custom_id] = result.result
