@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Korpus A2 od środka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600;700&display=swap">
+
+<style>
+  :root {
+    --paper:      #f7f8fa;
+    --surface:    #ffffff;
+    --sunk:       #eef1f5;
+    --ink:        #12181f;
+    --ink-soft:   #4a5563;
+    --ink-faint:  #78838f;
+    --rule:       #c9d2dc;
+    --rule-soft:  #e2e8ef;
+    --seal:       #1b4d8f;
+    --seal-soft:  #e8eff8;
+    --mark:       #c0392b;
+    --mark-soft:  #fbeceb;
+    --done:       #2e7d63;
+    --done-soft:  #e7f2ee;
+
+    --step: clamp(0.9rem, 0.55rem + 1.4vw, 1.35rem);
+    --col: 66ch;
+    --wide: 62rem;
+
+    --face-display: "Spectral", "Georgia", "Times New Roman", serif;
+    --face-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --face-mono: "IBM Plex Mono", "Consolas", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #10151b;
+      --surface:   #161d26;
+      --sunk:      #1b232e;
+      --ink:       #e4e9ef;
+      --ink-soft:  #a9b4c0;
+      --ink-faint: #7b8794;
+      --rule:      #2f3b49;
+      --rule-soft: #232c37;
+      --seal:      #7fb0e8;
+      --seal-soft: #1a2735;
+      --mark:      #ef8378;
+      --mark-soft: #2c1d1d;
+      --done:      #63c3a1;
+      --done-soft: #16271f;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #10151b;
+    --surface:   #161d26;
+    --sunk:      #1b232e;
+    --ink:       #e4e9ef;
+    --ink-soft:  #a9b4c0;
+    --ink-faint: #7b8794;
+    --rule:      #2f3b49;
+    --rule-soft: #232c37;
+    --seal:      #7fb0e8;
+    --seal-soft: #1a2735;
+    --mark:      #ef8378;
+    --mark-soft: #2c1d1d;
+    --done:      #63c3a1;
+    --done-soft: #16271f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--face-body);
+    font-size: clamp(1rem, 0.96rem + 0.2vw, 1.075rem);
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 1.25rem 6rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--wide); margin: 0 auto; }
+  .col { max-width: var(--col); }
+
+  /* ---------------------------------------------------------- nagłówek */
+  .masthead {
+    padding: 4.5rem 0 2.5rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 3rem;
+  }
+  .eyebrow {
+    font-family: var(--face-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--seal);
+    margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--face-display);
+    font-weight: 700;
+    font-size: clamp(2.3rem, 1.5rem + 3.4vw, 3.9rem);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 1.25rem;
+  }
+  .standfirst {
+    font-size: clamp(1.08rem, 1rem + 0.4vw, 1.28rem);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 52ch;
+    margin: 0;
+  }
+  .stamp {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--face-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  /* ---------------------------------------------------------- sekcje */
+  section { margin: 0 0 4.5rem; }
+
+  h2 {
+    font-family: var(--face-display);
+    font-weight: 600;
+    font-size: clamp(1.6rem, 1.25rem + 1.4vw, 2.2rem);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0 0 0.4rem;
+  }
+  h3 {
+    font-family: var(--face-body);
+    font-weight: 600;
+    font-size: 1.02rem;
+    line-height: 1.35;
+    margin: 0 0 0.35rem;
+  }
+  .kicker {
+    font-family: var(--face-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 1.6rem;
+  }
+  p { margin: 0 0 1.05rem; }
+  .col p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; }
+  em { font-style: normal; color: var(--seal); font-weight: 500; }
+
+  code, .mono {
+    font-family: var(--face-mono);
+    font-size: 0.87em;
+  }
+  code {
+    background: var(--sunk);
+    border-radius: 3px;
+    padding: 0.1em 0.34em;
+  }
+
+  /* ---------------------------------------------------------- diagram */
+  figure {
+    margin: 2.5rem 0 0;
+    padding: 1.75rem 1.5rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    background-image:
+      linear-gradient(var(--rule-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px);
+    background-size: 25px 25px, 25px 25px;
+    overflow-x: auto;
+  }
+  figure svg { display: block; width: 100%; min-width: 620px; height: auto; }
+  /* Jedyny znaczący kolor w diagramie — bramka i droga, której nie ma.
+     Przez token, nie literałem, żeby czytał na obu tłach. */
+  figure svg .mk { fill: var(--mark); }
+  figure svg .mk-s { stroke: var(--mark); }
+  figure svg #ar-mark path { fill: var(--mark); }
+  figcaption {
+    font-size: 0.87rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin-top: 1.25rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--rule-soft);
+    max-width: 62ch;
+  }
+
+  /* ---------------------------------------------------------- karty liczb */
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin-top: 2.25rem;
+  }
+  .fig {
+    background: var(--surface);
+    padding: 1.5rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .fig .big {
+    font-family: var(--face-mono);
+    font-weight: 600;
+    font-size: clamp(1.9rem, 1.4rem + 1.6vw, 2.5rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .fig .lede { font-weight: 600; font-size: 0.95rem; }
+  .fig .note { font-size: 0.86rem; line-height: 1.45; color: var(--ink-soft); }
+  .fig.is-done .big { color: var(--done); }
+  .fig.is-open .big { color: var(--mark); }
+  .fig.is-plain .big { color: var(--seal); }
+
+  /* ---------------------------------------------------------- etapy */
+  .stages { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 2.25rem; }
+  .stage {
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem 1.4rem;
+  }
+  .stage .id {
+    font-family: var(--face-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--seal);
+    padding-top: 0.15rem;
+  }
+  .stage p { margin: 0; max-width: 62ch; }
+  .stage .measure {
+    font-family: var(--face-mono);
+    font-size: 0.83rem;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    margin-top: 0.7rem;
+    padding-left: 0.85rem;
+    border-left: 2px solid var(--done);
+    color: var(--ink-soft);
+  }
+  .stage .measure.pending { border-left-color: var(--mark); }
+  @media (max-width: 34rem) {
+    .stage { grid-template-columns: 1fr; gap: 0.5rem; }
+  }
+
+  /* ---------------------------------------------------------- tabela */
+  .ledger-wrap { overflow-x: auto; margin-top: 2.25rem; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: 0.92rem; }
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-family: var(--face-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 1rem 1.1rem 0.75rem;
+  }
+  th, td { padding: 0.62rem 1.1rem; text-align: left; }
+  thead th {
+    font-family: var(--face-mono);
+    font-size: 0.73rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  tbody tr + tr td { border-top: 1px solid var(--rule-soft); }
+  td.num { font-family: var(--face-mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  td.bar { width: 45%; min-width: 9rem; }
+  .track { height: 9px; background: var(--sunk); position: relative; overflow: hidden; }
+  .track span { position: absolute; inset: 0 auto 0 0; background: var(--mark); opacity: 0.75; }
+  tfoot td { border-top: 2px solid var(--ink); font-weight: 600; }
+
+  /* ---------------------------------------------------------- status */
+  .checks { list-style: none; padding: 0; margin: 2.25rem 0 0; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .checks li {
+    background: var(--surface);
+    padding: 1rem 1.35rem;
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .tag {
+    font-family: var(--face-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.28rem 0.5rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .tag.done { background: var(--done-soft); color: var(--done); }
+  .tag.open { background: var(--mark-soft); color: var(--mark); }
+  .checks .what { font-size: 0.96rem; line-height: 1.5; }
+  .checks .why { display: block; font-size: 0.86rem; color: var(--ink-soft); margin-top: 0.2rem; }
+  @media (max-width: 34rem) {
+    .checks li { grid-template-columns: 1fr; gap: 0.5rem; }
+    .tag { justify-self: start; }
+  }
+
+  /* ---------------------------------------------------------- pułapki */
+  .traps { counter-reset: trap; display: grid; gap: 1.5rem; margin-top: 2.25rem; }
+  .trap { display: grid; grid-template-columns: 2.25rem 1fr; gap: 1.1rem; }
+  .trap::before {
+    counter-increment: trap;
+    content: counter(trap);
+    font-family: var(--face-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--mark);
+    border-top: 2px solid var(--mark);
+    padding-top: 0.4rem;
+  }
+  .trap p { margin: 0; max-width: 60ch; font-size: 0.96rem; }
+
+  /* ---------------------------------------------------------- pull */
+  .pull {
+    border-left: 3px solid var(--seal);
+    padding: 0.4rem 0 0.4rem 1.4rem;
+    margin: 2.25rem 0;
+    font-family: var(--face-display);
+    font-size: clamp(1.15rem, 1rem + 0.7vw, 1.45rem);
+    line-height: 1.45;
+    font-weight: 500;
+    max-width: 46ch;
+  }
+
+  footer {
+    margin-top: 5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--face-mono);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: var(--ink-faint);
+  }
+
+  a { color: var(--seal); text-underline-offset: 0.18em; }
+  a:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--seal);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Faza alfy · kamień A2</p>
+    <h1>Jak 75 PDF-ów staje&nbsp;się korpusem</h1>
+    <p class="standfirst">
+      A2 zamienia klucze odpowiedzi CKE — zwykłe pliki PDF — w bazę, z której
+      da się liczyć. Ta strona tłumaczy, co zostało zbudowane, co już zmierzone
+      i co zostało do zrobienia ręką.
+    </p>
+    <p class="stamp"><span>Stan na 26.08.2026</span> <span>·</span> <span>egzamin ósmoklasisty, matematyka, roczniki 2019–2026</span></p>
+  </header>
+
+  <!-- ============================================ 1. o co chodzi -->
+  <section>
+    <p class="kicker">Po co to wszystko</p>
+    <h2>Problem: klucz odpowiedzi to tekst, a nie dane</h2>
+    <div class="col">
+      <p>
+        Klucz CKE mówi człowiekowi, ile punktów dać za jakie rozwiązanie. Ale mówi
+        to <strong>prozą</strong>: „2 punkty — pełne rozwiązanie", potem lista warunków,
+        potem zapisy równoważne rozrzucone po akapicie. Komputer tego nie rozumie.
+      </p>
+      <p>
+        Żeby cokolwiek dało się oceniać automatycznie, ten tekst musi zamienić się
+        w <em>strukturę</em>: zadanie → próg punktowy → warunek → zapis. A2 buduje
+        maszynę, która to robi — i, co ważniejsze, <strong>bramkę, przez którą nic
+        nie przechodzi bez człowieka</strong>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================ 2. diagram -->
+  <section>
+    <p class="kicker">Mechanizm</p>
+    <h2>Droga jednego zadania</h2>
+    <div class="col">
+      <p>
+        Parser czyta PDF i zapisuje, co zrozumiał — ale zapisuje to jako
+        <strong>kandydatów</strong>, nie jako korpus. Dopiero człowiek w ekranie
+        korekty rozstrzyga, czy parser trafił. To jedyne wejście do korpusu.
+      </p>
+    </div>
+
+    <figure>
+      <svg viewBox="0 0 960 430" role="img"
+           aria-label="Schemat przepływu: PDF-y CKE czyta parser i zapisuje kandydatów do bazy; wycinki PNG, MathJSON i podpowiedzi LLM dopisują się do kandydatów; wszystko przechodzi przez bramkę korekty obsługiwaną przez człowieka i dopiero stamtąd wchodzi do korpusu, który czyta przeglądarka. Bezpośrednia droga z LLM do korpusu jest przekreślona.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+          </marker>
+          <marker id="ar-mark" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z"></path>
+          </marker>
+        </defs>
+
+        <g fill="currentColor" font-family="IBM Plex Mono, monospace">
+
+          <!-- ---------- dosypywacze ---------- -->
+          <g font-size="12.5">
+            <rect x="140" y="34" width="152" height="46" fill="none" stroke="currentColor" stroke-width="1" opacity="0.55"></rect>
+            <text x="216" y="54" text-anchor="middle" opacity="0.85">wycinki PNG</text>
+            <text x="216" y="70" text-anchor="middle" opacity="0.55" font-size="11">G2.4</text>
+
+            <rect x="311" y="34" width="152" height="46" fill="none" stroke="currentColor" stroke-width="1" opacity="0.55"></rect>
+            <text x="387" y="54" text-anchor="middle" opacity="0.85">MathJSON</text>
+            <text x="387" y="70" text-anchor="middle" opacity="0.55" font-size="11">G2.6</text>
+
+            <rect x="482" y="34" width="152" height="46" fill="none" stroke="currentColor" stroke-width="1" opacity="0.55"></rect>
+            <text x="558" y="54" text-anchor="middle" opacity="0.85">podpowiedzi LLM</text>
+            <text x="558" y="70" text-anchor="middle" opacity="0.55" font-size="11">G2.5 · status „auto”</text>
+          </g>
+
+          <!-- szyna zbiorcza -->
+          <g stroke="currentColor" stroke-width="1.5" opacity="0.55" fill="none">
+            <path d="M216 80 L216 122"></path>
+            <path d="M387 80 L387 122"></path>
+            <path d="M558 80 L558 122"></path>
+            <path d="M216 122 L558 122"></path>
+          </g>
+          <path d="M387 122 L387 206" stroke="currentColor" stroke-width="1.5" fill="none"
+                marker-end="url(#ar)" opacity="0.55"></path>
+          <text x="397" y="168" font-size="12" opacity="0.6">dopisują się do kandydata</text>
+
+          <!-- ---------- główny ciąg ---------- -->
+          <g font-size="13">
+            <rect x="16" y="210" width="118" height="62" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="75" y="236" text-anchor="middle">75 PDF-ów</text>
+            <text x="75" y="254" text-anchor="middle">CKE</text>
+
+            <rect x="186" y="210" width="104" height="62" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="238" y="246" text-anchor="middle">parser</text>
+
+            <rect x="311" y="210" width="152" height="62" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="387" y="236" text-anchor="middle">baza:</text>
+            <text x="387" y="254" text-anchor="middle">kandydaci</text>
+
+            <!-- bramka -->
+            <rect class="mk-s" x="506" y="196" width="164" height="90" fill="none" stroke-width="2.5"></rect>
+            <text class="mk" x="588" y="228" text-anchor="middle" font-weight="600">BRAMKA</text>
+            <text class="mk" x="588" y="246" text-anchor="middle" font-weight="600">KOREKTY</text>
+            <text class="mk" x="588" y="266" text-anchor="middle" font-size="11.5">człowiek</text>
+
+            <rect x="714" y="210" width="118" height="62" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="773" y="246" text-anchor="middle" font-weight="600">korpus</text>
+
+            <rect x="714" y="336" width="118" height="52" fill="none" stroke="currentColor" stroke-width="1" opacity="0.65"></rect>
+            <text x="773" y="360" text-anchor="middle" font-size="12" opacity="0.85">przeglądarka</text>
+            <text x="773" y="376" text-anchor="middle" font-size="11" opacity="0.55">W2</text>
+          </g>
+
+          <!-- strzałki ciągu -->
+          <g stroke="currentColor" stroke-width="1.5" fill="none">
+            <path d="M134 241 L182 241" marker-end="url(#ar)"></path>
+            <path d="M290 241 L307 241" marker-end="url(#ar)"></path>
+            <path d="M463 241 L502 241" marker-end="url(#ar)"></path>
+            <path d="M773 272 L773 332" marker-end="url(#ar)" opacity="0.65"></path>
+          </g>
+          <path class="mk-s" d="M670 241 L710 241" stroke-width="2" fill="none"
+                marker-end="url(#ar-mark)"></path>
+
+          <g font-size="12" opacity="0.7">
+            <text x="158" y="230" text-anchor="middle">czyta</text>
+            <text x="238" y="296" text-anchor="middle">zapisuje jako</text>
+            <text x="238" y="312" text-anchor="middle">„do sprawdzenia”</text>
+            <text x="789" y="300">czyta tylko</text>
+            <text x="789" y="315">zatwierdzone</text>
+          </g>
+          <text class="mk" x="640" y="308" text-anchor="middle" font-size="12">zatwierdzone albo poprawione</text>
+
+          <!-- ---------- droga, której NIE MA ---------- -->
+          <path class="mk-s" d="M634 57 C 760 57 800 120 800 206" stroke-width="1.5"
+                fill="none" stroke-dasharray="5 5" opacity="0.75"></path>
+          <g class="mk-s" stroke-width="2.5" fill="none">
+            <path d="M750 85 L778 113"></path>
+            <path d="M778 85 L750 113"></path>
+          </g>
+          <text class="mk" x="790" y="95" font-size="12.5" font-weight="600">nigdy</text>
+          <text class="mk" x="790" y="111" font-size="11.5" opacity="0.85">nic nie omija bramki</text>
+        </g>
+      </svg>
+      <figcaption>
+        Trzy narzędzia dosypują dane do <strong>kandydata</strong>, nie do korpusu — także LLM,
+        którego propozycje leżą w osobnej tabeli ze statusem „auto”. Przekreślona linia to
+        połączenie, którego celowo nie ma: model nie ma drogi do korpusu z pominięciem człowieka.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================ 3. bramka -->
+  <section>
+    <p class="kicker">Dlaczego bramka jest sednem</p>
+    <h2>Dwa słowa, na których stoi cały pomiar</h2>
+    <div class="col">
+      <p>
+        Kiedy człowiek rozstrzyga zadanie, może kliknąć „zatwierdź”. System zapisuje wtedy
+        jeden z dwóch stanów — i to nie zależy od tego, co człowiek zadeklarował, tylko od
+        tego, <strong>czy cokolwiek zmienił</strong>:
+      </p>
+      <p>
+        <code>approved</code> — parser trafił sam, nikt nic nie poprawiał.<br>
+        <code>corrected</code> — człowiek musiał wejść i poprawić.
+      </p>
+      <p>
+        Z tej jednej różnicy bierze się liczba, która idzie do wniosku grantowego:
+        <strong>ile pracy parser oszczędza naprawdę</strong>. Gdyby o statusie decydowała
+        deklaracja, a nie porównanie z bazą, wynik dałoby się przekłamać kliknięciem.
+      </p>
+    </div>
+    <p class="pull">
+      Praca człowieka jest najdroższym zasobem tej fazy. Dlatego ponowny przebieg parsera
+      <strong>odmawia</strong> nadpisania klucza, który ktoś już skorygował.
+    </p>
+  </section>
+
+  <!-- ============================================ 4. co powstało -->
+  <section>
+    <p class="kicker">Osiem klocków · kolejność ma znaczenie</p>
+    <h2>Co zostało zbudowane</h2>
+    <div class="col">
+      <p>
+        G2.1 blokuje wszystko — bez bramki statusów nie ma czego mierzyć. Reszta ruszyła
+        dopiero po pilocie na roczniku 2025 i szła równolegle.
+      </p>
+    </div>
+
+    <div class="stages">
+      <div class="stage">
+        <div class="id">G2.1</div>
+        <div>
+          <h3>Ekran korekty</h3>
+          <p>
+            Lokalna strona, na której widać zadanie obok skanu z PDF-a i można je poprawić.
+            Zero JavaScriptu — formularz i tyle. Każde rozstrzygnięcie ląduje w dzienniku
+            razem z czasem, jaki zajęło.
+          </p>
+          <p class="measure">narzędzie gotowe · dziennik mierzy czas od otwarcia zadania</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G2.2</div>
+        <div>
+          <h3>Pilot na roczniku 2025</h3>
+          <p>
+            Przejście całej drogi na jednym roczniku, żeby wyszły pułapki, zanim korpus
+            urośnie. Wyszło ich sześć — m.in. numery stron liczone od zera i przebieg,
+            który po cichu kasował treści zadań.
+          </p>
+          <p class="measure">222 zadania rocznika 2025 sparsowane i gotowe do korekty</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G2.3</div>
+        <div>
+          <h3>Parser: wszystkie roczniki</h3>
+          <p>
+            Rocznik 2019 pisze klucze inaczej niż reszta. Trzeba było nauczyć parser
+            odróżniać <strong>normę dokumentu</strong> od dziury: brak kryteriów przy
+            zadaniach zamkniętych w 2019 r. jest normalny, ale tylko wtedy, gdy nie ma
+            ich <em>żadne</em> zadanie w tym kluczu.
+          </p>
+          <p class="measure">90 zadań przestało wyglądać na błąd · 8 roczników w bazie</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G2.4</div>
+        <div>
+          <h3>Wycinki rysunków</h3>
+          <p>
+            Zadanie z wykresem potrzebuje samego wykresu, nie całej strony arkusza.
+            Automat znajduje prostokąt rysunku i wycina go do PNG. Sztuczka: rysunek jest
+            wcięty, a tabela zajmuje pełną szerokość kolumny — to je rozdziela.
+          </p>
+          <p class="measure">607 zasobów · 558 (92%) ramka z automatu · 49 (8%) do ręki</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G2.5</div>
+        <div>
+          <h3>LLM jako pomocnik, nie autor</h3>
+          <p>
+            Model robi dwie rzeczy: proponuje strukturę kryteriów, zanim człowiek usiądzie
+            do zadania, i opisuje rysunki słowami (dla niewidomych i do porównania
+            „obraz kontra opis” w następnej fazie). Obie propozycje czekają w poczekalni.
+          </p>
+          <p class="measure pending">narzędzia gotowe · przebieg jest płatny i ręczny — przed nami</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G2.6</div>
+        <div>
+          <h3>Wzory jako wzory, nie jako tekst</h3>
+          <p>
+            <code>2(x+1)</code> i <code>2x+2</code> to ten sam wzór, ale różne napisy.
+            Konwerter zamienia zapisy z klucza na format, który da się porównywać
+            matematycznie. Zapis, którego nie ugryzie, dostaje jawny stan „nie udało się”
+            z powodem po polsku — zamiast po cichu zniknąć.
+          </p>
+          <p class="measure">414 z 514 zapisów (80,5%) automatem · 100 świadomych odmów · 0 nietkniętych</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">G2.7</div>
+        <div>
+          <h3>Raport kompletności</h3>
+          <p>
+            Jedno polecenie liczy, ile czego jest — i podaje <strong>każdą liczbę dwa razy</strong>:
+            osobno dla korpusu, osobno dla wszystkiego, co sparsowane. Bez tej drugiej kolumny
+            pusty korpus wygląda identycznie jak korpus, którego nikt nie sparsował.
+          </p>
+          <p class="measure">raport w repozytorium · różnica kolumn = praca, która została</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="id">W2</div>
+        <div>
+          <h3>Przeglądarka korpusu</h3>
+          <p>
+            Druga para oczu: strona, na której widać zatwierdzone zadanie z kryteriami,
+            wycinkiem i obiema wersjami arkusza (X i Y) obok siebie. Czyta wyłącznie to,
+            co przeszło bramkę — plus pulpit pokazujący, ile jeszcze zostało.
+          </p>
+          <p class="measure">API + przeglądarka + pulpit postępu · kontrakt bez rozjazdu</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 5. liczby -->
+  <section>
+    <p class="kicker">Zmierzone, nie oszacowane</p>
+    <h2>Liczby, które już są</h2>
+
+    <div class="figures">
+      <div class="fig is-plain">
+        <span class="big">1436</span>
+        <span class="lede">zadań w bazie</span>
+        <span class="note">Z ośmiu roczników, wariant podstawowy. Wszystkie czekają na człowieka.</span>
+      </div>
+      <div class="fig is-done">
+        <span class="big">92%</span>
+        <span class="lede">rysunków obramowanych automatem</span>
+        <span class="note">558 z 607. Pozostałe 49 dociąga się ręcznie — minuta na sztukę.</span>
+      </div>
+      <div class="fig is-done">
+        <span class="big">80,5%</span>
+        <span class="lede">wzorów przetłumaczonych automatem</span>
+        <span class="note">414 z 514. Pozostałe 100 ma jawny powód odmowy, nie ciszę.</span>
+      </div>
+      <div class="fig is-open">
+        <span class="big">0</span>
+        <span class="lede">zadań zatwierdzonych</span>
+        <span class="note">Korekta ręczna to praca, która jest przed nami. Raport tego nie ukrywa.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 6. pomiary -->
+  <section>
+    <p class="kicker">Trzy pytania badawcze</p>
+    <h2>Po co w ogóle to mierzyć</h2>
+    <div class="col">
+      <p>
+        Wniosek grantowy potrzebuje nie deklaracji, tylko liczb. A2 przygotowuje trzy —
+        i wszystkie trzy wymagają, żeby ktoś naprawdę usiadł do korekty.
+      </p>
+    </div>
+
+    <div class="stages">
+      <div class="stage">
+        <div class="id">S6</div>
+        <div>
+          <h3>Czy podpowiedź modelu przyspiesza korektę?</h3>
+          <p>
+            Te same zadania w dwóch grupach: z podpowiedzią LLM i bez. Porównuje się odsetek
+            zatwierdzeń bez poprawki oraz czas na zadanie.
+          </p>
+          <p class="measure pending">czeka na skorygowanie ≥20 zadań w obu grupach</p>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="id">S7</div>
+        <div>
+          <h3>Czy opisy rysunków od modelu są dobre?</h3>
+          <p>
+            Test jest twardy i jeden: <strong>czy z samego opisu da się rozwiązać zadanie,
+            nie patrząc na rysunek</strong>. Mierzy się odsetek opisów przyjętych bez poprawki.
+          </p>
+          <p class="measure pending">czeka na płatny przebieg modelu i walidację w ekranie</p>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="id">S8</div>
+        <div>
+          <h3>Ile naprawdę kosztuje półautomat?</h3>
+          <p>
+            Mediana czasu na zadanie × to, co zostało. Ta liczba rozstrzyga, czy kolejna faza
+            czeka na komplet korpusu, czy startuje na samym pilocie.
+          </p>
+          <p class="measure pending">dziennik gotowy od G2.1 · ma 0 wpisów</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 7. postęp -->
+  <section>
+    <p class="kicker">Uczciwy obraz stanu</p>
+    <h2>Gdzie dokładnie jesteśmy</h2>
+    <div class="col">
+      <p>
+        Wszystkie roczniki są sparsowane i czekają w kolejce. Czerwony pasek to zadania
+        nierozstrzygnięte — czyli, na dziś, wszystkie.
+      </p>
+    </div>
+
+    <div class="ledger-wrap">
+      <table>
+        <caption>Postęp korekty per rocznik</caption>
+        <thead>
+          <tr>
+            <th scope="col">Rocznik</th>
+            <th scope="col">Sparsowane</th>
+            <th scope="col">W korpusie</th>
+            <th scope="col">Czeka na człowieka</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">2019</th><td class="num">162</td><td class="num">0</td><td class="bar"><div class="track"><span style="width:100%"></span></div></td></tr>
+          <tr><th scope="row">2020</th><td class="num">162</td><td class="num">0</td><td class="bar"><div class="track"><span style="width:100%"></span></div></td></tr>
+          <tr><th scope="row">2021</th><td class="num">165</td><td class="num">0</td><td class="bar"><div class="track"><span style="width:100%"></span></div></td></tr>
+          <tr><th scope="row">2022</th><td class="num">165</td><td class="num">0</td><td class="bar"><div class="track"><span style="width:100%"></span></div></td></tr>
+          <tr><th scope="row">2023</th><td class="num">165</td><td class="num">0</td><td class="bar"><div class="track"><span style="width:100%"></span></div></td></tr>
+          <tr><th scope="row">2024</th><td class="num">201</td><td class="num">0</td><td class="bar"><div class="track"><span style="width:100%"></span></div></td></tr>
+          <tr><th scope="row">2025</th><td class="num">222</td><td class="num">0</td><td class="bar"><div class="track"><span style="width:100%"></span></div></td></tr>
+          <tr><th scope="row">2026</th><td class="num">194</td><td class="num">0</td><td class="bar"><div class="track"><span style="width:100%"></span></div></td></tr>
+        </tbody>
+        <tfoot>
+          <tr><th scope="row">Razem</th><td class="num">1436</td><td class="num">0</td><td class="bar"></td></tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <ul class="checks">
+      <li><span class="tag done">gotowe</span><span class="what">Parser radzi sobie z wszystkimi ośmioma rocznikami<span class="why">Łącznie z osobliwym 2019 — i bez zgłaszania jego normy jako błędu.</span></span></li>
+      <li><span class="tag done">gotowe</span><span class="what">Ponowny przebieg nie skasuje cudzej poprawki<span class="why">Odmowa zobaczona raz świadomie, żeby wiedzieć, że działa.</span></span></li>
+      <li><span class="tag done">gotowe</span><span class="what">Rysunki mają wycinki, wzory mają MathJSON<span class="why">92% i 80,5% automatem, reszta z jawnym powodem.</span></span></li>
+      <li><span class="tag done">gotowe</span><span class="what">Przeglądarka i raport kompletności działają<span class="why">Zatwierdzone zadanie widać z kryteriami, wycinkiem i obiema wersjami.</span></span></li>
+      <li><span class="tag open">przed nami</span><span class="what">Korekta ręczna 1436 zadań<span class="why">To jest ścieżka krytyczna całej fazy. Nic jej nie zastąpi.</span></span></li>
+      <li><span class="tag open">przed nami</span><span class="what">Pomiary S6, S7 i S8<span class="why">Wszystkie trzy powstają dopiero z prawdziwej korekty.</span></span></li>
+      <li><span class="tag open">przed nami</span><span class="what">Golden set — własne odpowiedzi do 56 zadań<span class="why">Następna faza na nim stoi, a tego nie da się kupić tokenami.</span></span></li>
+    </ul>
+  </section>
+
+  <!-- ============================================ 8. pułapki -->
+  <section>
+    <p class="kicker">Rzeczy, które najłatwiej zepsuć</p>
+    <h2>Pięć min, na które trzeba uważać</h2>
+
+    <div class="traps">
+      <div class="trap"><p><strong>Ponowny przebieg parsera kasujący korektę.</strong> Ładowarka z założenia zastępuje swoje zapisy — po pierwszej ręcznej poprawce to już nie idempotencja, tylko utrata danych.</p></div>
+      <div class="trap"><p><strong>Edycja migracji, która już weszła.</strong> Runner liczy z pliku sumę kontrolną. Każda zmiana schematu to nowy plik — nawet poprawka w komentarzu psuje sumę.</p></div>
+      <div class="trap"><p><strong>Ekran korekty puchnący w produkt.</strong> Każda godzina w stylach to godzina zdjęta z korekty właściwej, a to ona jest ścieżką krytyczną.</p></div>
+      <div class="trap"><p><strong>LLM z ręką w bazie.</strong> Model pisze wyłącznie stany „auto”. Do korpusu wchodzi tylko to, co przeszło przez ekran — i nie ma drugiej drogi.</p></div>
+      <div class="trap"><p><strong>Reset bazy a pliki na dysku.</strong> Reset kasuje bazę, ale zostawia wycinki PNG. Ścieżki w świeżej bazie i pliki na dysku rozjeżdżają się wtedy po cichu.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Korpus A2 · egzamin ósmoklasisty, matematyka<br>
+    Źródła liczb: <span class="mono">docs/corpus-A2.txt</span>, <span class="mono">docs/plan-A2.md</span>, <span class="mono">docs/decyzje-A2.md</span><br>
+    Stan na 26.08.2026 — „gotowe” znaczy „narzędzie zbudowane i zmierzone”, nie „kamień zamknięty”.
+  </footer>
+
+</div>
+
+</body>
+</html>
