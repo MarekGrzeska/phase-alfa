@@ -32,12 +32,12 @@ co `IBlobStore` i `IDatabaseProbe`. Jeden nawyk, nie trzy.
 | Projekt | Co |
 |---|---|
 | `src/Klucz.Contracts` | DTO i porty. Zero pakietów — także tranzytywnie |
-| `src/Klucz.Corpus` | korpus; `Infrastructure/` to JEDYNE miejsce z Npgsql — i jedyny csproj, któremu wolno go zadeklarować |
+| `src/Klucz.Corpus` | korpus: port `ICorpusReader` i DTO odpowiedzi; `Infrastructure/` to JEDYNE miejsce z Npgsql — i jedyny csproj, któremu wolno go zadeklarować |
 | `src/Klucz.Grading` | ocenianie (treść w A3) |
 | `src/Klucz.Learning` | nauka i powtórki (treść w A4) |
-| `src/Klucz.Api` | minimal API, kompozycja modułów, `/health` |
+| `src/Klucz.Api` | minimal API, kompozycja modułów, `/health`, trasy `/corpus/*` |
 | `tests/Klucz.ArchitectureTests` | granice modułów — jedyny projekt referujący wszystko |
-| `tests/Klucz.Tests` | zachowanie: health check, skład blobów, kompozycja DI |
+| `tests/Klucz.Tests` | zachowanie: health check, skład blobów, kompozycja DI, odczyt korpusu |
 
 Nazwy w kodzie są po angielsku, komentarze po polsku — patrz `CLAUDE.md`, zasada 4.
 
@@ -171,3 +171,34 @@ Wystawiane **tylko w `Development`**. Pełny opis API to mapa powierzchni ataku,
 a poza deweloperką nikt go stąd nie czyta: klient TS bierze typy z wersjonowanego
 `backend/artifacts/openapi.json`, a ten powstaje przy **buildzie** (GetDocument.Insider
 woła generator z DI), nie przez ten endpoint.
+
+
+## Corpus read API (W2.1)
+
+| Endpoint | Zwraca |
+|---|---|
+| `GET /corpus/forms` | formy arkusza z liczbą zatwierdzonych zadań i pulą punktów |
+| `GET /corpus/forms/{id}/tasks` | zadania formy: numer, pula, rodzaj, czy ma rysunek |
+| `GET /corpus/tasks/{id}` | pełne drzewo: wersje X/Y, kryteria → warunki → zapisy z MathJSON-em, wymagania, rozwiązania, reguły |
+| `GET /corpus/assets/{id}` | wycinek PNG strumieniem przez `IBlobStore` |
+| `GET /corpus/progress` | postęp korekty per rocznik i statystyka półautomatu |
+
+**Każde zapytanie idzie po widoku `corpus_task`, nigdy po `task`.** Definicja
+„co jest korpusem" stoi w jednym miejscu schematu, zamiast być powtórzona w kodzie
+trzech warstw; zadanie czekające na korektę to dla tego API 404. Pilnuje tego test
+`Task_waiting_for_review_is_not_corpus` — widziany raz na czerwono po podmianie
+widoku na tabelę.
+
+Jedyny świadomy wyjątek: `GET /corpus/progress` liczy po całej tabeli zadań,
+bo pulpit odpowiada na pytanie „ile jeszcze zostało".
+
+`GET /corpus/assets/{id}` jest pierwszym prawdziwym konsumentem `IBlobStore` —
+ścieżka względna z bazy plus ochrona przed wyjściem poza korzeń składu, która
+istniała od G1.3 i nie miała dotąd kto użyć. **Brak pliku to 404, nie 500:** tak
+wygląda korpus po `task db:reset` albo przed `task crops`.
+
+### `Results<Ok<T>, NotFound>`, nie `Results.Ok(...)`
+
+To pierwsze niesie TYP do dokumentu OpenAPI. Przy drugim `TaskDetail` w ogóle
+nie trafiał do schematu, a klient TS dostawał `unknown` — **i bramka dryfu tego
+nie łapie**, bo plik się zgadza, tylko jest pusty.

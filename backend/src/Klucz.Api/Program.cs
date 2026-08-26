@@ -1,4 +1,5 @@
 using System.Reflection;
+using Klucz.Api;
 using Klucz.Contracts;
 using Klucz.Corpus;
 using Klucz.Grading;
@@ -35,6 +36,8 @@ app.MapGet("/health", async (IDatabaseProbe database, CancellationToken ct) =>
 })
 .WithName("Health")
 .WithSummary("Gotowość API i stan połączenia z bazą");
+
+app.MapCorpus();
 
 app.Run();
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import psycopg
 
-from parsers.omap_e8 import loader
+from parsers.omap_e8 import crops, loader
 from parsers.omap_e8 import parser as K
 from schema.migrate import polaczenie
 from sciezki import KORZEN_REPO, korzen_mirrora, spis_urls
@@ -31,6 +31,19 @@ PROG_WYMAGANIA = 0.95        # udział zadań z wymaganiem podstawy
 PROG_ODPOWIEDZI = 0.95       # udział zadań zamkniętych z odpowiedzią wzorcową
 PROG_KRYTERIA = 0.90         # udział zadań otwartych z kryteriami
 MIN_ZADAN = 10
+
+# Zadanie zamknięte bez sekcji kryteriów jest DZIURĄ tylko wtedy, gdy ten sam
+# klucz gdzie indziej takie sekcje ma. Brak u wszystkich naraz to norma rocznika
+# 2019 — klucz podaje wtedy dla zadań zamkniętych samą odpowiedź wzorcową.
+# Mierzone z dokumentu, nie po roczniku: warianty 800 i Q00 z 2019 r. kryteria mają.
+SQL_CLOSED_WITHOUT_CRITERIA = """
+    SELECT count(*) FROM task t
+    WHERE t.kind = 'closed'
+      AND NOT EXISTS (SELECT 1 FROM criterion c WHERE c.task_id = t.id)
+      AND %s (SELECT 1 FROM task t2
+                JOIN criterion c2 ON c2.task_id = t2.id
+               WHERE t2.marking_scheme_id = t.marking_scheme_id
+                 AND t2.kind = 'closed')"""
 
 
 def base_variant(variants: str | None) -> str:
@@ -264,8 +277,21 @@ def main() -> int:
                      "; ".join(w["uwagi"])[:34]))
     czas = time.perf_counter() - t0
 
+    # Cięcie PNG PO pętli ładowania, nie w niej: dysk nie cofa się razem
+    # z transakcją, a tak przebieg dorzuca też wycinki, których zabrakło
+    # po `task db:reset` (baza wraca pusta, blob zostaje).
+    # Pod strażą, bo to DODATEK do ładowania: wyjątek stąd zabierał ze sobą
+    # raport z całego korpusu i zamknięcie połączenia.
     try:
-        _zapisz_raport(args.report, con, wyniki, pominiete, bledy, czas, lad, po_korekcie)
+        wycinki = crops.cut_missing(con)
+    except Exception as e:
+        wycinki = None
+        bledy.append(("wycinki", "%s: %s" % (type(e).__name__, e)))
+        print("wycinki%-28s BŁĄD %s: %s" % ("", type(e).__name__, e))
+
+    try:
+        _zapisz_raport(args.report, con, wyniki, pominiete, bledy, czas, lad,
+                       po_korekcie, wycinki)
     finally:
         # W `finally`, bo raport potrafi się wywalić na zapytaniu i zostawić połączenie.
         con.close()
@@ -273,7 +299,7 @@ def main() -> int:
 
 
 def _zapisz_raport(sciezka, con, wyniki, pominiete, bledy, czas, lad,
-                   po_korekcie=()) -> None:
+                   po_korekcie=(), wycinki=None) -> None:
     """Ten sam raport na ekran i do pliku — plan G1.2.2 każe go porównać z sondą."""
     sciezka = sciezka or (KORZEN_REPO / "data" / "reports"
                           / ("ingest-%s.txt" % time.strftime("%Y-%m-%d")))
@@ -281,7 +307,7 @@ def _zapisz_raport(sciezka, con, wyniki, pominiete, bledy, czas, lad,
     sciezka.parent.mkdir(parents=True, exist_ok=True)
     with (open(sciezka, "w", encoding="utf-8") as fh,
           contextlib.redirect_stdout(_Tee(sys.stdout, fh))):
-        _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie)
+        _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie, wycinki)
     print("\nRaport zapisany: %s" % sciezka)
 
 
@@ -338,7 +364,8 @@ def _blizniakow(blizniaki: dict, warianty: str) -> int:
                for w in (warianty or "").split(",") if w.strip())
 
 
-def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
+def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=(),
+            wycinki=None) -> None:
     print("\n" + "─" * 74)
     print("CO WESZŁO DO BAZY")
     print("─" * 74)
@@ -437,13 +464,26 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
         ("próg punktowy wyższy niż pula zadania",
          """SELECT count(*) FROM criterion c JOIN task t ON t.id = c.task_id
             WHERE c.points > t.max_points"""),
-        ("zadania bez progu 0 pkt",
-         """SELECT count(*) FROM task t WHERE NOT EXISTS
-            (SELECT 1 FROM criterion c WHERE c.task_id = t.id AND c.points = 0)"""),
-        ("zadania bez progu za komplet punktów",
-         """SELECT count(*) FROM task t WHERE NOT EXISTS
-            (SELECT 1 FROM criterion c WHERE c.task_id = t.id
-             AND c.points = t.max_points)"""),
+        # „Bez progu" pyta się WYŁĄCZNIE o zadania, które jakieś kryteria mają.
+        # Zadanie zamknięte rocznika 2019 nie ma ich wcale i to jest cecha
+        # dokumentu — policzone razem z resztą dawało 90 rzekomych dziur
+        # i chowało te prawdziwe.
+        ("zadania z kryteriami, ale bez progu 0 pkt",
+         """SELECT count(*) FROM task t
+            WHERE EXISTS (SELECT 1 FROM criterion c WHERE c.task_id = t.id)
+              AND NOT EXISTS (SELECT 1 FROM criterion c
+                              WHERE c.task_id = t.id AND c.points = 0)"""),
+        ("zadania z kryteriami, ale bez progu za komplet",
+         """SELECT count(*) FROM task t
+            WHERE EXISTS (SELECT 1 FROM criterion c WHERE c.task_id = t.id)
+              AND NOT EXISTS (SELECT 1 FROM criterion c WHERE c.task_id = t.id
+                              AND c.points = t.max_points)"""),
+        ("zadania otwarte bez ani jednego kryterium",
+         """SELECT count(*) FROM task t
+            WHERE t.kind <> 'closed' AND NOT EXISTS
+            (SELECT 1 FROM criterion c WHERE c.task_id = t.id)"""),
+        ("zadania zamknięte bez kryteriów w kluczu, który je ma",
+         SQL_CLOSED_WITHOUT_CRITERIA % "EXISTS"),
         ("kryteria bez ani jednego warunku",
          """SELECT count(*) FROM criterion c WHERE NOT EXISTS
             (SELECT 1 FROM criterion_condition cc WHERE cc.criterion_id = c.id)"""),
@@ -455,6 +495,12 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
     ):
         (n,) = con.execute(sql).fetchone()
         print("  %-44s %5d" % (opis, n))
+    # Osobno i BEZ progu alarmu: to nie jest brak, tylko kształt dokumentu.
+    # Wypisane, bo liczba ma być widoczna — cicho pominięta wracałaby co przebieg
+    # jako pytanie „czemu tyle zadań nie ma kryteriów".
+    (by_norm,) = con.execute(SQL_CLOSED_WITHOUT_CRITERIA % "NOT EXISTS").fetchone()
+    print("  %-44s %5d  (norma dokumentu, nie brak)"
+          % ("zadania zamknięte bez kryteriów — rocznik 2019", by_norm))
     for sciezka, numer, pmax, pkt in con.execute(
             """SELECT d.path, t.number, t.max_points, c.points
                FROM criterion c JOIN task t ON t.id = c.task_id
@@ -462,6 +508,10 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
                WHERE c.points > t.max_points LIMIT 5"""):
         print("    ↳ %s zad. %s: pula 0–%d, a próg za %d pkt"
               % (os.path.basename(sciezka), numer, pmax, pkt))
+
+    if wycinki:
+        print("\n" + "─" * 74)
+        print(crops.report(wycinki))
 
     print("\n" + "─" * 74)
     print("PODSUMOWANIE")

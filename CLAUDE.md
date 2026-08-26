@@ -246,7 +246,13 @@ task test      # architektura, zero-DOM, regresja parsera, więzy schematu
 task db:reset  # baza od zera (kasuje wolumen)
 task ingest    # przebieg parsera (od A2) — klucze po korekcie pomija
 task correction        # ekran korekty: rekord staje się korpusem (od G2.1)
-task correction:report # pomiar S8: stan korekty, mediana czasu, prognoza
+task correction:report # pomiary S6, S7, S8: stan korekty, mediana czasu, prognoza
+task crops     # wycinki PNG zasobów graficznych; --prune sprząta bloba (G2.4)
+task mathjson  # zapisy równoważne → MathJSON przez Compute Engine (G2.6)
+task prefill   # podpowiedzi LLM do ekranu korekty — RĘCZNIE i płatnie (G2.5.1)
+task describe  # opisy rysunków (alt-text) — RĘCZNIE i płatnie (G2.5.2)
+task corpus:report     # kompletność korpusu po `corpus_task` — domknięcie A2 (G2.7)
+task parser:snapshot   # regresja parsera bez bazy (G2.3.1)
 task bench     # benchmark golden setu (od A3)
 ```
 
@@ -256,11 +262,12 @@ task bench     # benchmark golden setu (od A3)
 
 | Ścieżka | Co |
 |---|---|
-| `ingest/` | Python: mirror, parser PDF, migracje schematu, ekran korekty |
+| `ingest/` | Python: mirror, parser PDF, migracje schematu, ekran korekty, konwerter MathJSON |
 | `backend/` | C#: modularny monolit, moduły nie widzą się nawzajem |
 | `web/` | TypeScript: `packages/core` bez DOM, `apps/web`, generowany klient OpenAPI |
 | `docs/` | plany implementacji i przeglądy kodu |
 | `docs/review/` | przeglądy kodu — tworzy je skill `code-review` |
+| `docs/decyzje-A2.md` | rozstrzygnięcia z A2 — materiał do `DECYZJE.md` w `cke-mirror` |
 | `.claude/skills/` | skille projektowe |
 | `data/` | mirror, blob, raporty — poza gitem |
 

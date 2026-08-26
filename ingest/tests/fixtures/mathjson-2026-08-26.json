@@ -1,0 +1,287 @@
+{
+ "pary": [
+  {
+   "expression": "P_(AECF)=7/15",
+   "latex": "P_{AECF}=\\frac{7}{15}",
+   "refused": null,
+   "mathjson": [
+    "Equal",
+    "P_AECF",
+    [
+     "Divide",
+     7,
+     15
+    ]
+   ],
+   "error": null
+  },
+  {
+   "expression": "P=15^2-[2⋅(15∶5)]⋅15/2",
+   "latex": "P=15^{2}-[2 \\cdot (15 \\div 5)] \\cdot \\frac{15}{2}",
+   "refused": null,
+   "mathjson": [
+    "Equal",
+    "P",
+    [
+     "Subtract",
+     [
+      "Power",
+      15,
+      2
+     ],
+     [
+      "Multiply",
+      [
+       "List",
+       [
+        "Multiply",
+        2,
+        [
+         "Delimiter",
+         [
+          "Divide",
+          15,
+          5
+         ]
+        ]
+       ]
+      ],
+      [
+       "Divide",
+       15,
+       2
+      ]
+     ]
+    ]
+   ],
+   "error": null
+  },
+  {
+   "expression": "1/5+1/6+1/10=7/15",
+   "latex": "\\frac{1}{5}+\\frac{1}{6}+\\frac{1}{10}=\\frac{7}{15}",
+   "refused": null,
+   "mathjson": [
+    "Equal",
+    [
+     "Add",
+     [
+      "Divide",
+      1,
+      5
+     ],
+     [
+      "Divide",
+      1,
+      6
+     ],
+     [
+      "Divide",
+      1,
+      10
+     ]
+    ],
+    [
+     "Divide",
+     7,
+     15
+    ]
+   ],
+   "error": null
+  },
+  {
+   "expression": "V=1/3∙9∙9∙H",
+   "latex": "V=\\frac{1}{3} \\cdot 9 \\cdot 9 \\cdot H",
+   "refused": null,
+   "mathjson": [
+    "Equal",
+    "V",
+    [
+     "Multiply",
+     [
+      "Divide",
+      1,
+      3
+     ],
+     9,
+     9,
+     "H"
+    ]
+   ],
+   "error": null
+  },
+  {
+   "expression": "324∶(1/3∙9∙9).",
+   "latex": "324 \\div (\\frac{1}{3} \\cdot 9 \\cdot 9)",
+   "refused": null,
+   "mathjson": [
+    "Divide",
+    324,
+    [
+     "Delimiter",
+     [
+      "Multiply",
+      [
+       "Divide",
+       1,
+       3
+      ],
+      9,
+      9
+     ]
+    ]
+   ],
+   "error": null
+  },
+  {
+   "expression": "12∶3",
+   "latex": "12 \\div 3",
+   "refused": null,
+   "mathjson": [
+    "Divide",
+    12,
+    3
+   ],
+   "error": null
+  },
+  {
+   "expression": "40%∙120∶0,25",
+   "latex": "40\\% \\cdot 120 \\div 0.25",
+   "refused": null,
+   "mathjson": [
+    "Multiply",
+    0.4,
+    [
+     "Divide",
+     120,
+     0.25
+    ]
+   ],
+   "error": null
+  },
+  {
+   "expression": "2/5x+1/3x=440 lub zapisy równoważne",
+   "latex": "\\frac{2}{5}x+\\frac{1}{3}x=440",
+   "refused": null,
+   "mathjson": [
+    "Equal",
+    [
+     "Add",
+     [
+      "InvisibleOperator",
+      [
+       "Divide",
+       2,
+       5
+      ],
+      "x"
+     ],
+     [
+      "InvisibleOperator",
+      [
+       "Divide",
+       1,
+       3
+      ],
+      "x"
+     ]
+    ],
+    440
+   ],
+   "error": null
+  },
+  {
+   "expression": "zapisanie: 240∶60",
+   "latex": "240 \\div 60",
+   "refused": null,
+   "mathjson": [
+    "Divide",
+    240,
+    60
+   ],
+   "error": null
+  },
+  {
+   "expression": "k^(-10)",
+   "latex": "k^{-10}",
+   "refused": null,
+   "mathjson": [
+    "Power",
+    "k",
+    [
+     "Negate",
+     10
+    ]
+   ],
+   "error": null
+  },
+  {
+   "expression": "P = 5^2 = 25 (cm^2)",
+   "latex": "P = 5^{2} = 25 (cm^{2})",
+   "refused": null,
+   "mathjson": [
+    "Equal",
+    "P",
+    [
+     "Equal",
+     [
+      "Power",
+      5,
+      2
+     ],
+     [
+      "InvisibleOperator",
+      25,
+      [
+       "Delimiter",
+       [
+        "InvisibleOperator",
+        "c",
+        [
+         "Power",
+         "m",
+         2
+        ]
+       ]
+      ]
+     ]
+    ]
+   ],
+   "error": null
+  },
+  {
+   "expression": "2(x+1)",
+   "latex": "2(x+1)",
+   "refused": null,
+   "mathjson": [
+    "InvisibleOperator",
+    2,
+    [
+     "Delimiter",
+     [
+      "Add",
+      "x",
+      1
+     ]
+    ]
+   ],
+   "error": null
+  },
+  {
+   "expression": "√16+9",
+   "latex": null,
+   "refused": "pierwiastek — zasięg nieodtworzony, korekta ręczna (G2.3.2)"
+  },
+  {
+   "expression": "zapisanie P=15^2 AECF",
+   "latex": null,
+   "refused": "tekst, nie wyrażenie — słowo 'AECF'"
+  },
+  {
+   "expression": "1/2 12=⋅a⋅4 gdzie a jest długością krawędzi",
+   "latex": "\\frac{1}{2} 12= \\cdot a \\cdot 4",
+   "refused": null,
+   "mathjson": null,
+   "error": "\"'unexpected-command'\" [\"LatexString\",\"'\\\\cdot'\"]"
+  }
+ ]
+}

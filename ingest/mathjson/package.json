@@ -1,0 +1,13 @@
+{
+  "name": "@klucz/mathjson",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Konwerter zapisow rownowaznych na MathJSON. Ten sam silnik, ktorego uzyje EvaluateClosed w A3.",
+  "scripts": {
+    "convert": "node convert.mjs"
+  },
+  "dependencies": {
+    "@cortex-js/compute-engine": "^0.119.0"
+  }
+}

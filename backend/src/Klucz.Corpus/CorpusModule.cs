@@ -11,6 +11,7 @@ public static class CorpusModule
     public static IServiceCollection AddCorpus(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IDatabaseProbe, PostgresDatabaseProbe>();
+        services.AddSingleton<ICorpusReader, PostgresCorpusReader>();
 
         services.AddSingleton<IBlobStore>(provider =>
         {

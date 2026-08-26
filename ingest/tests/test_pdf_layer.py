@@ -110,9 +110,8 @@ def test_obie_warstwy_widza_ten_sam_ulamek():
     assert "7/15" in reconstruct.render(znaki, [kreska]).replace(" ", "")
 
 
-@pytest.mark.xfail(strict=True, reason="liczby mieszane — decyzja w G2.3.2")
 def test_liczba_mieszana_nie_skleja_sie_z_ulamkiem():
-    """`1⅔ km` wychodzi dziś jako `12/3 km` — całość wtapia się w licznik."""
+    """`1⅔ km` sklejone w `12/3 km` to błąd CICHY — poprawny na oko ułamek."""
     chars = [Char("1", 100, 106, 96, 108, 11.0),
              Char("2", 110, 116, 88, 98, 11.0),
              Char("3", 110, 116, 104, 114, 11.0),
@@ -122,9 +121,16 @@ def test_liczba_mieszana_nie_skleja_sie_z_ulamkiem():
     assert reconstruct.render(chars, [Bar(109, 117, 101)]) == "1 2/3 km"
 
 
-@pytest.mark.xfail(strict=True, reason="pierwiastki — decyzja w G2.3.2")
+@pytest.mark.xfail(strict=True,
+                   reason="pierwiastki — ŚWIADOMIE: korekta ręczna (decyzja G2.3.2)")
 def test_pierwiastek_ma_zasieg():
-    """Znak pierwiastka jest glifem, ale „daszek" nad liczbą bywa linią."""
+    """Zasięg pierwiastka zostaje korekcie ręcznej — błąd jest WIDOCZNY.
+
+    Odwrotnie niż liczby mieszane: brak domknięcia zasięgu rzuca się w oczy
+    przy zapisie w ekranie korekty, wystąpień jest mało, a geometria „daszka"
+    nad liczbą jest niejednoznaczna. Test zostaje na czerwono jako zapis tej
+    decyzji — dzień, w którym zacznie przechodzić, ma być widoczny.
+    """
     chars = [Char("√", 100, 108, 92, 110, 11.0),
              Char("1", 110, 116, 96, 108, 11.0),
              Char("6", 116, 122, 96, 108, 11.0)]

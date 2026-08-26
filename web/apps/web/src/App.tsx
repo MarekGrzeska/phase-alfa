@@ -1,86 +1,90 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import {
-  answerOf,
-  answerTask,
-  checkBeforeSubmit,
-  createSession,
-  currentTask,
-  next,
-  previous,
-  progress,
-} from "@klucz/core";
-import type { Task } from "@klucz/core";
+import { CorpusBrowser } from "./corpus/CorpusBrowser";
+import { ProgressDashboard } from "./corpus/ProgressDashboard";
+import { SessionDemo } from "./SessionDemo";
+
+const VIEWS = ["corpus", "progress", "session"] as const;
+export type View = (typeof VIEWS)[number];
+
+export interface Route {
+  readonly view: View;
+  readonly form: number | null;
+  readonly task: number | null;
+}
 
 /**
- * Zadania na sztywno: to szkielet z G1.4, a nie ekran ucznia. Korpus wchodzi
- * w A2, widok statusu bazy — w W1. Sens tego ekranu jest jeden: model sesji
- * z `@klucz/core` ma się kręcić w Reakcie, zanim ktokolwiek dołoży do niego dane.
+ * Routing to ADRES i nic więcej — biblioteka routingu byłaby tu zależnością
+ * na jeden ekran narzędzia badawczego. Odświeżenie strony wraca w to samo
+ * miejsce, a link do zadania da się wkleić w notatce.
  */
-const DEMO_TASKS: readonly Task[] = [
-  { id: "t01", number: "1", maxPoints: 1, kind: "closed" },
-  { id: "t16", number: "16", maxPoints: 2, kind: "open_short" },
-  { id: "t20", number: "20", maxPoints: 3, kind: "open_extended" },
-];
+export function readRoute(search: string): Route {
+  const params = new URLSearchParams(search);
+  const view = params.get("view");
+  return {
+    view: VIEWS.includes(view as View) ? (view as View) : "corpus",
+    form: numberOrNull(params.get("form")),
+    task: numberOrNull(params.get("task")),
+  };
+}
+
+export function writeRoute(route: Route): string {
+  const params = new URLSearchParams();
+  params.set("view", route.view);
+  if (route.form !== null) {
+    params.set("form", String(route.form));
+  }
+  if (route.task !== null) {
+    params.set("task", String(route.task));
+  }
+  return `?${params.toString()}`;
+}
+
+function numberOrNull(raw: string | null): number | null {
+  if (raw === null || !/^\d+$/.test(raw)) {
+    return null;
+  }
+  return Number.parseInt(raw, 10);
+}
 
 export function App() {
-  const [session, setSession] = useState(() => createSession(DEMO_TASKS));
-  // Surowy tekst pól, osobno od modelu: `answerTask` KASUJE odpowiedź z samych
-  // białych znaków, więc wpisana spacja znikałaby użytkownikowi spod palców.
-  const [drafts, setDrafts] = useState<ReadonlyMap<string, string>>(() => new Map());
+  const [route, setRoute] = useState<Route>(() => readRoute(window.location.search));
 
-  const task = currentTask(session);
-  const { answered, total } = progress(session);
-  const check = checkBeforeSubmit(session);
+  useEffect(() => {
+    // `popstate`, bo przycisk „wstecz" ma działać — bez tego adres się zmienia,
+    // a widok zostaje ten sam i wygląda to na zawieszenie aplikacji.
+    const onPop = () => setRoute(readRoute(window.location.search));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const go = (next: Partial<Route>) => {
+    const merged = { ...route, ...next };
+    window.history.pushState(null, "", writeRoute(merged));
+    setRoute(merged);
+  };
 
   return (
-    <main>
+    <main className={route.view === "corpus" ? "wide" : undefined}>
       <h1>Klucz</h1>
-      <p className="lead">
-        Szkielet weba (G1.4). Widok statusu bazy dokłada W1, korpus — A2.
-      </p>
+      <nav className="views">
+        <button type="button" aria-current={route.view === "corpus"}
+                onClick={() => go({ view: "corpus" })}>Korpus</button>
+        <button type="button" aria-current={route.view === "progress"}
+                onClick={() => go({ view: "progress" })}>Postęp ingestu</button>
+        <button type="button" aria-current={route.view === "session"}
+                onClick={() => go({ view: "session" })}>Model sesji</button>
+      </nav>
 
-      {task === undefined ? (
-        <p>Arkusz bez zadań.</p>
-      ) : (
-        <section aria-labelledby="zadanie">
-          <h2 id="zadanie">
-            Zadanie {task.number} <small>({task.maxPoints} pkt)</small>
-          </h2>
-
-          <label>
-            Odpowiedź
-            <input
-              value={drafts.get(task.id) ?? answerOf(session, task.id) ?? ""}
-              onChange={(event) => {
-                const text = event.target.value;
-                setDrafts((previousDrafts) => new Map(previousDrafts).set(task.id, text));
-                setSession(answerTask(session, task.id, text));
-              }}
-            />
-          </label>
-
-          <nav>
-            <button type="button" onClick={() => setSession(previous(session))}>
-              Poprzednie
-            </button>
-            <button type="button" onClick={() => setSession(next(session))}>
-              Następne
-            </button>
-          </nav>
-        </section>
+      {route.view === "corpus" && (
+        <CorpusBrowser
+          formId={route.form}
+          taskId={route.task}
+          onSelect={(next) => go(next)}
+        />
       )}
-
-      <footer>
-        <p>
-          Odpowiedzi: {answered} z {total}
-        </p>
-        <p>
-          {check.ok
-            ? "Komplet — arkusz gotowy do wysłania."
-            : `Bez odpowiedzi: ${check.missing.map((missing) => missing.number).join(", ") || "—"}`}
-        </p>
-      </footer>
+      {route.view === "progress" && <ProgressDashboard />}
+      {route.view === "session" && <SessionDemo />}
     </main>
   );
 }

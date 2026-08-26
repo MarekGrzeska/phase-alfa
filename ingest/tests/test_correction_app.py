@@ -670,3 +670,53 @@ def test_strona_zeszytu_bez_zeszytu_mowi_co_zrobic(client, con, task, zasob):
 
     assert response.status_code == 404
     assert "--with-papers" in response.text
+
+
+def _zamkniete(con, task, criteria_elsewhere: bool) -> int:
+    """Zadanie zamknięte bez kryteriów w tym samym kluczu co `task`."""
+    with con.cursor() as cur:
+        cur.execute("SELECT marking_scheme_id FROM task WHERE id = %s", (task["id"],))
+        document = cur.fetchone()["marking_scheme_id"]
+        cur.execute(
+            "INSERT INTO task (marking_scheme_id, number, position, max_points, kind, "
+            "page) VALUES (%s, '1', 1, 1, 'closed', 2) RETURNING id",
+            (document,),
+        )
+        closed = cur.fetchone()["id"]
+        if criteria_elsewhere:
+            cur.execute(
+                "INSERT INTO task (marking_scheme_id, number, position, max_points, "
+                "kind, page) VALUES (%s, '2', 2, 1, 'closed', 2) RETURNING id",
+                (document,),
+            )
+            sasiad = cur.fetchone()["id"]
+            cur.execute("INSERT INTO criterion (task_id, points, position) "
+                        "VALUES (%s, 1, 1)", (sasiad,))
+    return closed
+
+
+def test_closed_without_criteria_is_the_norm_when_the_key_has_none(client, con, task):
+    """Rocznik 2019: klucz podaje dla zadań zamkniętych samą odpowiedź wzorcową.
+
+    Korektor ma zobaczyć kształt dokumentu, a nie szukać po kluczu sekcji,
+    której w nim nie ma — inaczej rocznik 2019 kosztuje 90 razy po minucie
+    szukania czegoś, czego nie ma.
+    """
+    closed = _zamkniete(con, task, criteria_elsewhere=False)
+
+    response = client.get(f"/task/{closed}")
+
+    assert response.status_code == 200
+    assert "norma dokumentu" in response.text
+    assert "dziura" not in response.text
+
+
+def test_closed_without_criteria_is_a_gap_when_a_sibling_has_them(client, con, task):
+    """Niezgodność wewnątrz klucza znaczy, że parser przegapił sekcję."""
+    closed = _zamkniete(con, task, criteria_elsewhere=True)
+
+    response = client.get(f"/task/{closed}")
+
+    assert response.status_code == 200
+    assert "dziura" in response.text
+    assert "norma dokumentu" not in response.text

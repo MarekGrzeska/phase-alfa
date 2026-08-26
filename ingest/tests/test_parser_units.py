@@ -105,3 +105,56 @@ def test_wariant_bazowy_znosi_brak_kolumny():
     assert run.base_variant("100,X") == "100"
     assert run.base_variant("") == ""
     assert run.base_variant(None) == ""
+
+
+# Pola `K.Klucz` i `K.Zadanie` są po polsku — to dług `ingest/` z CLAUDE.md,
+# spłacany osobnym zadaniem. Nazwy własne testu trzymają się reguły 4.
+def _key(*tasks) -> K.Klucz:
+    key = K.Klucz(plik="x.pdf", dialekt="e8-2019", egzamin="e8")
+    key.zadania = list(tasks)
+    return key
+
+
+def _task(number: str, kind: str, criteria=()) -> K.Zadanie:
+    return K.Zadanie(numer=number, punkty=1, kolejnosc=1, typ=kind,
+                     kryteria=list(criteria))
+
+
+def test_a_2019_key_without_closed_criteria_is_the_norm():
+    """Rocznik 2019 podaje dla zadań zamkniętych samą odpowiedź wzorcową."""
+    key = _key(_task("1", "zamkniete"), _task("2", "zamkniete"),
+               _task("16", "otwarte_krotkie", [{"punkty": 2}]))
+    assert K.closed_without_criteria(key) is True
+
+
+def test_half_the_closed_tasks_without_criteria_is_a_gap():
+    """Niezgodność WEWNĄTRZ klucza znaczy, że parser przegapił sekcję."""
+    key = _key(_task("1", "zamkniete", [{"punkty": 1}]), _task("2", "zamkniete"))
+    assert K.closed_without_criteria(key) is False
+
+
+def test_a_key_without_closed_tasks_answers_nothing():
+    """`None`, nie `True`: pytanie bez treści ma wyglądać inaczej niż norma."""
+    assert K.closed_without_criteria(_key(_task("16", "otwarte_krotkie"))) is None
+
+
+def test_one_drawing_becomes_one_asset():
+    assert K.frames_for_assets([(1, 2, 3, 4)]) == [(1, 2, 3, 4)]
+
+
+def test_three_drawings_on_a_page_are_still_three_assets():
+    frames = [(1, 2, 3, 4), (5, 6, 7, 8), (9, 10, 11, 12)]
+
+    assert K.frames_for_assets(frames) == frames
+
+
+def test_a_scattered_cluster_goes_to_manual_framing_whole():
+    """Przycięcie listy zapisywało trzy przypadkowe kawałki jako zasoby
+    Z RAMKĄ — czyli gotowe — a pozostałe siedem znikało bez śladu."""
+    frames = [(i, i, i + 1, i + 1) for i in range(10)]
+
+    assert K.frames_for_assets(frames) == []
+
+
+def test_no_detection_stays_no_detection():
+    assert K.frames_for_assets([]) == []

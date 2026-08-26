@@ -364,6 +364,24 @@ bez błędów strukturalnych**, a znane osobliwości są obsłużone jako przypa
 **Zrobione, gdy:** rocznik 2019 przechodzi przez korektę bez błędów strukturalnych,
 a liczby pozostałych roczników są niezmienione.
 
+> **Poprawki z implementacji (G2.3.1).**
+> **(1) Osobliwość rocznika trzeba było najpierw przestać zgłaszać jako błąd.**
+> Trzy warstwy mówiły o dziurze tam, gdzie jest kształt dokumentu: parser
+> („zadań bez kryteriów: 15 z 21"), raport ingestu (90 rzekomych zadań bez progu
+> 0 pkt) i ekran korekty, który kazał szukać w kluczu sekcji, której w nim nie ma.
+> Przy 90 zadaniach to 90 razy po minucie szukania.
+> **(2) Rozstrzyga POMIAR Z DOKUMENTU, nie rocznik wpisany w kod.** Pytanie brzmi:
+> czy w tym kluczu KTÓREKOLWIEK zadanie zamknięte ma kryteria. Powód: w 2019 r.
+> warianty 800 i Q00 kryteria dla zadań zamkniętych **mają**, choć sześć pozostałych
+> kluczy nie ma — reguła „rocznik 2019 nie ma kryteriów" byłaby po prostu fałszywa.
+> **(3) Doszedł `task parser:snapshot`** — zrzut liczb parsera bez bazy i porównanie
+> dwóch zrzutów. Krok 3 tej podgrupy („przebieg kontrolny 75 kluczy po każdej
+> poprawce") bez narzędzia znaczył „przeczytaj dwa raporty i porównaj z pamięci".
+> Zrzut trzyma liczniki **i skróty treści**, bo sama liczba kryteriów nie odróżnia
+> „tyle samo progów" od „tyle samo progów o innym tekście".
+> **(4) Zmierzone:** jedyną klasą ostrzeżeń w całych 75 kluczach było właśnie to
+> sześć kluczy z 2019 r.; zadań otwartych bez kryteriów nie ma nigdzie.
+
 ---
 
 ### G2.3.2 — Znane luki rekonstrukcji
@@ -386,6 +404,21 @@ w `DECYZJE.md` i `xfail` zostaje z komentarzem „świadomie: korekta ręczna".
 **Zrobione, gdy:** obie decyzje zapisane; `xfail` liczb mieszanych zielony;
 zero cicho błędnych rekordów w zatwierdzonym korpusie.
 
+> **Poprawki z implementacji (G2.3.2).**
+> **(1) Obie decyzje zapadły zgodnie z rekomendacją planu** i stoją
+> w [`decyzje-A2.md`](decyzje-A2.md). `xfail` liczb mieszanych zgasł; `xfail`
+> pierwiastków **zostaje na czerwono** z powodem „ŚWIADOMIE: korekta ręczna",
+> żeby dzień, w którym zacznie przechodzić, był widoczny.
+> **(2) Przy okazji wyszła trzecia luka, poważniejsza od obu zapisanych:** ułamek
+> stojący W ZDANIU trafiał do osobnego wiersza, bo kotwiczył się na własnej kresce,
+> a nie na wierszu tekstu. Po spłaszczeniu wierszy w kryterium lądował na początku
+> zdania — „ustalenie, że 12 konkurencji stanowi ⅓ wszystkich" czytało się
+> „1/3 ustalenie, że 12 konkurencji stanowi wszystkich". To jest błąd cichy tej samej
+> klasy co liczby mieszane i wchodził do korpusu od pierwszego przebiegu.
+> **(3) Przebieg kontrolny 75 kluczy** po tej zmianie: zero różnic w licznikach poza
+> `OMAP-800-1904` (odpowiedzi 21 → 22 — zadanie 14 odzyskało podpunkt z ułamkiem);
+> reszta to zmienione skróty treści, czyli dokładnie to, co ta poprawka miała zmienić.
+
 ---
 
 ### G2.3.3 — Dosypywanie roczników partiami
@@ -402,6 +435,14 @@ przetarty pilotem, rocznik 2019 domknięty osobno w G2.3.1.
 
 **Zrobione, gdy:** 8 roczników wariantu 100 rozstrzygniętych w korekcie;
 pokrycie wymagań / odpowiedzi / kryteriów = 100% na zatwierdzonym korpusie.
+
+> **Stan po implementacji (G2.3.3).** Narzędzia partii są gotowe i przetestowane,
+> **sama korekta jest pracą człowieka i jest przed nami**. Do dyspozycji: filtry
+> `--year`/`--variant` w runnerze i w ekranie, `task parser:snapshot` do porównania
+> partii z poprzednim przebiegiem PRZED korektą, `task corpus:report` do pokrycia
+> po korekcie. Pełne przeładowanie korpusu z arkuszami przeszło na wszystkich
+> 8 rocznikach: 75 kluczy, 1436 zadań, pokrycie wymagań / odpowiedzi / kryteriów
+> 100/100/100, 1574 wersje zadań, 607 zasobów graficznych.
 
 ---
 
@@ -439,6 +480,29 @@ do dociągnięcia" mówi, czy automat domknął temat, czy G2.4.2 przejmuje resz
 
 **Zrobione, gdy:** zadania z rysunkiem w pilocie mają wycinek zamiast całej strony,
 a odsetek ramek wymagających ręcznego dociągnięcia jest zmierzony.
+
+> **Poprawki z implementacji (G2.4.1).**
+> **(1) ZMIERZONE na całym korpusie, nie na pilocie:** 607 zasobów, **558 (92%)
+> z ramką z automatu, 49 (8%) do ręcznego dociągnięcia**. Wycinki obejrzane: wykres
+> słupkowy z osiami i podpisami, wielokąt z oznaczeniami boków, układ współrzędnych
+> z punktami, oś liczbowa — wszystkie kadrowane po brzegi rysunku.
+> **(2) Filtrowania po wykrytych tabelach NIE MA i to jest decyzja, nie przeoczenie.**
+> Plan sugerował odsianie linii tabel; pdfplumber widzi jednak w wykresie słupkowym
+> tabelę o dziewięciu wierszach, więc odsiewanie po nich skasowałoby właśnie tę
+> grafikę, o którą chodzi. Zadziałało kryterium z planu w innej postaci: **pełna
+> szerokość kolumny tekstu = tabela, nie rysunek** (wykres 0,86 kolumny, tabela
+> odpowiedzi 0,99 — próg 0,97 rozdziela je z zapasem).
+> **(3) Trzeci filtr, którego plan nie przewidział:** kropkowana linia na odpowiedź
+> ucznia to 4479 prostokątów 13,7 × 0,5 pt na jednej stronie. Bez ich odsiania
+> klastrowanie liczyłoby je kwadratowo.
+> **(4) Cięcie PNG stoi POZA transakcją ładowania** (`parsers/omap_e8/crops.py`,
+> też jako `task crops`): dysk nie cofa się razem z transakcją, więc plik wycięty
+> przed nieudanym zapisem zostawałby z ramką, której w bazie nie ma. Ta sama lekcja
+> co w ekranie korekty. To samo narzędzie sprząta bloba po `db:reset` (`--prune`) —
+> pułapka nr 5 z końca tego planu.
+> **(5) `asset.kind` przestał być zawsze „diagram":** rodzaj bierze się teraz ze słowa,
+> które wywołało zasób (wykres / diagram / rysunek), bo tę kolumnę czyta przeglądarka
+> korpusu.
 
 ---
 
@@ -485,15 +549,25 @@ do korpusu bez bramki.** Provenance w statusach (`auto` → `approved`), nie w p
 
 Wspólna mechanika:
 
-- SDK `anthropic` (Python) w `pyproject.toml`; `ANTHROPIC_API_KEY` wyłącznie
+- **LangChain** (`init_chat_model`) w `pyproject.toml`, nie SDK dostawcy wprost:
+  dostawca jest parametrem przebiegu, więc `prefill.py` i `describe.py` nie znają
+  API pod spodem. Klucz (`OPENAI_API_KEY` albo `ANTHROPIC_API_KEY`) wyłącznie
   z `.env` (wpis w `.env.example`, wartość nigdy w repo).
-- Structured output (`client.messages.parse()` ze schematem Pydantica) — werdykt
-  ma być rekordem, nie prozą do parsowania.
-- Model jako **parametr przebiegu**, nie stała w kodzie: domyślnie `claude-opus-5`
-  ($5/$25 za MTok), porównawczo `claude-haiku-4-5` ($1/$5) — różnica jakości
-  przy 5× różnicy ceny to część pomiaru S6/S7, nie decyzja z góry.
+- Structured output (`with_structured_output(..., include_raw=True)` ze schematem
+  Pydantica) — werdykt ma być rekordem, nie prozą do parsowania. `include_raw`,
+  bo bez niego przepada rachunek tokenów, a to on jest wynikiem alfy.
+- Model i dostawca jako **jeden parametr przebiegu** (`--model dostawca:nazwa`),
+  nie stała w kodzie: domyślnie `openai:gpt-5.6-terra` ($2/$12 za MTok),
+  porównawczo `openai:gpt-5.6-luna` ($0,20/$1,20) — **10× różnicy ceny w tej samej
+  rodzinie** — oraz `anthropic:claude-opus-5` ($5/$25) jako inny dostawca.
+  Różnica jakości przy tej różnicy ceny to część pomiaru S6/S7, nie decyzja z góry.
 - Przebiegi masowe (cały rocznik naraz) przez **Batch API** — −50% kosztu,
   wynik i tak czyta się następnego dnia w ekranie korekty.
+- **Batch API jest wyjątkiem od LangChaina.** `Runnable.batch()` to zrównoleglenie
+  po stronie klienta i pełna cena; wsad z rabatem to osobny endpoint dostawcy,
+  którego LangChain nie abstrahuje. `--batch` schodzi więc do surowego SDK
+  (adapter dla `openai`), a dostawca bez adaptera dostaje jawną odmowę zamiast
+  cichego rachunku podwójnej wysokości.
 - Licznik tokenów i kosztu per przebieg do `data/reports/` — ta sama dyscyplina,
   którą A3 wymusi w porcie `IGradingModel` (G3.2.2), zaczęta wcześniej.
 - **Wywołania LLM nie wchodzą do CI.** Testy jednostkowe pracują na utrwalonych
@@ -523,6 +597,22 @@ w tym samym kształcie, który produkuje parser.
 **Zrobione, gdy:** liczba S6 zapisana; decyzja „prefill w przepływie czy nie"
 podjęta na jej podstawie (patrz G2.2.2).
 
+> **Poprawki z implementacji (G2.5.1).**
+> **(1) Podpowiedź ma własną tabelę `prefill_suggestion` (migracja 0006)**, nigdy
+> `criterion` — reguła „LLM proponuje, człowiek zatwierdza" ma być egzekwowana
+> przez schemat, a nie przez dyscyplinę.
+> **(2) Ten sam wiersz jest ZNACZNIKIEM RAMIENIA pomiaru S6.** Plan zakładał próbkę
+> „te same zadania w obu wariantach"; w implementacji ramię wyznacza istnienie
+> podpowiedzi dla zadania, więc S6 liczy się z dziennika korekty samo i nie wymaga
+> pamiętania, kiedy prefill był włączony.
+> **(3) Model dostaje to, co ZROZUMIAŁ PARSER, nie surowy tekst klucza** — bo
+> surowego tekstu w bazie nie ma. Zawęża to pomiar do pytania „czy model układa
+> strukturę lepiej", a nie „czy czyta PDF lepiej", i tak jest uczciwiej: czytanie
+> PDF-a jest rolą parsera.
+> **(4) Liczba S6 czeka na człowieka.** Kod, tabela, różnice w ekranie i rachunek
+> w raporcie są gotowe; puste ramię raport nazywa wprost „pomiar niegotowy",
+> zamiast pokazywać zero jako wynik.
+
 ---
 
 ### G2.5.2 — Opisy rysunków (S7)
@@ -546,6 +636,18 @@ korekty → `approved`.
 
 **Zrobione, gdy:** każdy `asset` wariantu bazowego ma `description_status='approved'`;
 S7 zmierzone i zapisane.
+
+> **Poprawki z implementacji (G2.5.2).**
+> **(1) Doszedł status `corrected` (migracja 0007).** S7 brzmi „odsetek opisów
+> zatwierdzonych BEZ POPRAWKI", a stany `none`/`auto`/`approved` tego nie mierzą:
+> opis przyjęty w całości i opis przepisany od nowa wyglądały w bazie identycznie.
+> Ten sam argument, który w 0004 rozdzielił `approved` i `corrected` na zadaniu.
+> **(2) O statusie rozstrzyga porównanie z bazą, nie deklaracja** — trafieniem
+> modelu jest wyłącznie opis Z MODELU przyjęty bez zmiany. Opis wpisany ręcznie
+> od zera to `corrected`, choć nikt niczego nie „poprawiał".
+> **(3) Kolejność względem G2.4.1 odwróciła się na korzyść:** opisy powstają
+> z WYCINKÓW, a te są już policzone (558 plików), więc model dostaje sam rysunek,
+> a nie stronę arkusza z trzema innymi zadaniami.
 
 ---
 
@@ -607,6 +709,26 @@ ALTER TABLE condition_expression
 **Zrobione, gdy:** każdy zapis wariantu bazowego ma `mathjson_status`
 w {`auto`, `approved`} albo świadome `failed` z ręczną decyzją; fixture'y konwersji w CI.
 
+> **Poprawki z implementacji (G2.6).**
+> **(1) ZMIERZONE na całym korpusie: 414 z 514 zapisów (80,5%) przekonwertowanych
+> automatem, 100 świadomych `failed` z rozbiciem na powody.** Żaden zapis nie został
+> w stanie `none`.
+> **(2) Doszedł krok, którego plan nie przewidział: sito „to jest zdanie, nie
+> wyrażenie".** Kolumna `expression` niesie w kluczach CKE także prozę
+> („zapisanie P=15", „poprawnego rysunku"). Bez sita Compute Engine parsuje to
+> na iloczyn dziewięciu symboli — MathJSON poprawny składniowo i bezwartościowy,
+> ze statusem `auto`, czyli **niewidoczny**. To był dokładnie ten błąd cichy, przed
+> którym broni kryterium z G2.3.2.
+> **(3) Normalizacja stoi w Pythonie, parsowanie w Node** — plan mówił tylko
+> „normalizacja przed parsowaniem". Rozdział jest po to, żeby pułapki dokumentu
+> (dwukropek `∶`, przecinek dziesiętny, ułamek liniowy) dało się testować **bez
+> Node'a w pętli CI**, zgodnie z krokiem 4 tej podgrupy.
+> **(4) Doszła kolumna `mathjson_error`.** Bez niej `failed` mówi „nie da się",
+> a człowiek w ekranie musi zrobić diagnozę drugi raz.
+> **(5) Zapis niekanoniczny** (`canonical: false`): trzymamy to, co napisał klucz,
+> a nie postać po uporządkowaniu przez silnik. Kanonizacja jest odwracalna i robi
+> ją konsument; ekran ma pokazać zapis rozpoznawalny dla człowieka czytającego PDF.
+
 ---
 
 ## G2.7 — Domknięcie kamienia
@@ -639,6 +761,17 @@ Raport per rocznik do `data/reports/corpus-A2-<data>.txt` + sekcja zbiorcza:
 
 **Zrobione, gdy:** raport w repo (`data/` jest poza gitem — raport zbiorczy
 skopiować do `docs/`), **[A2 zamknięte]**.
+
+> **Poprawki z implementacji (G2.7).**
+> **(1) Każda liczba jest podana DWA RAZY: po widoku `corpus_task` i po całej tabeli
+> `task`.** Bez drugiej kolumny raport z pustego korpusu wygląda dokładnie tak samo
+> jak raport z korpusu, którego nikt nie sparsował — a różnica między kolumnami JEST
+> pracą, która została do zrobienia w ekranie korekty.
+> **(2) Osobna sekcja „DZIURY — pytania o BRAK".** Licznik „ile jest" nigdy nie
+> pokaże zadania bez wymagania ani wymagania bez zadania; to są różne pytania
+> i mają różne wiersze.
+> **(3) Stan na dziś: 1436 zadań sparsowanych, 0 w korpusie** — i tak ma to wyglądać,
+> dopóki nikt nie usiadł do korekty. Raport nie udaje, że kamień jest domknięty.
 
 ---
 
@@ -695,6 +828,25 @@ Progres A2 widoczny w przeglądarce na bieżąco.
 **Zrobione, gdy:** zatwierdzone zadanie z pilotu da się obejrzeć w przeglądarce
 z kryteriami i wycinkiem; pulpit pokazuje postęp korekty; bramka dryfu zielona.
 
+> **Poprawki z implementacji (W2).**
+> **(1) `Results<Ok<T>, NotFound>`, a nie `Results.Ok(...)`.** To pierwsze niesie TYP
+> do dokumentu OpenAPI; przy drugim `TaskDetail` w ogóle nie trafiało do schematu,
+> a klient TS dostawał `unknown`. Bramka dryfu tego nie łapie — plik się zgadza,
+> tylko jest pusty.
+> **(2) `GET /corpus/progress` liczy po CAŁEJ tabeli zadań, nie po `corpus_task`** —
+> jedyny świadomy wyjątek od reguły „konsumenci czytają widok". Pulpit odpowiada
+> na pytanie „ile jeszcze zostało", więc rekordy spoza korpusu są tam treścią.
+> **(3) Liczby całkowite przychodzą do TS jako `number | string`** — tak generator
+> OpenAPI .NET-a opisuje `int32`. Konwersja stoi w jednym miejscu, bo rozsypana
+> po komponentach kończy się porównaniem `"12" === 12`.
+> **(4) Sprawdzone na żywej bazie**: po zatwierdzeniu jednego zadania pilotu
+> (cofniętym zaraz potem, dziennik korekty nietknięty) API oddaje obie formy X i Y,
+> drzewo zadania z dwiema wersjami i RÓŻNYMI odpowiedziami wzorcowymi (BD / AC),
+> kryteria, wymagania i siedem reguł arkusza, a wycinek leci jako `image/png`.
+> **(5) Szkielet modelu sesji z G1.4 przeniósł się z `App` do `SessionDemo`**
+> i zostaje jako trzeci widok — na nim stanie pipeline A3, więc skasowanie go
+> byłoby stratą, a nie sprzątaniem.
+
 ---
 
 ## Tor G — golden set startuje razem z A2
@@ -711,25 +863,42 @@ to jedyny zasób, którego nie da się kupić tokenami.
 
 ## Checklista domknięcia A2
 
+Stan na 26.08.2026. **`[x]` znaczy „narzędzie gotowe i zmierzone", a nie „kamień
+zamknięty"** — pozycje wymagające pracy człowieka są oznaczone osobno i to one
+zostały. Raport `task corpus:report` mówi to samo liczbami i nie udaje inaczej.
+
 - [ ] Każde zadanie wariantu 100 roczników 2019–2026 rozstrzygnięte:
       `review_status ≠ 'pending'`; korpus = `corpus_task`
-- [ ] Rocznik 2019 przeszedł przez korektę bez błędów strukturalnych
+      · **1436 sparsowanych, 0 rozstrzygniętych — KOREKTA RĘCZNA, przed nami**
+- [x] Rocznik 2019 przeszedł przez korektę bez błędów strukturalnych
       (dialekt, podwójne mapowanie 2012+2017)
-- [ ] Ponowny `task ingest` nie nadpisuje skorygowanych kluczy — **zobaczone raz
-      świadomie**, jak odmawia
-- [ ] 84 zadania z rysunkiem mają wycinek PNG zamiast całej strony — automatem
+      · brak kryteriów przy zadaniach zamkniętych to norma dokumentu, mierzona
+      z dokumentu; oba mapowania widoczne obok siebie w ekranie
+- [x] Ponowny `task ingest` nie nadpisuje skorygowanych kluczy — **zobaczone raz
+      świadomie**, jak odmawia (G2.1.1, test `test_rerun_guard.py`)
+- [x] Zadania z rysunkiem mają wycinek PNG zamiast całej strony — automatem
       albo ręczną ramką, odsetek dróg zmierzony
-- [ ] Zapisy równoważne mają MathJSON (`auto`/`approved`) albo świadome `failed`
-- [ ] Opisy rysunków: każdy `asset` z `description_status='approved'` (S7 zmierzone)
+      · **607 zasobów: 558 (92%) automatem, 49 (8%) do ręcznej ramki**
+- [x] Zapisy równoważne mają MathJSON (`auto`/`approved`) albo świadome `failed`
+      · **414 z 514 (80,5%) automatem, 100 `failed` z powodem; zero w stanie `none`**
+- [ ] Opisy rysunków: każdy `asset` z opisem zatwierdzonym (S7 zmierzone)
+      · `task describe` gotowe (Batch API, −50%); **przebieg płatny i walidacja
+      w ekranie — praca człowieka**
 - [ ] S6 zmierzone: zatwierdzenia bez poprawki, parser sam vs parser + LLM
+      · `task prefill` i rachunek w raporcie gotowe; **wymaga skorygowania ≥20 zadań
+      w obu ramionach**
 - [ ] S8 zmierzone: czas korekty na zadanie i na rocznik, odsetek trafień parsera
-- [ ] Decyzje zapisane: zawór po pilocie (G2.2.2), luki rekonstrukcji per luka
-      (G2.3.2), zawężenie MathJSON do zapisów (G2.6)
-- [ ] Raport kompletności per rocznik w `data/reports/` + kopia zbiorcza w `docs/`
-- [ ] W2: zatwierdzone zadanie widoczne w przeglądarce (treść, kryteria, wycinek,
+      · dziennik i prognoza gotowe od G2.1.3; **wymaga korekty, dziennik ma 0 wpisów**
+- [x] Decyzje zapisane: luki rekonstrukcji per luka (G2.3.2), zawężenie MathJSON
+      do zapisów (G2.6), filtr regionu (G2.4.1) — [`decyzje-A2.md`](decyzje-A2.md)
+- [ ] Zawór po pilocie (G2.2.2) · **rachunek gotowy w `task correction:report`,
+      decyzja czeka na medianę z prawdziwej korekty**
+- [x] Raport kompletności per rocznik w `data/reports/` + kopia zbiorcza w `docs/`
+      (`task corpus:report -- --copy-to-docs`)
+- [x] W2: zatwierdzone zadanie widoczne w przeglądarce (treść, kryteria, wycinek,
       X/Y obok siebie); pulpit postępu działa; bramka dryfu OpenAPI zielona
 - [ ] Golden set (tor G) trzyma rytm 2 roczniki/tydzień — sprawdzone przy domykaniu,
-      bo A3 na nim stoi
+      bo A3 na nim stoi · **`ingest/golden/` pusty; tego nie da się kupić tokenami**
 
 ---
 

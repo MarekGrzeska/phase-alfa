@@ -6,7 +6,7 @@ Workspace pnpm, trzy pakiety:
 |---|---|---|
 | `packages/core` | logika sesji: odpowiedzi, kolejność zadań, walidacja przed wysyłką | **nie** |
 | `packages/api-client` | generowany klient OpenAPI | tak (`fetch`) |
-| `apps/web` | Vite + React + PWA | tak |
+| `apps/web` | Vite + React + PWA: przeglądarka korpusu, pulpit postępu, model sesji | tak |
 
 ```bash
 pnpm -C web install
@@ -90,3 +90,34 @@ na sztywno. Widok statusu bazy (ping API, wersja migracji, liczniki rekordów) d
 ## Nazewnictwo
 
 Nazwy w kodzie po angielsku, komentarze po polsku — `CLAUDE.md`, zasady 2 i 4.
+
+
+## Przeglądarka korpusu (W2.2, W2.3)
+
+Trzy widoki, przełączane adresem — `?view=corpus`, `?view=progress`, `?view=session`:
+
+- **Korpus** — arkusze → zadania → podgląd zadania: obie wersje X/Y **obok siebie**
+  (do tego był podział `task`/`task_version` — tu widać go pierwszy raz na ekranie),
+  kryteria z trzema poziomami dysjunkcji niespłaszczonymi, wycinek PNG z alt-textem.
+- **Postęp ingestu** — pokrycie per rocznik, statusy korekty, S7, S8, MathJSON,
+  na żywo z `GET /corpus/progress`.
+- **Model sesji** — szkielet z G1.4; na nim stanie pipeline A3.
+
+Przeglądarka czyta **wyłącznie zatwierdzone** rekordy, przez C# i OpenAPI. Gdy nikt
+jeszcze nie skorygował ani jednego zadania, lista arkuszy jest pusta i mówi dlaczego —
+sparsowane, ale nierozstrzygnięte, korpusem jeszcze nie są.
+
+**Routing to adres i nic więcej.** Biblioteka routingu byłaby zależnością na jeden
+ekran narzędzia badawczego; odświeżenie wraca w to samo miejsce, a link do zadania
+da się wkleić w notatce.
+
+**Komponenty dostają dane, nie pobierają ich** (`TaskDetailView`, `ProgressView`) —
+dzięki temu testy renderują je bez sieci i bez bazy, a pobieranie siedzi w cienkich
+kontenerach obok.
+
+### `number | string` w kontrakcie
+
+Generator OpenAPI .NET-a opisuje `int32` jako `["integer", "string"]`, więc każda
+liczba całkowita przychodzi do TS jako `number | string`. Konwersja stoi w JEDNYM
+miejscu (`corpus/format.ts`), bo rozsypana po komponentach kończy się porównaniem
+`"12" === 12`, które jest fałszem i nikt tego nie zauważy.

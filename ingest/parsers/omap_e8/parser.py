@@ -10,7 +10,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from pdf import reconstruct
+from pdf import reconstruct, regions
 from pdf.layout import open_pdf
 
 RE_ZADANIE = re.compile(
@@ -258,6 +258,23 @@ class Klucz:
     ostrzezenia: List[str] = field(default_factory=list)
 
 
+def closed_without_criteria(k: Klucz) -> Optional[bool]:
+    """Czy w TYM kluczu zadania zamknięte nie mają sekcji kryteriów — norma czy dziura.
+
+    `True` = norma dokumentu (żadne zadanie zamknięte kryteriów nie ma; tak wygląda
+    rocznik 2019, gdzie klucz podaje dla nich samą odpowiedź wzorcową).
+    `False` = kryteria tam są, więc zadanie zamknięte bez nich jest dziurą.
+    `None` = klucz nie ma zadań zamkniętych, więc pytanie jest bez treści.
+
+    Mierzone z dokumentu, nie wpisane po roczniku: w 2019 r. warianty 800 i Q00
+    kryteria dla zadań zamkniętych MAJĄ, choć sześć pozostałych nie ma.
+    """
+    zamkniete = [z for z in k.zadania if z.typ == "zamkniete"]
+    if not zamkniete:
+        return None
+    return not any(z.kryteria for z in zamkniete)
+
+
 def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     """Klucz oceniania → rekordy w kształcie `schema.sql`."""
     strony: List[str] = []
@@ -267,7 +284,7 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     with open_pdf(path, engine=silnik) as doc:
         for page in doc:
             strony.append(reconstruct.page_text(page, pomin_przypisy=True))
-            naglowki += [(len(strony) - 1, y) for y in _pozycje_naglowkow(page)]
+            naglowki += [(len(strony) - 1, y) for _, y in _heading_positions(page)]
             # To w przypisach stoi numer Dz.U., po którym poznajemy obowiązującą podstawę.
             odciete = reconstruct.przypisy(page.chars)
             if odciete:
@@ -332,10 +349,20 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     if bez_tabeli:
         k.ostrzezenia.append("zadań bez wymagań podstawy: %d z %d"
                              % (bez_tabeli, len(k.zadania)))
-    bez_kryteriow = sum(1 for z in k.zadania if not z.kryteria)
-    if bez_kryteriow:
-        k.ostrzezenia.append("zadań bez kryteriów: %d z %d"
-                             % (bez_kryteriow, len(k.zadania)))
+    otwarte_bez = sum(1 for z in k.zadania if z.typ != "zamkniete" and not z.kryteria)
+    if otwarte_bez:
+        k.ostrzezenia.append("zadań otwartych bez kryteriów: %d z %d"
+                             % (otwarte_bez, sum(1 for z in k.zadania
+                                                 if z.typ != "zamkniete")))
+    if closed_without_criteria(k) is False:
+        # Niezgodność WEWNĄTRZ klucza: część zadań zamkniętych ma sekcję kryteriów,
+        # a część nie. Brak jej u wszystkich naraz jest normą rocznika 2019
+        # i nie zasługuje na ostrzeżenie — brak u połowy znaczy, że parser
+        # przegapił sekcję i trzeba na to popatrzeć.
+        brak = [z.numer for z in k.zadania if z.typ == "zamkniete" and not z.kryteria]
+        if brak:
+            k.ostrzezenia.append("zadań zamkniętych bez kryteriów mimo klucza, "
+                                 "który je ma: %s" % ", ".join(brak[:8]))
     bez_odpowiedzi = sum(1 for z in k.zadania
                          if z.typ == "zamkniete" and not z.odpowiedzi)
     if bez_odpowiedzi:
@@ -363,7 +390,8 @@ def _tekst_stopki(znaki) -> str:
     return "".join(out)
 
 
-def _pozycje_naglowkow(page) -> List[float]:
+def _heading_positions(page) -> List[Tuple[str, float]]:
+    """(numer zadania, górna krawędź nagłówka) — w kolejności od góry strony."""
     wiersze: Dict[int, list] = {}
     for c in page.chars:
         wiersze.setdefault(round(c.y0 / reconstruct.LINE_TOL), []).append(c)
@@ -371,9 +399,24 @@ def _pozycje_naglowkow(page) -> List[float]:
     for cs in wiersze.values():
         cs.sort(key=lambda c: c.x0)
         tekst = "".join(c.c for c in cs).strip()
-        if tekst.startswith("Zadanie") and RE_ZADANIE.match(tekst):
-            out.append(min(c.y0 for c in cs))
-    return sorted(out)
+        m = RE_ZADANIE.match(tekst) if tekst.startswith("Zadanie") else None
+        if m:
+            out.append((m.group(1), min(c.y0 for c in cs)))
+    return sorted(out, key=lambda p: p[1])
+
+
+def _task_bands(page) -> Dict[str, Tuple[float, float]]:
+    """Pionowy zakres zadania na stronie: od jego nagłówka do następnego.
+
+    Zakres jest wejściem wykrywania regionu graficznego — bez niego kandydatami
+    byłyby kształty CAŁEJ strony i rysunek sąsiada wchodziłby do wycinka.
+    """
+    naglowki = _heading_positions(page)
+    out: Dict[str, Tuple[float, float]] = {}
+    for i, (numer, gora) in enumerate(naglowki):
+        dol = naglowki[i + 1][1] if i + 1 < len(naglowki) else page.height
+        out.setdefault(numer, (gora, dol))
+    return out
 
 
 def _sparuj_tabele(naglowki, tabele, ile_zadan: int):
@@ -787,6 +830,36 @@ def _szczegolowe(prawa: str, dial: Dialekt) -> List[dict]:
 
 # ── ZESZYT ZADAŃ — treść zadania i prostokąty rysunków ────────────────────────
 
+# Zadanie odwołuje się do grafiki. Wzorzec rozstrzyga TAKŻE o rodzaju zasobu,
+# bo `asset.kind` czyta przeglądarka korpusu — „diagram" dla każdego rysunku
+# był uproszczeniem z czasu, gdy nikt tej kolumny nie oglądał.
+GRAPHIC_KINDS = (
+    (re.compile(r"\bwykres\w*\b", re.I), "wykres"),
+    (re.compile(r"\bdiagram\w*\b", re.I), "diagram"),
+    (re.compile(r"\b(?:rysunek|rysunk\w+|siatc\w+|osi liczbowej)\b", re.I), "rysunek"),
+)
+
+# Zadanie z trzema osobnymi rysunkami na jednej stronie zdarza się; z dziesięcioma
+# nie — to znaczy, że klaster się rozsypał i lepiej oddać ramkę człowiekowi.
+MAX_ASSETS_PER_PAGE = 3
+
+
+def frames_for_assets(frames: Sequence) -> list:
+    """Ramki wchodzące do korpusu; pusta lista oddaje ramkę człowiekowi (G2.4.2).
+
+    Rozsypany klaster idzie tą samą drogą co brak wykrycia — przycięcie listy
+    zostawiało kilka przypadkowych kawałków rysunku oznaczonych jako gotowe.
+    """
+    return [] if len(frames) > MAX_ASSETS_PER_PAGE else list(frames)
+
+
+def graphic_kind(tresc: str) -> Optional[str]:
+    for wzor, rodzaj in GRAPHIC_KINDS:
+        if wzor.search(tresc):
+            return rodzaj
+    return None
+
+
 def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
     """Treść zadań + zasoby graficzne per numer zadania, plus liczba stron zeszytu.
 
@@ -800,6 +873,7 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
         stron = len(doc)
         for page in doc:
             txt = reconstruct.page_text(page, pomin_przypisy=True)
+            bands = _task_bands(page)
             for m in RE_ZADANIE.finditer(txt):
                 nr = m.group(1)
                 nast = RE_ZADANIE.search(txt, m.end())
@@ -809,16 +883,26 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
                 out.setdefault(nr, {"tresc": " ".join(tresc.split())[:1500],
                                     "strona": page.number + 1,
                                     "zasoby": []})
-                # Numer zadania trafia się na dwóch stronach — zasób ma być jeden na stronę, nie jeden na trafienie.
+                # Numer zadania trafia się na dwóch stronach — zasoby liczą się
+                # raz na stronę, nie raz na trafienie nagłówka.
                 strony_zasobow = {z["strona"] for z in out[nr]["zasoby"]}
-                if page.number + 1 not in strony_zasobow and re.search(
-                        r"\b(diagram\w*|rysunk\w+|rysunek|wykres\w*|siatc\w+"
-                        r"|osi liczbowej)\b", tresc, re.I):
+                rodzaj = graphic_kind(tresc)
+                if rodzaj is None or page.number + 1 in strony_zasobow:
+                    continue
+                band = bands.get(nr)
+                frames = frames_for_assets(regions.detect(page, *band) if band else [])
+                for bbox in frames:
+                    out[nr]["zasoby"].append({"rodzaj": rodzaj,
+                                              "strona": page.number + 1,
+                                              "bbox": [float(v) for v in bbox]})
+                if not frames:
+                    # Automat nie domknął — zasób zostaje z ramką całej strony
+                    # i przejmuje go ręczne dociągnięcie z G2.4.2. To zawór
+                    # nr 3 z Planu Implementacji, nie awaria przebiegu.
                     out[nr]["zasoby"].append({
-                        "rodzaj": "diagram",
+                        "rodzaj": rodzaj,
                         "strona": page.number + 1,
-                        # UPROSZCZENIE: bbox to cała strona; wykrywanie regionu grafiki to osobna robota.
-                        "bbox": [0, 0, page.width, page.height],
+                        "bbox": [0.0, 0.0, float(page.width), float(page.height)],
                     })
     return out, stron
 

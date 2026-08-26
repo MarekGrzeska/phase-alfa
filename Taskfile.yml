@@ -218,6 +218,17 @@ tasks:
     dir: ingest
     cmds: ['{{.PY}} -m parsers.omap_e8.run {{.CLI_ARGS}}']
 
+  # Regresja parsera BEZ bazy (G2.3.1, krok 3). Poprawka dla rocznika 2019 nie ma
+  # prawa ruszyć liczb 2020–2026, a zrzut łapie to w dwie minuty — w ekranie
+  # korekty ta sama regresja kosztuje dzień.
+  #
+  #   task parser:snapshot -- --out ../data/reports/parser-przed.json
+  #   task parser:snapshot -- --baseline ../data/reports/parser-przed.json
+  parser:snapshot:
+    desc: Zrzut liczb parsera i porównanie z poprzednim przebiegiem
+    dir: ingest
+    cmds: ['{{.PY}} -m parsers.omap_e8.snapshot {{.CLI_ARGS}}']
+
   # ------------------------------------------------------------------ korekta
   # `--host 127.0.0.1` jawnie, mimo że to domyślna wartość uvicorna: ekran
   # edytuje korpus bez żadnego uwierzytelnienia, więc „tylko localhost" jest
@@ -230,9 +241,49 @@ tasks:
       - '{{.PY}} -m uvicorn correction.app:app --host 127.0.0.1 --port ${CORRECTION_PORT:-8600} --reload'
 
   correction:report:
-    desc: Raport korekty (S8) — stan, czasy, prognoza — do data/reports/
+    desc: Raport korekty (S6, S7, S8) — stan, czasy, prognoza — do data/reports/
     dir: ingest
     cmds: ['{{.PY}} -m correction.report {{.CLI_ARGS}}']
+
+  # ------------------------------------------------------------ wycinki i dane
+  # `task db:reset` kasuje wolumen Postgresa, ale ZOSTAWIA pliki PNG w data/blob.
+  # Sprzątaniem zajmuje się narzędzie, nie `rm` w tym pliku — na Windows go nie ma.
+  #   task crops                    # dotnij brakujące wycinki
+  #   task crops -- --prune         # POKAŻ osierocone wycinki (nic nie kasuje)
+  #   task crops -- --prune --yes   # skasuj to, co wypisała linijka wyżej
+  crops:
+    desc: Wycinki PNG zasobów graficznych — dotnij brakujące, posprzątaj osierocone
+    dir: ingest
+    cmds: ['{{.PY}} -m parsers.omap_e8.crops {{.CLI_ARGS}}']
+
+  mathjson:
+    desc: Konwersja zapisów równoważnych na MathJSON (G2.6)
+    dir: ingest
+    cmds: ['{{.PY}} -m mathjson.fill {{.CLI_ARGS}}']
+
+  mathjson:setup:
+    desc: Zależności konwertera MathJSON (jedyna — @cortex-js/compute-engine)
+    cmds: [pnpm -C ingest/mathjson install --ignore-workspace]
+
+  # --------------------------------------------------------------- LLM (G2.5)
+  # Wywołań modelu NIE MA w CI: testy chodzą na utrwalonych odpowiedziach,
+  # a te dwa polecenia uruchamia się ręcznie i płaci się za nie z budżetu
+  # badawczego alfy. Klucz stoi w .env (OPENAI_API_KEY albo ANTHROPIC_API_KEY —
+  # zależnie od `--model dostawca:nazwa`), nigdy w repozytorium.
+  prefill:
+    desc: Podpowiedzi LLM do ekranu korekty — próbka pomiaru S6
+    dir: ingest
+    cmds: ['{{.PY}} -m correction.prefill {{.CLI_ARGS}}']
+
+  describe:
+    desc: Opisy rysunków (alt-text) dla wycinków — pomiar S7
+    dir: ingest
+    cmds: ['{{.PY}} -m correction.describe {{.CLI_ARGS}}']
+
+  corpus:report:
+    desc: Raport kompletności korpusu — domknięcie A2 (G2.7)
+    dir: ingest
+    cmds: ['{{.PY}} -m reports.corpus {{.CLI_ARGS}}']
 
   bench:
     desc: Benchmark golden setu (A3)
