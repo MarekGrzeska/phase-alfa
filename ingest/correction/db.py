@@ -314,8 +314,8 @@ def prefill_hints(cur, task_id: int, criteria: list[dict]) -> list[dict]:
     """Różnice parser vs LLM jako podpowiedzi przy polach (G2.5.1).
 
     Import w środku funkcji trzyma start serwera z dala od modułu, który jest
-    przede wszystkim poleceniem CLI. SDK Anthropic nie jest tu powodem —
-    `llm.client()` importuje `anthropic` dopiero przy wywołaniu.
+    przede wszystkim poleceniem CLI. LangChain nie jest tu powodem —
+    `llm.chat_model()` i `llm.messages()` ciągną go dopiero przy wywołaniu.
     """
     cur.execute(
         "SELECT model, payload FROM prefill_suggestion WHERE task_id = %s"

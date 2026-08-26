@@ -97,10 +97,23 @@ Provenance niesie **schemat**, nie pamięć autora: podpowiedzi kryteriów leż�
 w osobnej tabeli `prefill_suggestion` (nigdy w `criterion`), a opisy rysunków
 w `asset.description` ze statusem `auto`.
 
-**Model jest parametrem przebiegu, nie stałą w kodzie.** Różnica jakości
-`claude-opus-5` ($5/$25 za MTok) kontra `claude-haiku-4-5` ($1/$5) przy
-pięciokrotnej różnicy ceny jest częścią pomiaru S6/S7, a nie decyzją podjętą
-z góry. Przebiegi masowe przez Batch API (−50%).
+**Model i dostawca są parametrem przebiegu, nie stałą w kodzie.** Wywołania idą
+przez LangChain (`init_chat_model`), więc `--model dostawca:nazwa` wystarczy, żeby
+zamienić `openai:gpt-5.6-terra` ($2/$12 za MTok) na `anthropic:claude-opus-5` ($5/$25)
+bez dotykania `prefill.py` i `describe.py`.
+
+**Parą pomiarową S6/S7 jest `gpt-5.6-terra` kontra `gpt-5.6-luna`** ($0,20/$1,20) —
+ta sama rodzina modeli przy **dziesięciokrotnej różnicy ceny**. Porównanie w jednej
+rodzinie zawęża pytanie do „czy słabszy wystarczy", zamiast mieszać różnicę modelu
+z różnicą dostawcy. Czy wystarczy, rozstrzygają liczby S6 i S7, a nie założenie.
+
+**Batch API zostaje poza LangChainem — świadomie.** `Runnable.batch()` to
+zrównoleglenie po stronie klienta: te same żądania, ta sama cena. Rabat −50% daje
+osobny endpoint dostawcy, którego LangChain nie abstrahuje, więc `--batch` schodzi
+do surowego SDK i ma dziś adapter dla `openai`. Cena tej decyzji: wsad sam buduje
+schemat i ciało żądania. Cena decyzji odwrotnej byłaby wyższa — pełna stawka za
+1436 zadań i 607 zasobów, i to bez śladu w raporcie, bo nazwa `batch` zgadzałaby się
+w obu przypadkach.
 
 **Ramię eksperymentu S6 wyznacza istnienie wiersza w `prefill_suggestion`**, a nie
 pamięć, kiedy prefill był włączony. Bez tego S6 trzeba by rekonstruować z kalendarza.

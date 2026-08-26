@@ -305,14 +305,32 @@ ekranu korekty, a provenance niesie schemat (`prefill_suggestion`,
 ```bash
 task prefill -- --year 2025 --variant 100 --limit 20            # próbka S6
 task describe -- --year 2025 --variant 100 --batch              # opisy, S7
-task prefill -- --model claude-haiku-4-5 --limit 20             # porównanie modeli
+task prefill -- --model openai:gpt-5.6-luna --limit 20          # porównanie modeli
+task describe -- --model anthropic:claude-opus-5 --limit 5      # inny dostawca
 ```
 
-Klucz stoi wyłącznie w `.env` (`ANTHROPIC_API_KEY`), wzór w `.env.example`.
-Model jest **parametrem przebiegu**: różnica jakości `claude-opus-5` ($5/$25 za MTok)
-kontra `claude-haiku-4-5` ($1/$5) przy pięciokrotnej różnicy ceny jest częścią pomiaru
-S6/S7, a nie decyzją podjętą z góry. Przebiegi masowe przez Batch API (`--batch`, −50%),
-bo wynik i tak czyta się następnego dnia w ekranie.
+Wywołania idą przez **LangChain** (`init_chat_model`), więc `prefill.py` i `describe.py`
+nie wiedzą, czyje API jest pod spodem. **Dostawca i model to jeden parametr przebiegu**
+(`--model dostawca:nazwa`), a ta sama wartość jest kluczem cennika:
+
+| `--model` | rola | za MTok (wejście/wyjście) | klucz w `.env` |
+|---|---|---|---|
+| `openai:gpt-5.6-terra` *(domyślny)* | mocniejszy | $2 / $12 | `OPENAI_API_KEY` |
+| `openai:gpt-5.6-luna` | słabszy | $0,20 / $1,20 | `OPENAI_API_KEY` |
+| `anthropic:claude-opus-5` | inny dostawca | $5 / $25 | `ANTHROPIC_API_KEY` |
+| `anthropic:claude-haiku-4-5` | inny dostawca | $1 / $5 | `ANTHROPIC_API_KEY` |
+
+Para pomiarowa to **terra kontra luna**: dziesięciokrotna różnica ceny przy tej samej
+rodzinie modeli. Czy słabszy wystarczy do prefillu i opisów, rozstrzygają S6 i S7,
+a nie założenie. Klucz stoi wyłącznie w `.env`, wzór w `.env.example`.
+
+**Batch API jest wyjątkiem od LangChaina.** `Runnable.batch()` to zrównoleglenie po
+stronie klienta — te same żądania i **ta sama cena**. Prawdziwy wsad (−50%, okno 24 h)
+to osobny endpoint dostawcy, więc `--batch` schodzi do surowego SDK (`llm.py`, sekcja
+„przebieg wsadowy") i na dziś ma adapter dla `openai`. Inny dostawca z `--batch`
+dostaje jawną odmowę z instrukcją, zamiast po cichu zapłacić pełną stawkę.
+Przebiegi masowe i tak czyta się następnego dnia w ekranie, więc wsad jest tu domyślnym
+wyborem dla całego rocznika.
 
 Pomiar S6 nie potrzebuje pamiętania, kiedy prefill był włączony: **ramię wyznacza
 istnienie wiersza w `prefill_suggestion`**, a odsetek zatwierdzeń bez poprawki i czas

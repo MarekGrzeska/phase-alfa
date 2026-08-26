@@ -79,6 +79,11 @@ Zasady:
 """
 
 
+# Modele myślące liczą do tego limitu także tokeny rozumowania, więc jest
+# z zapasem: ucięcie w połowie struktury kosztuje tyle samo, co odpowiedź.
+MAX_OUTPUT_TOKENS = 16000
+
+
 def build_prompt(task: dict) -> str:
     """Tekst zadania dla modelu — treść, pula punktów i surowe zasady oceniania."""
     lines = [f"Zadanie {task['number']}, pula punktów 0–{task['max_points']}."]
@@ -86,6 +91,11 @@ def build_prompt(task: dict) -> str:
         lines += ["", "TREŚĆ ZADANIA:", task["content"]]
     lines += ["", "ZASADY OCENIANIA (tekst z klucza):", task["marking_text"]]
     return "\n".join(lines)
+
+
+def messages_for(task: dict) -> list:
+    """Wiadomości w postaci LangChaina — te same dla przebiegu wsadowego."""
+    return llm.messages(SYSTEM, build_prompt(task))
 
 
 def parse_payload(payload: dict | str) -> Prefill:
@@ -99,8 +109,9 @@ def strict_schema(model: type[BaseModel]) -> dict:
 
     Tryb `json_schema` żąda `additionalProperties: false` i KOMPLETNEGO
     `required` w KAŻDYM obiekcie, także w `$defs` — pydantic nie stawia ani
-    jednego, ani drugiego dla pól z wartością domyślną. Bez wsadu schemat
-    buduje SDK, więc 400 dostawało tylko to ramię S6, które rzadziej widać.
+    jednego, ani drugiego dla pól z wartością domyślną. Poza wsadem schemat
+    buduje LangChain w `with_structured_output`; w ciele żądania wsadowego
+    budujemy go sami, więc 400 dostawało tylko to ramię S6, które rzadziej widać.
     """
     schema = model.model_json_schema()
     _tighten(schema)
@@ -225,7 +236,8 @@ def collect_tasks(cur, year, variant, model, limit) -> list[dict]:
 def run(con, year=None, variant=None, model=llm.DEFAULT_MODEL, limit=20,
         batch=False) -> llm.Spend:
     llm.check_model(model)
-    anthropic_client = llm.client()
+    if batch:
+        llm.check_batch(model)
     spend = llm.Spend(model=model, batch=batch)
 
     with con.cursor(row_factory=dict_row) as cur:
@@ -235,8 +247,15 @@ def run(con, year=None, variant=None, model=llm.DEFAULT_MODEL, limit=20,
 
     answers: dict[int, dict] = {}
     try:
-        ask = _ask_batch if batch else _ask_one_by_one
-        ask(anthropic_client, tasks, model, spend, answers)
+        if batch:
+            _ask_batch(tasks, model, spend, answers)
+        else:
+            # `include_raw`: bez niego LangChain oddaje samą strukturę i rachunek
+            # tokenów przepada — a to on jest wynikiem alfy, nie sama odpowiedź.
+            structured = llm.chat_model(
+                model, max_tokens=MAX_OUTPUT_TOKENS
+            ).with_structured_output(Prefill, include_raw=True)
+            _ask_one_by_one(structured, tasks, spend, answers)
     finally:
         # Odpowiedź jest opłacona, gdy wróci — awaria na dwunastym zadaniu
         # nie ma prawa skasować jedenastu poprzednich.
@@ -262,74 +281,77 @@ def _store(con, answers: dict[int, dict], model: str, batch: bool) -> None:
             )
 
 
-def _ask_one_by_one(anthropic_client, tasks, model, spend, out) -> dict[int, dict]:
+def _refusal(result: dict) -> str:
+    """Dlaczego struktury nie ma — po kolei od najbardziej konkretnego powodu."""
+    error = result.get("parsing_error")
+    if error is not None:
+        return f"odpowiedź nie w schemacie: {error}"
+    raw = result.get("raw")
+    metadata = getattr(raw, "response_metadata", None) or {}
+    return (f"model nie oddał struktury "
+            f"(finish_reason: {metadata.get('finish_reason', 'nieznany')})")
+
+
+def _ask_one_by_one(structured, tasks, spend, out) -> dict[int, dict]:
     for task in tasks:
         try:
-            response = anthropic_client.messages.parse(
-                model=model,
-                max_tokens=16000,
-                system=SYSTEM,
-                messages=[{"role": "user", "content": build_prompt(task)}],
-                output_format=Prefill,
-            )
+            result = structured.invoke(messages_for(task))
         except Exception as e:
             spend.failures.append((str(task["id"]), f"{type(e).__name__}: {e}"))
             continue
-        # Rachunek przed sprawdzeniem: odmowa i ucięcie na `max_tokens` też
-        # kosztują.
-        spend.add(response.usage.input_tokens, response.usage.output_tokens)
-        parsed = response.parsed_output
+        # Rachunek przed sprawdzeniem: odmowa i ucięcie na limicie też kosztują.
+        input_tokens, output_tokens = llm.usage_of(result.get("raw"))
+        spend.add(input_tokens, output_tokens)
+        parsed = result.get("parsed")
         if parsed is None:
             # Odmowa wraca z kodem 200 i pustą strukturą; bez tego warunku
             # `.model_dump()` leciał AttributeError POZA pętlę.
-            spend.failures.append(
-                (str(task["id"]),
-                 f"model nie oddał struktury (stop_reason: {response.stop_reason})"))
+            spend.failures.append((str(task["id"]), _refusal(result)))
             continue
         out[task["id"]] = {"data": parsed.model_dump(),
-                           "input": response.usage.input_tokens,
-                           "output": response.usage.output_tokens}
+                           "input": input_tokens, "output": output_tokens}
         print(f"  zadanie {task['number']:>4}: progów {len(parsed.criteria)}")
     return out
 
 
-def _ask_batch(anthropic_client, tasks, model, spend, out) -> dict[int, dict]:
-    from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
-    from anthropic.types.messages.batch_create_params import Request
-
-    schema = strict_schema(Prefill)
+def _ask_batch(tasks, model, spend, out, client=None) -> dict[int, dict]:
+    # Schemat budujemy sami: we wsadzie nie ma LangChaina, który by to zrobił
+    # za nas — i to jest cena za −50%, opisana w `llm.check_batch`.
+    response_format = {"type": "json_schema",
+                       "json_schema": {"name": "prefill", "strict": True,
+                                       "schema": strict_schema(Prefill)}}
     requests = [
-        Request(
-            custom_id=f"task-{task['id']}",
-            params=MessageCreateParamsNonStreaming(
-                model=model,
-                max_tokens=16000,
-                system=SYSTEM,
-                messages=[{"role": "user", "content": build_prompt(task)}],
-                output_config={"format": {"type": "json_schema", "schema": schema}},
-            ),
-        )
+        llm.batch_request(
+            f"task-{task['id']}",
+            llm.batch_body(model, messages_for(task),
+                           max_tokens=MAX_OUTPUT_TOKENS,
+                           response_format=response_format))
         for task in tasks
     ]
-    results = llm.run_batch(anthropic_client, requests, model)
+    results = llm.run_batch(requests, model, client=client)
 
     for task in tasks:
-        result = results.get(f"task-{task['id']}")
-        if result is None or result.type != "succeeded":
-            reason = "brak wyniku" if result is None else result.type
-            spend.failures.append((str(task["id"]), f"wsad: {reason}"))
+        body, why = llm.batch_payload(results.get(f"task-{task['id']}"))
+        if body is None:
+            spend.failures.append((str(task["id"]), why))
             continue
-        message = result.message
-        text = next((b.text for b in message.content if b.type == "text"), "")
+        # Rachunek przed sprawdzeniem, tak samo jak wyżej: odpowiedź, której
+        # nie da się sparsować, też jest opłacona.
+        input_tokens, output_tokens = llm.usage_of(body.get("usage"))
+        spend.add(input_tokens, output_tokens)
+        choice = (body.get("choices") or [{}])[0]
+        message = choice.get("message") or {}
+        if message.get("refusal"):
+            spend.failures.append(
+                (str(task["id"]), f"odmowa modelu: {message['refusal']}"))
+            continue
         try:
-            parsed = parse_payload(text)
+            parsed = parse_payload(message.get("content") or "")
         except Exception as e:
             spend.failures.append((str(task["id"]), f"odpowiedź nie w schemacie: {e}"))
             continue
-        spend.add(message.usage.input_tokens, message.usage.output_tokens)
         out[task["id"]] = {"data": parsed.model_dump(),
-                           "input": message.usage.input_tokens,
-                           "output": message.usage.output_tokens}
+                           "input": input_tokens, "output": output_tokens}
     return out
 
 
@@ -355,12 +377,14 @@ def main() -> int:
     ap.add_argument("--variant", default=None, help="np. 100")
     ap.add_argument("--model", default=llm.DEFAULT_MODEL,
                     choices=sorted(llm.PRICING),
-                    help="model jest parametrem przebiegu — porównanie jakości "
-                         "przy 5× różnicy ceny jest częścią pomiaru S6")
+                    help="`dostawca:nazwa` — model i dostawca są parametrem "
+                         "przebiegu; porównanie jakości przy 10× różnicy ceny "
+                         "(terra kontra luna) jest częścią pomiaru S6")
     ap.add_argument("--limit", type=int, default=20,
                     help="ile zadań (próbka S6 to ≥20 zadań otwartych)")
     ap.add_argument("--batch", action="store_true",
-                    help="przez Batch API — o połowę taniej, wynik po godzinach")
+                    help="przez Batch API — o połowę taniej, wynik po godzinach; "
+                         f"dostawcy z adapterem: {', '.join(llm.BATCH_PROVIDERS)}")
     ap.add_argument("--report", default=None)
     args = ap.parse_args()
 

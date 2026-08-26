@@ -268,7 +268,8 @@ tasks:
   # --------------------------------------------------------------- LLM (G2.5)
   # Wywołań modelu NIE MA w CI: testy chodzą na utrwalonych odpowiedziach,
   # a te dwa polecenia uruchamia się ręcznie i płaci się za nie z budżetu
-  # badawczego alfy. Klucz stoi w .env (ANTHROPIC_API_KEY), nigdy w repozytorium.
+  # badawczego alfy. Klucz stoi w .env (OPENAI_API_KEY albo ANTHROPIC_API_KEY —
+  # zależnie od `--model dostawca:nazwa`), nigdy w repozytorium.
   prefill:
     desc: Podpowiedzi LLM do ekranu korekty — próbka pomiaru S6
     dir: ingest

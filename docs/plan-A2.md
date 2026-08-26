@@ -549,15 +549,25 @@ do korpusu bez bramki.** Provenance w statusach (`auto` → `approved`), nie w p
 
 Wspólna mechanika:
 
-- SDK `anthropic` (Python) w `pyproject.toml`; `ANTHROPIC_API_KEY` wyłącznie
+- **LangChain** (`init_chat_model`) w `pyproject.toml`, nie SDK dostawcy wprost:
+  dostawca jest parametrem przebiegu, więc `prefill.py` i `describe.py` nie znają
+  API pod spodem. Klucz (`OPENAI_API_KEY` albo `ANTHROPIC_API_KEY`) wyłącznie
   z `.env` (wpis w `.env.example`, wartość nigdy w repo).
-- Structured output (`client.messages.parse()` ze schematem Pydantica) — werdykt
-  ma być rekordem, nie prozą do parsowania.
-- Model jako **parametr przebiegu**, nie stała w kodzie: domyślnie `claude-opus-5`
-  ($5/$25 za MTok), porównawczo `claude-haiku-4-5` ($1/$5) — różnica jakości
-  przy 5× różnicy ceny to część pomiaru S6/S7, nie decyzja z góry.
+- Structured output (`with_structured_output(..., include_raw=True)` ze schematem
+  Pydantica) — werdykt ma być rekordem, nie prozą do parsowania. `include_raw`,
+  bo bez niego przepada rachunek tokenów, a to on jest wynikiem alfy.
+- Model i dostawca jako **jeden parametr przebiegu** (`--model dostawca:nazwa`),
+  nie stała w kodzie: domyślnie `openai:gpt-5.6-terra` ($2/$12 za MTok),
+  porównawczo `openai:gpt-5.6-luna` ($0,20/$1,20) — **10× różnicy ceny w tej samej
+  rodzinie** — oraz `anthropic:claude-opus-5` ($5/$25) jako inny dostawca.
+  Różnica jakości przy tej różnicy ceny to część pomiaru S6/S7, nie decyzja z góry.
 - Przebiegi masowe (cały rocznik naraz) przez **Batch API** — −50% kosztu,
   wynik i tak czyta się następnego dnia w ekranie korekty.
+- **Batch API jest wyjątkiem od LangChaina.** `Runnable.batch()` to zrównoleglenie
+  po stronie klienta i pełna cena; wsad z rabatem to osobny endpoint dostawcy,
+  którego LangChain nie abstrahuje. `--batch` schodzi więc do surowego SDK
+  (adapter dla `openai`), a dostawca bez adaptera dostaje jawną odmowę zamiast
+  cichego rachunku podwójnej wysokości.
 - Licznik tokenów i kosztu per przebieg do `data/reports/` — ta sama dyscyplina,
   którą A3 wymusi w porcie `IGradingModel` (G3.2.2), zaczęta wcześniej.
 - **Wywołania LLM nie wchodzą do CI.** Testy jednostkowe pracują na utrwalonych

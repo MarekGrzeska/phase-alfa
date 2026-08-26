@@ -57,32 +57,29 @@ def test_schema_stays_the_parser_contract():
         "description", "expressions"}
 
 
-class FakeUsage:
-    input_tokens = 100
-    output_tokens = 20
+class FakeRaw:
+    """Surowa wiadomość spod `include_raw=True` — rachunek i powód końca."""
+
+    def __init__(self, finish_reason):
+        self.usage_metadata = {"input_tokens": 100, "output_tokens": 20}
+        self.response_metadata = {"finish_reason": finish_reason}
 
 
-class FakeResponse:
-    def __init__(self, parsed_output, stop_reason="end_turn"):
-        self.parsed_output = parsed_output
-        self.stop_reason = stop_reason
-        self.usage = FakeUsage()
+def reply(parsed, finish_reason="stop", parsing_error=None):
+    """Kształt, który oddaje `with_structured_output(..., include_raw=True)`."""
+    return {"raw": FakeRaw(finish_reason), "parsed": parsed,
+            "parsing_error": parsing_error}
 
 
-class FakeMessages:
+class FakeStructured:
     def __init__(self, replies):
         self._replies = list(replies)
 
-    def parse(self, **_):
-        reply = self._replies.pop(0)
-        if isinstance(reply, Exception):
-            raise reply
-        return reply
-
-
-class FakeClient:
-    def __init__(self, replies):
-        self.messages = FakeMessages(replies)
+    def invoke(self, _messages):
+        answer = self._replies.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
 
 
 def make_tasks(count):
@@ -91,37 +88,48 @@ def make_tasks(count):
 
 
 def test_refusal_does_not_take_earlier_answers_down_with_it():
-    """`parsed_output` jest `None` przy odmowie i przy ucięciu na `max_tokens`;
+    """`parsed` jest `None` przy odmowie i przy ucięciu na limicie tokenów;
     `.model_dump()` leciał na tym AttributeError POZA pętlę."""
     good = prefill.Prefill(criteria=[])
-    client = FakeClient([FakeResponse(good),
-                         FakeResponse(None, stop_reason="refusal"),
-                         FakeResponse(good)])
+    structured = FakeStructured([reply(good),
+                                 reply(None, finish_reason="content_filter"),
+                                 reply(good)])
     spend, out = llm.Spend(), {}
 
-    prefill._ask_one_by_one(client, make_tasks(3), llm.DEFAULT_MODEL, spend, out)
+    prefill._ask_one_by_one(structured, make_tasks(3), spend, out)
 
     assert sorted(out) == [1, 3], "odpowiedzi sprzed odmowy mają zostać"
     assert len(spend.failures) == 1
-    assert "refusal" in spend.failures[0][1]
+    assert "content_filter" in spend.failures[0][1]
 
 
 def test_refusal_still_lands_on_the_bill():
-    client = FakeClient([FakeResponse(None, stop_reason="max_tokens")])
+    structured = FakeStructured([reply(None, finish_reason="length")])
     spend, out = llm.Spend(), {}
 
-    prefill._ask_one_by_one(client, make_tasks(1), llm.DEFAULT_MODEL, spend, out)
+    prefill._ask_one_by_one(structured, make_tasks(1), spend, out)
 
     assert not out
     assert spend.calls == 1 and spend.output_tokens == 20
 
 
-def test_network_error_does_not_end_the_run():
-    client = FakeClient([FakeResponse(prefill.Prefill(criteria=[])),
-                         ConnectionError("zerwane połączenie")])
+def test_a_broken_schema_says_what_broke():
+    """`parsing_error` niesie konkret; sam `finish_reason: stop` kazałby szukać
+    powodu tam, gdzie go nie ma."""
+    structured = FakeStructured([reply(None, parsing_error=ValueError("brak `points`"))])
     spend, out = llm.Spend(), {}
 
-    prefill._ask_one_by_one(client, make_tasks(2), llm.DEFAULT_MODEL, spend, out)
+    prefill._ask_one_by_one(structured, make_tasks(1), spend, out)
+
+    assert "brak `points`" in spend.failures[0][1]
+
+
+def test_network_error_does_not_end_the_run():
+    structured = FakeStructured([reply(prefill.Prefill(criteria=[])),
+                                 ConnectionError("zerwane połączenie")])
+    spend, out = llm.Spend(), {}
+
+    prefill._ask_one_by_one(structured, make_tasks(2), spend, out)
 
     assert list(out) == [1]
     assert "ConnectionError" in spend.failures[0][1]

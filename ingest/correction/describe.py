@@ -69,6 +69,11 @@ SQL_ASSETS = """
     LIMIT %(limit)s"""
 
 
+# Opis to kilka zdań, ale modele myślące liczą do tego limitu także tokeny
+# rozumowania — przy limicie na miarę samego opisu grozi pusty tekst po opłacie.
+MAX_OUTPUT_TOKENS = 4000
+
+
 def build_prompt(asset: dict) -> str:
     lines = [f"Rysunek do zadania {asset['number']} (rodzaj: {asset['kind']})."]
     if asset.get("content"):
@@ -78,20 +83,25 @@ def build_prompt(asset: dict) -> str:
 
 
 def image_block(relative_path: str) -> dict:
-    """Wycinek z bloba jako blok obrazu. Brak pliku to błąd, nie pusty opis."""
+    """Wycinek z bloba jako blok obrazu. Brak pliku to błąd, nie pusty opis.
+
+    Postać `image_url` z URI danych, a nie blok natywny dostawcy: przyjmują ją
+    zarówno pakiety LangChaina, jak i konwerter do ciała wsadowego, więc obraz
+    jest budowany RAZ dla obu ścieżek.
+    """
     path = crop_pdf.target_path(relative_path)
     if not path.exists():
         raise crop_pdf.CropError(
             f"brak wycinka {relative_path} — najpierw `task crops` albo ręczna ramka")
     data = base64.standard_b64encode(path.read_bytes()).decode("ascii")
-    return {"type": "image",
-            "source": {"type": "base64", "media_type": "image/png", "data": data}}
+    return {"type": "image_url",
+            "image_url": {"url": f"data:image/png;base64,{data}"}}
 
 
-def message_for(asset: dict) -> list[dict]:
-    return [{"role": "user",
-             "content": [image_block(asset["path"]),
-                         {"type": "text", "text": build_prompt(asset)}]}]
+def message_for(asset: dict) -> list:
+    """Wiadomości w postaci LangChaina — te same dla przebiegu wsadowego."""
+    return llm.messages(SYSTEM, [image_block(asset["path"]),
+                                 {"type": "text", "text": build_prompt(asset)}])
 
 
 def collect_assets(cur, year, variant, limit, force) -> list[dict]:
@@ -103,7 +113,8 @@ def collect_assets(cur, year, variant, limit, force) -> list[dict]:
 def run(con, year=None, variant=None, model=llm.DEFAULT_MODEL, limit=20,
         batch=False, force=False) -> llm.Spend:
     llm.check_model(model)
-    anthropic_client = llm.client()
+    if batch:
+        llm.check_batch(model)
     spend = llm.Spend(model=model, batch=batch)
 
     with con.cursor(row_factory=dict_row) as cur:
@@ -113,8 +124,13 @@ def run(con, year=None, variant=None, model=llm.DEFAULT_MODEL, limit=20,
 
     described: dict[int, str] = {}
     try:
-        ask = _ask_batch if batch else _ask_one_by_one
-        ask(anthropic_client, wanted, model, spend, described)
+        if batch:
+            _ask_batch(wanted, model, spend, described)
+        else:
+            # Limit przy budowie modelu, nie przy wywołaniu: nazwę parametru
+            # mapuje na dostawcę LangChain (`max_completion_tokens` u OpenAI).
+            _ask_one_by_one(llm.chat_model(model, max_tokens=MAX_OUTPUT_TOKENS),
+                            wanted, spend, described)
     finally:
         # Odpowiedź jest opłacona, gdy wróci — awaria na dwunastym zasobie
         # nie ma prawa skasować jedenastu poprzednich.
@@ -135,7 +151,17 @@ def _store(con, described: dict[int, str]) -> None:
             )
 
 
-def _ask_one_by_one(anthropic_client, assets, model, spend, out) -> dict[int, str]:
+def _text_of(content) -> str:
+    """Treść odpowiedzi jako tekst — LangChain oddaje ją napisem albo blokami."""
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        return "".join(part.get("text", "") for part in content
+                       if isinstance(part, dict)).strip()
+    return ""
+
+
+def _ask_one_by_one(chat, assets, spend, out) -> dict[int, str]:
     for asset in assets:
         try:
             messages = message_for(asset)
@@ -143,13 +169,13 @@ def _ask_one_by_one(anthropic_client, assets, model, spend, out) -> dict[int, st
             spend.failures.append((asset["path"], str(e)))
             continue
         try:
-            response = anthropic_client.messages.create(
-                model=model, max_tokens=2000, system=SYSTEM, messages=messages)
+            response = chat.invoke(messages)
         except Exception as e:
             spend.failures.append((asset["path"], f"{type(e).__name__}: {e}"))
             continue
-        spend.add(response.usage.input_tokens, response.usage.output_tokens)
-        text = "".join(b.text for b in response.content if b.type == "text").strip()
+        # Rachunek przed sprawdzeniem: pusta odpowiedź też jest opłacona.
+        spend.add(*llm.usage_of(response))
+        text = _text_of(response.content)
         if not text:
             spend.failures.append((asset["path"], "model nie oddał tekstu"))
             continue
@@ -158,10 +184,7 @@ def _ask_one_by_one(anthropic_client, assets, model, spend, out) -> dict[int, st
     return out
 
 
-def _ask_batch(anthropic_client, assets, model, spend, out) -> dict[int, str]:
-    from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
-    from anthropic.types.messages.batch_create_params import Request
-
+def _ask_batch(assets, model, spend, out, client=None) -> dict[int, str]:
     requests, wanted = [], []
     for asset in assets:
         try:
@@ -170,24 +193,21 @@ def _ask_batch(anthropic_client, assets, model, spend, out) -> dict[int, str]:
             spend.failures.append((asset["path"], str(e)))
             continue
         wanted.append(asset)
-        requests.append(Request(
-            custom_id=f"asset-{asset['id']}",
-            params=MessageCreateParamsNonStreaming(
-                model=model, max_tokens=2000, system=SYSTEM, messages=messages),
-        ))
+        requests.append(llm.batch_request(
+            f"asset-{asset['id']}",
+            llm.batch_body(model, messages, max_tokens=MAX_OUTPUT_TOKENS)))
     if not requests:
         return out
-    results = llm.run_batch(anthropic_client, requests, model)
+    results = llm.run_batch(requests, model, client=client)
 
     for asset in wanted:
-        result = results.get(f"asset-{asset['id']}")
-        if result is None or result.type != "succeeded":
-            spend.failures.append((asset["path"],
-                                   f"wsad: {'brak wyniku' if result is None else result.type}"))
+        body, why = llm.batch_payload(results.get(f"asset-{asset['id']}"))
+        if body is None:
+            spend.failures.append((asset["path"], why))
             continue
-        message = result.message
-        spend.add(message.usage.input_tokens, message.usage.output_tokens)
-        text = "".join(b.text for b in message.content if b.type == "text").strip()
+        spend.add(*llm.usage_of(body.get("usage")))
+        choice = (body.get("choices") or [{}])[0]
+        text = _text_of((choice.get("message") or {}).get("content"))
         if text:
             out[asset["id"]] = text
         else:
@@ -233,10 +253,12 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--year", type=int, default=None)
     ap.add_argument("--variant", default=None, help="np. 100")
-    ap.add_argument("--model", default=llm.DEFAULT_MODEL, choices=sorted(llm.PRICING))
+    ap.add_argument("--model", default=llm.DEFAULT_MODEL, choices=sorted(llm.PRICING),
+                    help="`dostawca:nazwa` — model i dostawca są parametrem przebiegu")
     ap.add_argument("--limit", type=int, default=20)
     ap.add_argument("--batch", action="store_true",
-                    help="przez Batch API — o połowę taniej, całe roczniki naraz")
+                    help="przez Batch API — o połowę taniej, całe roczniki naraz; "
+                         f"dostawcy z adapterem: {', '.join(llm.BATCH_PROVIDERS)}")
     ap.add_argument("--force", action="store_true",
                     help="opisz od nowa także te, które mają już opis z modelu; "
                          "opisów zatwierdzonych, poprawionych i własnych "
