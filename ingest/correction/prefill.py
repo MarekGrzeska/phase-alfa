@@ -127,7 +127,7 @@ def differences(parser_criteria: Sequence[dict], suggestion: Prefill) -> list[di
 
 # ── wejście-wyjście ────────────────────────────────────────────────────────
 
-SQL_ZADANIA = """
+SQL_TASKS = """
     SELECT t.id, t.number, t.max_points,
            (SELECT tv.content FROM task_version tv
              WHERE tv.task_id = t.id AND tv.content IS NOT NULL LIMIT 1) AS content
@@ -177,7 +177,7 @@ def marking_text(cur, task_id: int) -> str:
 
 
 def collect_tasks(cur, year, variant, model, limit) -> list[dict]:
-    cur.execute(SQL_ZADANIA, {"year": year, "variant": variant, "model": model,
+    cur.execute(SQL_TASKS, {"year": year, "variant": variant, "model": model,
                               "limit": limit})
     tasks = cur.fetchall()
     for task in tasks:

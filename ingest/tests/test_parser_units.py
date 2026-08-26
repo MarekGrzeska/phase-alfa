@@ -107,31 +107,32 @@ def test_wariant_bazowy_znosi_brak_kolumny():
     assert run.base_variant(None) == ""
 
 
-def _klucz(*zadania) -> K.Klucz:
-    k = K.Klucz(plik="x.pdf", dialekt="e8-2019", egzamin="e8")
-    k.zadania = list(zadania)
-    return k
+# Pola `K.Klucz` i `K.Zadanie` sa po polsku — to dlug `ingest/` z CLAUDE.md,
+# splacany osobnym zadaniem. Nazwy wlasne testu trzymaja sie reguly 4.
+def _key(*tasks) -> K.Klucz:
+    key = K.Klucz(plik="x.pdf", dialekt="e8-2019", egzamin="e8")
+    key.zadania = list(tasks)
+    return key
 
 
-def _zadanie(numer: str, typ: str, kryteria=()) -> K.Zadanie:
-    return K.Zadanie(numer=numer, punkty=1, kolejnosc=1, typ=typ,
-                     kryteria=list(kryteria))
+def _task(number: str, kind: str, criteria=()) -> K.Zadanie:
+    return K.Zadanie(numer=number, punkty=1, kolejnosc=1, typ=kind,
+                     kryteria=list(criteria))
 
 
-def test_klucz_2019_bez_kryteriow_zamknietych_to_norma():
+def test_a_2019_key_without_closed_criteria_is_the_norm():
     """Rocznik 2019 podaje dla zadań zamkniętych samą odpowiedź wzorcową."""
-    klucz = _klucz(_zadanie("1", "zamkniete"), _zadanie("2", "zamkniete"),
-                   _zadanie("16", "otwarte_krotkie", [{"punkty": 2}]))
-    assert K.zamkniete_bez_kryteriow(klucz) is True
+    key = _key(_task("1", "zamkniete"), _task("2", "zamkniete"),
+               _task("16", "otwarte_krotkie", [{"punkty": 2}]))
+    assert K.closed_without_criteria(key) is True
 
 
-def test_polowa_zadan_zamknietych_bez_kryteriow_to_dziura():
+def test_half_the_closed_tasks_without_criteria_is_a_gap():
     """Niezgodność WEWNĄTRZ klucza znaczy, że parser przegapił sekcję."""
-    klucz = _klucz(_zadanie("1", "zamkniete", [{"punkty": 1}]),
-                   _zadanie("2", "zamkniete"))
-    assert K.zamkniete_bez_kryteriow(klucz) is False
+    key = _key(_task("1", "zamkniete", [{"punkty": 1}]), _task("2", "zamkniete"))
+    assert K.closed_without_criteria(key) is False
 
 
-def test_klucz_bez_zadan_zamknietych_nie_odpowiada_na_to_pytanie():
+def test_a_key_without_closed_tasks_answers_nothing():
     """`None`, nie `True`: pytanie bez treści ma wyglądać inaczej niż norma."""
-    assert K.zamkniete_bez_kryteriow(_klucz(_zadanie("16", "otwarte_krotkie"))) is None
+    assert K.closed_without_criteria(_key(_task("16", "otwarte_krotkie"))) is None

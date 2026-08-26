@@ -36,7 +36,7 @@ MIN_ZADAN = 10
 # klucz gdzie indziej takie sekcje ma. Brak u wszystkich naraz to norma rocznika
 # 2019 — klucz podaje wtedy dla zadań zamkniętych samą odpowiedź wzorcową.
 # Mierzone z dokumentu, nie po roczniku: warianty 800 i Q00 z 2019 r. kryteria mają.
-SQL_ZAMKNIETE_BEZ_KRYTERIOW = """
+SQL_CLOSED_WITHOUT_CRITERIA = """
     SELECT count(*) FROM task t
     WHERE t.kind = 'closed'
       AND NOT EXISTS (SELECT 1 FROM criterion c WHERE c.task_id = t.id)
@@ -476,7 +476,7 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=(),
             WHERE t.kind <> 'closed' AND NOT EXISTS
             (SELECT 1 FROM criterion c WHERE c.task_id = t.id)"""),
         ("zadania zamknięte bez kryteriów w kluczu, który je ma",
-         SQL_ZAMKNIETE_BEZ_KRYTERIOW % "EXISTS"),
+         SQL_CLOSED_WITHOUT_CRITERIA % "EXISTS"),
         ("kryteria bez ani jednego warunku",
          """SELECT count(*) FROM criterion c WHERE NOT EXISTS
             (SELECT 1 FROM criterion_condition cc WHERE cc.criterion_id = c.id)"""),
@@ -491,9 +491,9 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=(),
     # Osobno i BEZ progu alarmu: to nie jest brak, tylko kształt dokumentu.
     # Wypisane, bo liczba ma być widoczna — cicho pominięta wracałaby co przebieg
     # jako pytanie „czemu tyle zadań nie ma kryteriów".
-    (norma,) = con.execute(SQL_ZAMKNIETE_BEZ_KRYTERIOW % "NOT EXISTS").fetchone()
+    (by_norm,) = con.execute(SQL_CLOSED_WITHOUT_CRITERIA % "NOT EXISTS").fetchone()
     print("  %-44s %5d  (norma dokumentu, nie brak)"
-          % ("zadania zamknięte bez kryteriów — rocznik 2019", norma))
+          % ("zadania zamknięte bez kryteriów — rocznik 2019", by_norm))
     for sciezka, numer, pmax, pkt in con.execute(
             """SELECT d.path, t.number, t.max_points, c.points
                FROM criterion c JOIN task t ON t.id = c.task_id

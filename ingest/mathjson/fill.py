@@ -38,7 +38,7 @@ CONVERTER = HERE / "convert.mjs"
 
 # Zakres pracy jak w ekranie korekty i w runnerze parsera: rocznik i wariant.
 # Pilot G2.6 idzie na roczniku 2025, a nie na 514 zapisach naraz.
-SQL_ZAPISY = """
+SQL_EXPRESSIONS = """
     SELECT ce.id, ce.expression, ce.mathjson_status
     FROM condition_expression ce
     JOIN criterion_condition cc ON cc.id = ce.condition_id
@@ -97,7 +97,7 @@ def run_converter(records: list[dict]) -> dict[int, dict]:
 def fill(con, year: int | None = None, variant: str | None = None,
          force: bool = False) -> dict:
     with con.cursor(row_factory=dict_row) as cur:
-        cur.execute(SQL_ZAPISY, {"year": year, "variant": variant, "force": force})
+        cur.execute(SQL_EXPRESSIONS, {"year": year, "variant": variant, "force": force})
         rows = cur.fetchall()
 
     to_convert: list[dict] = []

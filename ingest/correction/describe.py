@@ -46,7 +46,7 @@ Zasady:
 - Piszesz po polsku, zwięźle, pełnymi zdaniami. Bez wstępu „na rysunku widać".
 """
 
-SQL_ZASOBY = """
+SQL_ASSETS = """
     SELECT a.id, a.path, a.kind, a.description_status,
            t.number, tv.content
     FROM asset a
@@ -87,7 +87,7 @@ def message_for(asset: dict) -> list[dict]:
 
 
 def collect_assets(cur, year, variant, limit, force) -> list[dict]:
-    cur.execute(SQL_ZASOBY, {"year": year, "variant": variant, "limit": limit,
+    cur.execute(SQL_ASSETS, {"year": year, "variant": variant, "limit": limit,
                              "force": force})
     return cur.fetchall()
 

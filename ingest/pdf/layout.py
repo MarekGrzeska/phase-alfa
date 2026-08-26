@@ -151,10 +151,10 @@ class _PlumberPage(Page):
 
     def _read_shapes(self):
         out = []
-        for rodzaj, obiekty in (("image", self._raw.images), ("curve", self._raw.curves),
+        for kind, objects in (("image", self._raw.images), ("curve", self._raw.curves),
                                 ("rect", self._raw.rects), ("line", self._raw.lines)):
-            for o in obiekty:
-                out.append(Shape(rodzaj, o["x0"], o["top"], o["x1"], o["bottom"]))
+            for o in objects:
+                out.append(Shape(kind, o["x0"], o["top"], o["x1"], o["bottom"]))
         return out
 
 

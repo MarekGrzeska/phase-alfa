@@ -258,7 +258,7 @@ class Klucz:
     ostrzezenia: List[str] = field(default_factory=list)
 
 
-def zamkniete_bez_kryteriow(k: Klucz) -> Optional[bool]:
+def closed_without_criteria(k: Klucz) -> Optional[bool]:
     """Czy w TYM kluczu zadania zamknięte nie mają sekcji kryteriów — norma czy dziura.
 
     `True` = norma dokumentu (żadne zadanie zamknięte kryteriów nie ma; tak wygląda
@@ -284,7 +284,7 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     with open_pdf(path, engine=silnik) as doc:
         for page in doc:
             strony.append(reconstruct.page_text(page, pomin_przypisy=True))
-            naglowki += [(len(strony) - 1, y) for _, y in _pozycje_naglowkow(page)]
+            naglowki += [(len(strony) - 1, y) for _, y in _heading_positions(page)]
             # To w przypisach stoi numer Dz.U., po którym poznajemy obowiązującą podstawę.
             odciete = reconstruct.przypisy(page.chars)
             if odciete:
@@ -354,7 +354,7 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
         k.ostrzezenia.append("zadań otwartych bez kryteriów: %d z %d"
                              % (otwarte_bez, sum(1 for z in k.zadania
                                                  if z.typ != "zamkniete")))
-    if zamkniete_bez_kryteriow(k) is False:
+    if closed_without_criteria(k) is False:
         # Niezgodność WEWNĄTRZ klucza: część zadań zamkniętych ma sekcję kryteriów,
         # a część nie. Brak jej u wszystkich naraz jest normą rocznika 2019
         # i nie zasługuje na ostrzeżenie — brak u połowy znaczy, że parser
@@ -390,7 +390,7 @@ def _tekst_stopki(znaki) -> str:
     return "".join(out)
 
 
-def _pozycje_naglowkow(page) -> List[Tuple[str, float]]:
+def _heading_positions(page) -> List[Tuple[str, float]]:
     """(numer zadania, górna krawędź nagłówka) — w kolejności od góry strony."""
     wiersze: Dict[int, list] = {}
     for c in page.chars:
@@ -405,13 +405,13 @@ def _pozycje_naglowkow(page) -> List[Tuple[str, float]]:
     return sorted(out, key=lambda p: p[1])
 
 
-def _pasy_zadan(page) -> Dict[str, Tuple[float, float]]:
+def _task_bands(page) -> Dict[str, Tuple[float, float]]:
     """Pionowy zakres zadania na stronie: od jego nagłówka do następnego.
 
     Zakres jest wejściem wykrywania regionu graficznego — bez niego kandydatami
     byłyby kształty CAŁEJ strony i rysunek sąsiada wchodziłby do wycinka.
     """
-    naglowki = _pozycje_naglowkow(page)
+    naglowki = _heading_positions(page)
     out: Dict[str, Tuple[float, float]] = {}
     for i, (numer, gora) in enumerate(naglowki):
         dol = naglowki[i + 1][1] if i + 1 < len(naglowki) else page.height
@@ -833,7 +833,7 @@ def _szczegolowe(prawa: str, dial: Dialekt) -> List[dict]:
 # Zadanie odwołuje się do grafiki. Wzorzec rozstrzyga TAKŻE o rodzaju zasobu,
 # bo `asset.kind` czyta przeglądarka korpusu — „diagram" dla każdego rysunku
 # był uproszczeniem z czasu, gdy nikt tej kolumny nie oglądał.
-RODZAJE_GRAFIKI = (
+GRAPHIC_KINDS = (
     (re.compile(r"\bwykres\w*\b", re.I), "wykres"),
     (re.compile(r"\bdiagram\w*\b", re.I), "diagram"),
     (re.compile(r"\b(?:rysunek|rysunk\w+|siatc\w+|osi liczbowej)\b", re.I), "rysunek"),
@@ -841,11 +841,11 @@ RODZAJE_GRAFIKI = (
 
 # Zadanie z trzema osobnymi rysunkami na jednej stronie zdarza się; z dziesięcioma
 # nie — to znaczy, że klaster się rozsypał i lepiej oddać ramkę człowiekowi.
-MAX_ZASOBOW_NA_STRONE = 3
+MAX_ASSETS_PER_PAGE = 3
 
 
-def rodzaj_grafiki(tresc: str) -> Optional[str]:
-    for wzor, rodzaj in RODZAJE_GRAFIKI:
+def graphic_kind(tresc: str) -> Optional[str]:
+    for wzor, rodzaj in GRAPHIC_KINDS:
         if wzor.search(tresc):
             return rodzaj
     return None
@@ -864,7 +864,7 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
         stron = len(doc)
         for page in doc:
             txt = reconstruct.page_text(page, pomin_przypisy=True)
-            pasy = _pasy_zadan(page)
+            bands = _task_bands(page)
             for m in RE_ZADANIE.finditer(txt):
                 nr = m.group(1)
                 nast = RE_ZADANIE.search(txt, m.end())
@@ -877,16 +877,16 @@ def czytaj_arkusz(path: str, silnik: str = "pdfplumber") -> Tuple[dict, int]:
                 # Numer zadania trafia się na dwóch stronach — zasoby liczą się
                 # raz na stronę, nie raz na trafienie nagłówka.
                 strony_zasobow = {z["strona"] for z in out[nr]["zasoby"]}
-                rodzaj = rodzaj_grafiki(tresc)
+                rodzaj = graphic_kind(tresc)
                 if rodzaj is None or page.number + 1 in strony_zasobow:
                     continue
-                pas = pasy.get(nr)
-                ramki = regions.detect(page, *pas) if pas else []
-                for bbox in ramki[:MAX_ZASOBOW_NA_STRONE]:
+                band = bands.get(nr)
+                frames = regions.detect(page, *band) if band else []
+                for bbox in frames[:MAX_ASSETS_PER_PAGE]:
                     out[nr]["zasoby"].append({"rodzaj": rodzaj,
                                               "strona": page.number + 1,
                                               "bbox": [float(v) for v in bbox]})
-                if not ramki:
+                if not frames:
                     # Automat nie domknął — zasób zostaje z ramką całej strony
                     # i przejmuje go ręczne dociągnięcie z G2.4.2. To zawór
                     # nr 3 z Planu Implementacji, nie awaria przebiegu.

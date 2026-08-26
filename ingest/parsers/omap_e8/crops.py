@@ -30,7 +30,7 @@ for _stream in (sys.stdout, sys.stderr):
 # Parser wstawia ramkę „cała strona" z zerem w lewym górnym rogu, gdy automat
 # nie domknął regionu. Takiego zasobu NIE tniemy: wycinkiem byłby cały arkusz,
 # a w ekranie korekty wyglądałby na gotowy. Ramkę dociąga wtedy człowiek (G2.4.2).
-SQL_ZASOBY = """
+SQL_ASSETS = """
     SELECT a.id, a.path, a.page, a.bbox, p.path AS paper_path
     FROM asset a
     JOIN task_version tv ON tv.id = a.task_version_id
@@ -45,7 +45,7 @@ def whole_page(bbox) -> bool:
 
 
 def assets(cur, document: int | None = None) -> list[dict]:
-    cur.execute(SQL_ZASOBY, {"document": document})
+    cur.execute(SQL_ASSETS, {"document": document})
     return cur.fetchall()
 
 
@@ -136,12 +136,12 @@ def main() -> int:
 
     with psycopg.connect(polaczenie(), autocommit=True) as con:
         if args.prune:
-            do_kasacji = orphans(con)
+            to_delete = orphans(con)
             root = crop_pdf.blob_root()
-            for relative in do_kasacji:
+            for relative in to_delete:
                 (root / relative).unlink()
-            print(f"Osieroconych plików skasowanych: {len(do_kasacji)}")
-            for relative in do_kasacji[:10]:
+            print(f"Osieroconych plików skasowanych: {len(to_delete)}")
+            for relative in to_delete[:10]:
                 print(f"  - {relative}")
             return 0
         print(report(cut_missing(con, force=args.force)))

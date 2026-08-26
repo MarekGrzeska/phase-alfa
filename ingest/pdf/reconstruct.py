@@ -94,7 +94,7 @@ def _scal_indeksy(s: str) -> str:
     return _RUN_SCRIPT.sub(_one, s)
 
 
-def _zloz(fragmenty: Sequence[tuple]) -> str:
+def _join_fragments(fragmenty: Sequence[tuple]) -> str:
     """Fragmenty `(x, tekst, czy_ulamek)` od lewej → tekst jednego segmentu.
 
     Ułamek tuż za cyfrą dostaje odstęp, bo `1⅔` to LICZBA MIESZANA — jeden
@@ -132,7 +132,7 @@ def render(chars: Sequence[Char], bars: Sequence[Bar]) -> str:
                 consumed.add(id(c))
         rest = [c for c in pool if id(c) not in consumed]
         local.extend((x, t, False) for x, t in _mark_scripts(rest))
-        return _zloz(local)
+        return _join_fragments(local)
 
     for bar in sorted(bars, key=lambda b: b.x0):
         pietra = _pietra(chars, bar)
@@ -149,7 +149,7 @@ def render(chars: Sequence[Char], bars: Sequence[Bar]) -> str:
             taken.add(id(c))
     parts.extend((x, t, False) for x, t
                  in _mark_scripts([c for c in chars if id(c) not in taken]))
-    return _zloz(parts)
+    return _join_fragments(parts)
 
 
 def band_text(page, y_top: float, y_bottom: float) -> str:

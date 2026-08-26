@@ -672,7 +672,7 @@ def test_strona_zeszytu_bez_zeszytu_mowi_co_zrobic(client, con, task, zasob):
     assert "--with-papers" in response.text
 
 
-def _zamkniete(con, task, kryteria_gdzie_indziej: bool) -> int:
+def _zamkniete(con, task, criteria_elsewhere: bool) -> int:
     """Zadanie zamknięte bez kryteriów w tym samym kluczu co `task`."""
     with con.cursor() as cur:
         cur.execute("SELECT marking_scheme_id FROM task WHERE id = %s", (task["id"],))
@@ -683,7 +683,7 @@ def _zamkniete(con, task, kryteria_gdzie_indziej: bool) -> int:
             (document,),
         )
         closed = cur.fetchone()["id"]
-        if kryteria_gdzie_indziej:
+        if criteria_elsewhere:
             cur.execute(
                 "INSERT INTO task (marking_scheme_id, number, position, max_points, "
                 "kind, page) VALUES (%s, '2', 2, 1, 'closed', 2) RETURNING id",
@@ -695,14 +695,14 @@ def _zamkniete(con, task, kryteria_gdzie_indziej: bool) -> int:
     return closed
 
 
-def test_zamkniete_bez_kryteriow_to_norma_gdy_klucz_ich_nie_ma(client, con, task):
+def test_closed_without_criteria_is_the_norm_when_the_key_has_none(client, con, task):
     """Rocznik 2019: klucz podaje dla zadań zamkniętych samą odpowiedź wzorcową.
 
     Korektor ma zobaczyć kształt dokumentu, a nie szukać po kluczu sekcji,
     której w nim nie ma — inaczej rocznik 2019 kosztuje 90 razy po minucie
     szukania czegoś, czego nie ma.
     """
-    closed = _zamkniete(con, task, kryteria_gdzie_indziej=False)
+    closed = _zamkniete(con, task, criteria_elsewhere=False)
 
     response = client.get(f"/task/{closed}")
 
@@ -711,9 +711,9 @@ def test_zamkniete_bez_kryteriow_to_norma_gdy_klucz_ich_nie_ma(client, con, task
     assert "dziura" not in response.text
 
 
-def test_zamkniete_bez_kryteriow_to_dziura_gdy_sasiad_je_ma(client, con, task):
+def test_closed_without_criteria_is_a_gap_when_a_sibling_has_them(client, con, task):
     """Niezgodność wewnątrz klucza znaczy, że parser przegapił sekcję."""
-    closed = _zamkniete(con, task, kryteria_gdzie_indziej=True)
+    closed = _zamkniete(con, task, criteria_elsewhere=True)
 
     response = client.get(f"/task/{closed}")
 
