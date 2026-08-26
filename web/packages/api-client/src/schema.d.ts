@@ -21,14 +21,254 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/corpus/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Formy arkusza obecne w korpusie — z liczbą zatwierdzonych zadań */
+        get: operations["ListForms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/corpus/forms/{id}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Zadania jednej formy: numer, pula punktów, rodzaj, czy ma rysunek */
+        get: operations["ListFormTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/corpus/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pełne drzewo zadania: wersje, kryteria, wymagania, reguły */
+        get: operations["GetTask"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/corpus/assets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Wycinek PNG strumieniem przez skład blobów */
+        get: operations["GetAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/corpus/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Postęp korekty per rocznik i statystyka półautomatu */
+        get: operations["GetProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Asset: {
+            /** Format: int32 */
+            id: number | string;
+            kind: string;
+            description: null | string;
+            descriptionStatus: string;
+        };
+        ConditionExpression: {
+            /** Format: int32 */
+            id: number | string;
+            expression: string;
+            mathJson: null | components["schemas"]["JsonNode"];
+            mathJsonStatus: string;
+        };
+        CorpusProgress: {
+            years: components["schemas"]["YearProgress"][];
+            totals: components["schemas"]["ProgressTotals"];
+        };
+        Criterion: {
+            /** Format: int32 */
+            id: number | string;
+            /** Format: int32 */
+            points: number | string;
+            label: null | string;
+            description: null | string;
+            conditions: components["schemas"]["CriterionCondition"][];
+        };
+        CriterionCondition: {
+            /** Format: int32 */
+            id: number | string;
+            description: string;
+            expressions: components["schemas"]["ConditionExpression"][];
+        };
+        ExampleSolution: {
+            /** Format: int32 */
+            id: number | string;
+            /** Format: int32 */
+            points: number | string;
+            method: null | string;
+            content: string;
+        };
+        FormSummary: {
+            /** Format: int32 */
+            id: number | string;
+            code: string;
+            variant: string;
+            version: null | string;
+            /** Format: date */
+            session: string;
+            /** Format: int32 */
+            tasks: number | string;
+            /** Format: int32 */
+            points: number | string;
+        };
         HealthResponse: {
             status: string;
             database: boolean;
             version: string;
+        };
+        JsonNode: unknown;
+        ModelAnswer: {
+            /** Format: int32 */
+            id: number | string;
+            part: null | string;
+            answer: string;
+        };
+        ProgressTotals: {
+            /** Format: int32 */
+            tasks: number | string;
+            /** Format: int32 */
+            decided: number | string;
+            /** Format: int32 */
+            approved: number | string;
+            /** Format: int32 */
+            corrected: number | string;
+            /** Format: int32 */
+            rejected: number | string;
+            /** Format: int32 */
+            pending: number | string;
+            /** Format: double */
+            hitShare: number | string;
+            /** Format: int32 */
+            assets: number | string;
+            /** Format: int32 */
+            assetsDescribed: number | string;
+            /** Format: int32 */
+            expressions: number | string;
+            /** Format: int32 */
+            expressionsWithMathJson: number | string;
+        };
+        Requirement: {
+            /** Format: int32 */
+            id: number | string;
+            regime: string;
+            kind: string;
+            stage: null | string;
+            path: string;
+            content: string;
+        };
+        Rule: {
+            /** Format: int32 */
+            id: number | string;
+            kind: string;
+            content: string;
+            tasksFrom: null | string;
+            tasksTo: null | string;
+        };
+        TaskDetail: {
+            /** Format: int32 */
+            id: number | string;
+            number: string;
+            /** Format: int32 */
+            maxPoints: number | string;
+            kind: string;
+            reviewStatus: string;
+            /** Format: int32 */
+            page: null | number | string;
+            versions: components["schemas"]["TaskVersion"][];
+            criteria: components["schemas"]["Criterion"][];
+            requirements: components["schemas"]["Requirement"][];
+            solutions: components["schemas"]["ExampleSolution"][];
+            rules: components["schemas"]["Rule"][];
+        };
+        TaskSummary: {
+            /** Format: int32 */
+            id: number | string;
+            number: string;
+            /** Format: int32 */
+            maxPoints: number | string;
+            kind: string;
+            hasAsset: boolean;
+            /** Format: int32 */
+            versions: number | string;
+        };
+        TaskVersion: {
+            /** Format: int32 */
+            id: number | string;
+            code: string;
+            variant: string;
+            version: null | string;
+            content: null | string;
+            /** Format: int32 */
+            page: null | number | string;
+            answers: components["schemas"]["ModelAnswer"][];
+            assets: components["schemas"]["Asset"][];
+        };
+        YearProgress: {
+            /** Format: int32 */
+            year: number | string;
+            /** Format: int32 */
+            total: number | string;
+            /** Format: int32 */
+            pending: number | string;
+            /** Format: int32 */
+            approved: number | string;
+            /** Format: int32 */
+            corrected: number | string;
+            /** Format: int32 */
+            rejected: number | string;
         };
     };
     responses: never;
@@ -55,6 +295,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    ListForms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormSummary"][];
+                };
+            };
+        };
+    };
+    ListFormTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskSummary"][];
+                };
+            };
+        };
+    };
+    GetTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorpusProgress"];
                 };
             };
         };
