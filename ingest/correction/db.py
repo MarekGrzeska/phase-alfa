@@ -264,6 +264,20 @@ def load_task(cur, task_id: int) -> dict | None:
                                    if c["criterion_id"] == criterion["id"]]
     task["criteria"] = criteria
 
+    # Czy zadanie zamknięte BEZ kryteriów jest w tym kluczu normą, czy dziurą.
+    # Rocznik 2019 podaje dla zadań zamkniętych samą odpowiedź wzorcową i sekcji
+    # kryteriów nie ma tam wcale — korektor ma to zobaczyć jako kształt dokumentu,
+    # a nie szukać po kluczu czegoś, czego w nim nie ma. Mierzone z dokumentu,
+    # nie po roczniku: warianty 800 i Q00 z 2019 r. te sekcje mają.
+    cur.execute(
+        """SELECT EXISTS (SELECT 1 FROM task t
+                            JOIN criterion c ON c.task_id = t.id
+                           WHERE t.marking_scheme_id = %s AND t.kind = 'closed')
+             AS found""",
+        (task["document_id"],),
+    )
+    task["closed_have_criteria"] = cur.fetchone()["found"]
+
     cur.execute(
         """SELECT r.id, r.kind, r.stage, r.path, r.content, rr.code AS regime
            FROM task_requirement tr

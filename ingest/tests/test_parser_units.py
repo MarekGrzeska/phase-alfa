@@ -105,3 +105,33 @@ def test_wariant_bazowy_znosi_brak_kolumny():
     assert run.base_variant("100,X") == "100"
     assert run.base_variant("") == ""
     assert run.base_variant(None) == ""
+
+
+def _klucz(*zadania) -> K.Klucz:
+    k = K.Klucz(plik="x.pdf", dialekt="e8-2019", egzamin="e8")
+    k.zadania = list(zadania)
+    return k
+
+
+def _zadanie(numer: str, typ: str, kryteria=()) -> K.Zadanie:
+    return K.Zadanie(numer=numer, punkty=1, kolejnosc=1, typ=typ,
+                     kryteria=list(kryteria))
+
+
+def test_klucz_2019_bez_kryteriow_zamknietych_to_norma():
+    """Rocznik 2019 podaje dla zadań zamkniętych samą odpowiedź wzorcową."""
+    klucz = _klucz(_zadanie("1", "zamkniete"), _zadanie("2", "zamkniete"),
+                   _zadanie("16", "otwarte_krotkie", [{"punkty": 2}]))
+    assert K.zamkniete_bez_kryteriow(klucz) is True
+
+
+def test_polowa_zadan_zamknietych_bez_kryteriow_to_dziura():
+    """Niezgodność WEWNĄTRZ klucza znaczy, że parser przegapił sekcję."""
+    klucz = _klucz(_zadanie("1", "zamkniete", [{"punkty": 1}]),
+                   _zadanie("2", "zamkniete"))
+    assert K.zamkniete_bez_kryteriow(klucz) is False
+
+
+def test_klucz_bez_zadan_zamknietych_nie_odpowiada_na_to_pytanie():
+    """`None`, nie `True`: pytanie bez treści ma wyglądać inaczej niż norma."""
+    assert K.zamkniete_bez_kryteriow(_klucz(_zadanie("16", "otwarte_krotkie"))) is None

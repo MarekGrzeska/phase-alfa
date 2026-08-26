@@ -258,6 +258,23 @@ class Klucz:
     ostrzezenia: List[str] = field(default_factory=list)
 
 
+def zamkniete_bez_kryteriow(k: Klucz) -> Optional[bool]:
+    """Czy w TYM kluczu zadania zamknięte nie mają sekcji kryteriów — norma czy dziura.
+
+    `True` = norma dokumentu (żadne zadanie zamknięte kryteriów nie ma; tak wygląda
+    rocznik 2019, gdzie klucz podaje dla nich samą odpowiedź wzorcową).
+    `False` = kryteria tam są, więc zadanie zamknięte bez nich jest dziurą.
+    `None` = klucz nie ma zadań zamkniętych, więc pytanie jest bez treści.
+
+    Mierzone z dokumentu, nie wpisane po roczniku: w 2019 r. warianty 800 i Q00
+    kryteria dla zadań zamkniętych MAJĄ, choć sześć pozostałych nie ma.
+    """
+    zamkniete = [z for z in k.zadania if z.typ == "zamkniete"]
+    if not zamkniete:
+        return None
+    return not any(z.kryteria for z in zamkniete)
+
+
 def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     """Klucz oceniania → rekordy w kształcie `schema.sql`."""
     strony: List[str] = []
@@ -332,10 +349,20 @@ def czytaj_klucz(path: str, silnik: str = "pdfplumber") -> Klucz:
     if bez_tabeli:
         k.ostrzezenia.append("zadań bez wymagań podstawy: %d z %d"
                              % (bez_tabeli, len(k.zadania)))
-    bez_kryteriow = sum(1 for z in k.zadania if not z.kryteria)
-    if bez_kryteriow:
-        k.ostrzezenia.append("zadań bez kryteriów: %d z %d"
-                             % (bez_kryteriow, len(k.zadania)))
+    otwarte_bez = sum(1 for z in k.zadania if z.typ != "zamkniete" and not z.kryteria)
+    if otwarte_bez:
+        k.ostrzezenia.append("zadań otwartych bez kryteriów: %d z %d"
+                             % (otwarte_bez, sum(1 for z in k.zadania
+                                                 if z.typ != "zamkniete")))
+    if zamkniete_bez_kryteriow(k) is False:
+        # Niezgodność WEWNĄTRZ klucza: część zadań zamkniętych ma sekcję kryteriów,
+        # a część nie. Brak jej u wszystkich naraz jest normą rocznika 2019
+        # i nie zasługuje na ostrzeżenie — brak u połowy znaczy, że parser
+        # przegapił sekcję i trzeba na to popatrzeć.
+        brak = [z.numer for z in k.zadania if z.typ == "zamkniete" and not z.kryteria]
+        if brak:
+            k.ostrzezenia.append("zadań zamkniętych bez kryteriów mimo klucza, "
+                                 "który je ma: %s" % ", ".join(brak[:8]))
     bez_odpowiedzi = sum(1 for z in k.zadania
                          if z.typ == "zamkniete" and not z.odpowiedzi)
     if bez_odpowiedzi:

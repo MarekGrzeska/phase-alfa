@@ -218,10 +218,21 @@
           <button name="action" value="add:condition:{{ c.id }}" class="small">+ warunek</button>
         </div>
       {% else %}
-        <p class="small">
-          Brak kryteriów. Dla zadań zamkniętych rocznika 2019 to norma dokumentu,
-          nie brak parsera — klucz nie ma wtedy sekcji kryteriów w ogóle.
-        </p>
+        {% if task.kind == 'closed' and not task.closed_have_criteria %}
+          <p class="small">
+            Brak kryteriów to tu <strong>norma dokumentu</strong>: ten klucz nie ma
+            sekcji kryteriów dla żadnego zadania zamkniętego — tak wygląda rocznik
+            2019, gdzie oceny pilnuje sama odpowiedź wzorcowa. Nie ma czego szukać
+            w kluczu; zatwierdź, gdy odpowiedź się zgadza.
+          </p>
+        {% else %}
+          <p class="small" style="color:var(--warn)">
+            Brak kryteriów to tu <strong>dziura</strong>, nie norma:
+            {% if task.kind == 'closed' %}inne zadania zamknięte tego klucza kryteria
+            mają{% else %}zadanie otwarte bez progów nie da się ocenić{% endif %}.
+            Dopisz progi z klucza albo odrzuć rekord.
+          </p>
+        {% endif %}
       {% endfor %}
       <button name="action" value="add:criterion" class="small">+ próg punktowy</button>
     </div>

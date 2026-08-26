@@ -32,6 +32,19 @@ PROG_ODPOWIEDZI = 0.95       # udział zadań zamkniętych z odpowiedzią wzorco
 PROG_KRYTERIA = 0.90         # udział zadań otwartych z kryteriami
 MIN_ZADAN = 10
 
+# Zadanie zamknięte bez sekcji kryteriów jest DZIURĄ tylko wtedy, gdy ten sam
+# klucz gdzie indziej takie sekcje ma. Brak u wszystkich naraz to norma rocznika
+# 2019 — klucz podaje wtedy dla zadań zamkniętych samą odpowiedź wzorcową.
+# Mierzone z dokumentu, nie po roczniku: warianty 800 i Q00 z 2019 r. kryteria mają.
+SQL_ZAMKNIETE_BEZ_KRYTERIOW = """
+    SELECT count(*) FROM task t
+    WHERE t.kind = 'closed'
+      AND NOT EXISTS (SELECT 1 FROM criterion c WHERE c.task_id = t.id)
+      AND %s (SELECT 1 FROM task t2
+                JOIN criterion c2 ON c2.task_id = t2.id
+               WHERE t2.marking_scheme_id = t.marking_scheme_id
+                 AND t2.kind = 'closed')"""
+
 
 def base_variant(variants: str | None) -> str:
     """Pierwszy człon kolumny `warianty`: "100,X" → "100"; litera to wersja zeszytu."""
@@ -437,13 +450,26 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
         ("próg punktowy wyższy niż pula zadania",
          """SELECT count(*) FROM criterion c JOIN task t ON t.id = c.task_id
             WHERE c.points > t.max_points"""),
-        ("zadania bez progu 0 pkt",
-         """SELECT count(*) FROM task t WHERE NOT EXISTS
-            (SELECT 1 FROM criterion c WHERE c.task_id = t.id AND c.points = 0)"""),
-        ("zadania bez progu za komplet punktów",
-         """SELECT count(*) FROM task t WHERE NOT EXISTS
-            (SELECT 1 FROM criterion c WHERE c.task_id = t.id
-             AND c.points = t.max_points)"""),
+        # „Bez progu" pyta się WYŁĄCZNIE o zadania, które jakieś kryteria mają.
+        # Zadanie zamknięte rocznika 2019 nie ma ich wcale i to jest cecha
+        # dokumentu — policzone razem z resztą dawało 90 rzekomych dziur
+        # i chowało te prawdziwe.
+        ("zadania z kryteriami, ale bez progu 0 pkt",
+         """SELECT count(*) FROM task t
+            WHERE EXISTS (SELECT 1 FROM criterion c WHERE c.task_id = t.id)
+              AND NOT EXISTS (SELECT 1 FROM criterion c
+                              WHERE c.task_id = t.id AND c.points = 0)"""),
+        ("zadania z kryteriami, ale bez progu za komplet",
+         """SELECT count(*) FROM task t
+            WHERE EXISTS (SELECT 1 FROM criterion c WHERE c.task_id = t.id)
+              AND NOT EXISTS (SELECT 1 FROM criterion c WHERE c.task_id = t.id
+                              AND c.points = t.max_points)"""),
+        ("zadania otwarte bez ani jednego kryterium",
+         """SELECT count(*) FROM task t
+            WHERE t.kind <> 'closed' AND NOT EXISTS
+            (SELECT 1 FROM criterion c WHERE c.task_id = t.id)"""),
+        ("zadania zamknięte bez kryteriów w kluczu, który je ma",
+         SQL_ZAMKNIETE_BEZ_KRYTERIOW % "EXISTS"),
         ("kryteria bez ani jednego warunku",
          """SELECT count(*) FROM criterion c WHERE NOT EXISTS
             (SELECT 1 FROM criterion_condition cc WHERE cc.criterion_id = c.id)"""),
@@ -455,6 +481,12 @@ def _raport(con, wyniki, pominiete, bledy, czas, lad, po_korekcie=()) -> None:
     ):
         (n,) = con.execute(sql).fetchone()
         print("  %-44s %5d" % (opis, n))
+    # Osobno i BEZ progu alarmu: to nie jest brak, tylko kształt dokumentu.
+    # Wypisane, bo liczba ma być widoczna — cicho pominięta wracałaby co przebieg
+    # jako pytanie „czemu tyle zadań nie ma kryteriów".
+    (norma,) = con.execute(SQL_ZAMKNIETE_BEZ_KRYTERIOW % "NOT EXISTS").fetchone()
+    print("  %-44s %5d  (norma dokumentu, nie brak)"
+          % ("zadania zamknięte bez kryteriów — rocznik 2019", norma))
     for sciezka, numer, pmax, pkt in con.execute(
             """SELECT d.path, t.number, t.max_points, c.points
                FROM criterion c JOIN task t ON t.id = c.task_id

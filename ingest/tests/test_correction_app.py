@@ -670,3 +670,53 @@ def test_strona_zeszytu_bez_zeszytu_mowi_co_zrobic(client, con, task, zasob):
 
     assert response.status_code == 404
     assert "--with-papers" in response.text
+
+
+def _zamkniete(con, task, kryteria_gdzie_indziej: bool) -> int:
+    """Zadanie zamknięte bez kryteriów w tym samym kluczu co `task`."""
+    with con.cursor() as cur:
+        cur.execute("SELECT marking_scheme_id FROM task WHERE id = %s", (task["id"],))
+        document = cur.fetchone()["marking_scheme_id"]
+        cur.execute(
+            "INSERT INTO task (marking_scheme_id, number, position, max_points, kind, "
+            "page) VALUES (%s, '1', 1, 1, 'closed', 2) RETURNING id",
+            (document,),
+        )
+        closed = cur.fetchone()["id"]
+        if kryteria_gdzie_indziej:
+            cur.execute(
+                "INSERT INTO task (marking_scheme_id, number, position, max_points, "
+                "kind, page) VALUES (%s, '2', 2, 1, 'closed', 2) RETURNING id",
+                (document,),
+            )
+            sasiad = cur.fetchone()["id"]
+            cur.execute("INSERT INTO criterion (task_id, points, position) "
+                        "VALUES (%s, 1, 1)", (sasiad,))
+    return closed
+
+
+def test_zamkniete_bez_kryteriow_to_norma_gdy_klucz_ich_nie_ma(client, con, task):
+    """Rocznik 2019: klucz podaje dla zadań zamkniętych samą odpowiedź wzorcową.
+
+    Korektor ma zobaczyć kształt dokumentu, a nie szukać po kluczu sekcji,
+    której w nim nie ma — inaczej rocznik 2019 kosztuje 90 razy po minucie
+    szukania czegoś, czego nie ma.
+    """
+    closed = _zamkniete(con, task, kryteria_gdzie_indziej=False)
+
+    response = client.get(f"/task/{closed}")
+
+    assert response.status_code == 200
+    assert "norma dokumentu" in response.text
+    assert "dziura" not in response.text
+
+
+def test_zamkniete_bez_kryteriow_to_dziura_gdy_sasiad_je_ma(client, con, task):
+    """Niezgodność wewnątrz klucza znaczy, że parser przegapił sekcję."""
+    closed = _zamkniete(con, task, kryteria_gdzie_indziej=True)
+
+    response = client.get(f"/task/{closed}")
+
+    assert response.status_code == 200
+    assert "dziura" in response.text
+    assert "norma dokumentu" not in response.text
