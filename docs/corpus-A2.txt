@@ -1,0 +1,71 @@
+KORPUS A2 — RAPORT KOMPLETNOŚCI · 2026-08-26 12:03
+──────────────────────────────────────────────────────────────────────────
+Kolumna „korpus” liczy po widoku `corpus_task` (zatwierdzone
+i poprawione). Kolumna „sparsowane” — po całej tabeli `task`.
+Różnica między nimi to praca, która została do zrobienia w ekranie korekty.
+
+DEFINICJA „ZROBIONE” DLA A2
+──────────────────────────────────────────────────────────────────────────
+  sprawdzian                                korpus   sparsowane
+  zadania                                        0         1436
+  zadania z bliźniakiem X/Y                      0          138
+  zadania z wymaganiem podstawy                  0         1436
+  zadania otwarte z kryteriami                   0          349
+  kryteria z ≥1 warunkiem                        0         3315
+  warunki z zapisem równoważnym                  0          215
+  zapisy z MathJSON (auto/approved)              0          414
+  zapisy świadomie `failed`                      0          100
+  zadania zamknięte z odpowiedzią                0         1087
+  zadania z zasobem graficznym                   0          479
+  zasoby z ramką węższą niż strona               0          558
+  zasoby z opisem zatwierdzonym                  0            0
+  reguły arkusza z zakresem zadań                0          489
+
+DZIURY — PYTANIA O BRAK
+──────────────────────────────────────────────────────────────────────────
+  sprawdzian                                korpus   sparsowane
+  zadania bez wymagania podstawy                 0            0
+  zadania otwarte bez kryteriów                  0            0
+  zasoby z ramką „cała strona”                   0           49
+  zasoby bez zatwierdzonego opisu                0          607
+  zapisy bez MathJSON i bez decyzji              0            0
+  wymagania bez ani jednego zadania            351            0
+
+POSTĘP KOREKTY PER ROCZNIK
+──────────────────────────────────────────────────────────────────────────
+  rocznik   sparsow.  bez zmian  poprawione  odrzuc.   czeka
+  2019           162          0           0        0     162
+  2020           162          0           0        0     162
+  2021           165          0           0        0     165
+  2022           165          0           0        0     165
+  2023           165          0           0        0     165
+  2024           201          0           0        0     201
+  2025           222          0           0        0     222
+  2026           194          0           0        0     194
+
+LICZBY DO WNIOSKU — S6, S7, S8
+──────────────────────────────────────────────────────────────────────────
+
+S6 — PREFILL LLM: KOREKTA Z PODPOWIEDZIĄ KONTRA BEZ
+──────────────────────────────────────────────────────────────────────────
+  ramię                zadań  rozstrz.  bez popr.   mediana
+  z podpowiedzią           0         0       0.0%        0s
+  bez podpowiedzi        349         0       0.0%        0s
+  (pomiar niegotowy — puste ramię; uruchom `task prefill` i skoryguj obie próby)
+
+S7 — OPISY RYSUNKÓW ZATWIERDZONE BEZ POPRAWKI
+──────────────────────────────────────────────────────────────────────────
+  zasobów razem          : 607
+  bez opisu              : 607
+  opis z modelu (auto)   : 0
+  zatwierdzone bez zmian : 0
+  poprawione             : 0
+  S7                     : brak rozstrzygnięć — pomiar niegotowy
+
+S8 — KOSZT PÓŁAUTOMATU
+──────────────────────────────────────────────────────────────────────────
+  rozstrzygnięć w dzienniku : 0
+  trafienia parsera         : 0.0% rekordów korpusu
+  mediana na zadanie        : 0 s
+  suma czasu korekty        : 0.0 h
+  zostało                   : 1436 zadań ≈ 0.0 h

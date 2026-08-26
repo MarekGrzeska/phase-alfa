@@ -18,7 +18,7 @@ Kontraktem między warstwami jest **schemat bazy plus pliki JSON golden setu**, 
 | Kamień | Zakres | Status |
 |---|---|---|
 | **A1** | Szkielet: monorepo, Postgres w Dockerze, monolit C# z granicami modułów, OpenAPI → klient TS, CI | G1.1 ✓ · G1.2 ✓ · G1.3 ✓ · G1.4 ✓ · G1.5 ✓ |
-| **A2** | Korpus: ekran korekty → parser OMAP E8 2019–2026 → zatwierdzone rekordy w bazie | G2.1 ✓ · G2.4.2 ✓ · G2.2 pilot w toku |
+| **A2** | Korpus: ekran korekty → parser OMAP E8 2019–2026 → zatwierdzone rekordy w bazie | G2.1 ✓ · G2.2 ✓ · G2.3 ✓ · G2.4 ✓ · G2.5 ✓ · G2.6 ✓ · G2.7 ✓ · W2 ✓ — **narzędzia komplet, korekta ręczna przed nami** |
 | A3 | Grading: pipeline 5 kroków, golden set, benchmark, macierz eksperymentów | |
 | A4 / W4 | Sesja zadań, mapa braków, telemetria, sprawdzian od zera | |
 
@@ -30,6 +30,7 @@ Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 - [`docs/plan-A1.md`](docs/plan-A1.md) — szczegółowy plan implementacji **G1.1–G1.5** (kamień A1)
 - [`docs/plan-A2.md`](docs/plan-A2.md) — szczegółowy plan implementacji **G2.1–G2.7 + W2** (kamień A2)
 - [`ingest/README.md`](ingest/README.md) · [`backend/README.md`](backend/README.md) · [`web/README.md`](web/README.md) — jak uruchomić i czego pilnują bramki w każdej z warstw
+- [`docs/decyzje-A2.md`](docs/decyzje-A2.md) — rozstrzygnięcia zapadłe w A2, gotowe do przeniesienia do `DECYZJE.md`
 - [`docs/g1.2-ingest.html`](docs/g1.2-ingest.html) — **G1.2** ingest: co powstało, co osiąga, jak podłączyć się do bazy DBeaverem
 - [`docs/review/`](docs/review/) — przeglądy kodu (G1.1–G1.4); plan mówi, co miało powstać, przegląd — co z tego wyszło
 
@@ -76,7 +77,12 @@ task dev       # dotnet watch + vite dev server
 task test      # testy: architektura, zero-DOM, regresja parsera, więzy schematu
 task ingest    # przebieg parsera (po A2)
 task correction        # ekran korekty — bramka między parserem a korpusem (G2.1)
-task correction:report # pomiar S8: stan korekty, czasy, prognoza
+task correction:report # pomiary S6, S7, S8: stan korekty, czasy, prognoza
+task crops     # wycinki PNG zasobów graficznych (G2.4)
+task mathjson  # zapisy równoważne → MathJSON (G2.6)
+task prefill   # podpowiedzi LLM do ekranu korekty — ręcznie, płatne (G2.5.1)
+task describe  # opisy rysunków (alt-text) — ręcznie, płatne (G2.5.2)
+task corpus:report     # kompletność korpusu — domknięcie A2 (G2.7)
 task bench     # benchmark golden setu (po A3)
 ```
 

@@ -11,7 +11,14 @@ task ingest -- --limit 8            # szybki przebieg parsera
 task ingest -- --wipe               # cały zakres od zera (~2,5 min)
 task ingest -- --year 2025 --variant 100 --with-papers   # pilot G2.2: jeden klucz z treściami
 task correction                     # ekran korekty na localhoście (G2.1)
-task correction:report              # pomiar S8 do data/reports/
+task correction:report              # pomiary S6, S7, S8 do data/reports/
+task crops                          # dotnij brakujące wycinki PNG (G2.4)
+task crops -- --prune               # skasuj pliki, do których nie prowadzi żaden zasób
+task mathjson                       # zapisy równoważne → MathJSON (G2.6)
+task prefill -- --year 2025 --limit 20    # podpowiedzi LLM, próbka S6 (płatne)
+task describe -- --year 2025 --batch      # opisy rysunków, S7 (płatne)
+task corpus:report                  # kompletność korpusu — domknięcie A2 (G2.7)
+task parser:snapshot -- --baseline ../data/reports/parser-przed.json
 task test:python                    # ruff + pytest
 ```
 
@@ -36,10 +43,12 @@ już pobrany obok, ustaw `MIRROR_ROOT=../cke-mirror` zamiast pobierać go drugi 
 | Katalog | Co |
 |---|---|
 | `mirror/` | `cke_mirror.py` — zwózka z cke.gov.pl, buduje `data/index/urls.tsv` |
-| `pdf/` | warstwa pozycyjna: `layout.py` (znaki, ramki, kreski; dwa silniki za jednym API) + `reconstruct.py` (ułamki, potęgi, NFKC, przypisy) |
-| `parsers/omap_e8/` | parser matematyki E8: `parser.py` → `loader.py` → `run.py` |
+| `pdf/` | warstwa pozycyjna: `layout.py` (znaki, ramki, kreski, kształty; dwa silniki za jednym API) + `reconstruct.py` (ułamki, potęgi, NFKC, przypisy) + `regions.py` (region grafiki) + `crop.py` (wycinek PNG) |
+| `parsers/omap_e8/` | parser matematyki E8: `parser.py` → `loader.py` → `run.py`; obok `crops.py` (wycinki) i `snapshot.py` (regresja bez bazy) |
+| `mathjson/` | konwerter zapisów równoważnych: `normalize.py` (Python) → `convert.mjs` (Node) → `fill.py` |
 | `schema/` | migracje SQL + runner — patrz [`schema/README.md`](schema/README.md) |
-| `correction/` | ekran korekty: `app.py` (FastAPI) → `db.py` (SQL) → `stats.py` (S8) |
+| `correction/` | ekran korekty: `app.py` (FastAPI) → `db.py` (SQL) → `stats.py` (S6/S7/S8); `prefill.py` i `describe.py` to warstwa LLM |
+| `reports/` | `corpus.py` — raport kompletności korpusu, liczony po widoku `corpus_task` |
 | `golden/` | golden set jako JSON (A3, jeszcze pusty) |
 | `tests/` | regresja warstwy pozycyjnej, więzy schematu, ładowanie korpusu, mirror |
 | `tests/fixtures/` | zrzuty stron (JSON) — regresja rekonstrukcji bez ani jednego PDF-a |
@@ -192,23 +201,146 @@ Dwa niezerowe wyniki mają wytłumaczenie w dokumentach, nie w parserze:
 - **1 próg ponad pulą** — literówka CKE w `OMAP-900-2105`: nagłówek `(0–2)`,
   a kryterium za 3 punkty. Parser oddaje dokument wiernie; gdyby to naprawiał,
   błąd zniknąłby z pola widzenia.
-- **90 zadań bez progu 0 pkt** — rocznik 2019 (6 kluczy × 15 zadań zamkniętych).
-  Ten układ dokumentu nie ma dla zadań zamkniętych sekcji kryteriów w ogóle.
+- **90 zadań zamkniętych bez kryteriów** — rocznik 2019 (6 kluczy × 15 zadań).
+  Ten układ dokumentu nie ma dla zadań zamkniętych sekcji kryteriów w ogóle,
+  więc od G2.3.1 stoi to w raporcie w **osobnym wierszu, bez progu alarmu**,
+  a liczniki „bez progu 0 pkt" pytają wyłącznie o zadania, które jakieś kryteria
+  mają. Ekran korekty mówi to samo przy pustej liście: „norma dokumentu" kontra
+  „dziura". Rozstrzyga POMIAR z dokumentu, nie rocznik wpisany w kod — w 2019 r.
+  warianty 800 i Q00 te sekcje mają.
 
-## Ograniczenia, które zostają po G1.2
+## Ograniczenia i to, co z nich zostało
 
-- **Liczby mieszane** — `1⅔ km` wychodzi jako `12/3`. Decyzja (naprawa w kodzie
-  czy ręczna korekta) należy do G2.3.2. Zamrożone testem `xfail` — zapali się
-  na zielono w dniu naprawy.
-- **Pierwiastki** — znak jest glifem, ale „daszek" bywa linią; zasięg nie jest
-  odtwarzany. Też `xfail`.
-- **`bbox` zasobu to cała strona**, nie wycinek wokół rysunku — wykrywanie
-  regionu grafiki to G2.4.
-- **`mathjson` w `condition_expression` jest puste** — konwerter to G2.6.
+- **Liczby mieszane** — naprawione w G2.3.2. `1⅔ km` to jedna wartość, więc
+  ułamek stojący tuż za cyfrą dostaje odstęp; sklejone `12/3` wyglądało jak
+  poprawny ułamek o innej wartości, czyli było błędem CICHYM. `xfail` zgasł.
+- **Pierwiastki** — **świadomie zostają ręcznej korekcie** (decyzja G2.3.2).
+  Zasięg „daszka" jest niejednoznaczny, wystąpień mało, a brak domknięcia widać
+  w ekranie przy zapisie. `xfail` zostaje z powodem „ŚWIADOMIE: korekta ręczna",
+  a konwerter MathJSON odmawia takich zapisów wprost, zamiast zgadywać zasięg.
+- **`bbox` zasobu** — od G2.4.1 to ramka wokół rysunku, nie cała strona.
+  Zmierzone na całym korpusie: 558 z 607 zasobów ma ramkę z automatu, 49 (8%)
+  czeka na ręczne dociągnięcie w ekranie.
+- **`mathjson`** — od G2.6 wypełnione dla 414 z 514 zapisów; 100 pozostałych ma
+  status `failed` z powodem po polsku, widoczny w ekranie korekty jako robota
+  do zrobienia.
 - **Fixture'y testowe nie zawierają arkuszy CKE.** Testy oznaczone `mirror`
   pomijają się bez mirrora; PDF-y wejdą do repo najwcześniej po odpowiedzi
   na zapytanie o komercyjne użycie (G0.1). Regresję rekonstrukcji trzyma
   zamiast nich zrzut trzech stron (`tests/fixtures/strony-omap-100-2505.json`):
   znaki, kreski i tabele, z których `reconstruct` odtwarza ten sam tekst.
   Test `test_zrzut_zgadza_sie_z_plikiem` (oznaczony `mirror`) pilnuje, żeby
-  zrzut nie rozjechał się z plikiem źródłowym.
+  zrzut nie rozjechał się z plikiem źródłowym. Wykrywanie regionu ma własny
+  zrzut trzech stron ZESZYTU (`arkusz-omap-100-x-2505.json`) — z kształtami,
+  bo pułapki tego kroku są geometryczne i nie da się ich wymyślić.
+- **Wywołań LLM nie ma w CI.** `task prefill` i `task describe` są ręczne
+  i płatne; testy chodzą na utrwalonych odpowiedziach.
+
+## Wykrywanie regionu graficznego (G2.4.1)
+
+Automat czyta obiekty graficzne z warstwy pozycyjnej, ogranicza je do **pionowego
+pasa zadania** i klastruje do skutku — diagram to zwykle kilkadziesiąt kresek,
+które mają zostać JEDNYM zasobem. Trzy filtry śmieci, każdy zmierzony na arkuszu:
+
+| Śmieć | Jak wygląda | Reguła |
+|---|---|---|
+| kreska pod odpowiedź ucznia | prostokąt 13,7 × 0,5 pt, 4479 sztuk na stronie | krótki i cienki naraz |
+| pasek pod nagłówkiem zadania | 456,6 × 14,6 pt | **dokładnie** szerokość kolumny tekstu |
+| tabela „Prawda / Fałsz" | siatka na pełną szerokość kolumny | klaster ≥ 0,97 kolumny |
+
+Filtrowania po wykrytych tabelach **nie ma świadomie**: pdfplumber widzi w wykresie
+słupkowym tabelę o dziewięciu wierszach, więc odsiewanie po nich skasowałoby właśnie
+tę grafikę, o którą chodzi. Wykres z 2025 r. zajmuje 0,86 szerokości kolumny, tabela
+odpowiedzi 0,99 — próg rozdziela je z zapasem.
+
+Gdy automat nie domknie, zasób zostaje z ramką całej strony i przejmuje go ręczne
+dociągnięcie z G2.4.2. To zawór, nie awaria.
+
+Cięcie PNG stoi **poza transakcją ładowania** (`parsers/omap_e8/crops.py`): dysk nie
+cofa się razem z transakcją, więc plik wycięty przed nieudanym zapisem zostawałby
+z ramką, której w bazie nie ma. To samo narzędzie sprząta bloba po `task db:reset` —
+reset kasuje wolumen Postgresa, a pliki PNG zostawia:
+
+```bash
+task crops              # dotnij brakujące
+task crops -- --prune   # skasuj osierocone pliki
+```
+
+## MathJSON (G2.6)
+
+```bash
+task mathjson:setup                  # jedyna zależność: @cortex-js/compute-engine
+task mathjson -- --year 2025         # pilot na jednym roczniku
+task mathjson                        # całe 514 zapisów
+```
+
+Bez MathJSON-a Compute Engine w A3 porównuje **stringi**, więc `2(x+1)` i `2x+2`
+są dla niego dwiema różnymi odpowiedziami. Podział ról nie jest wygodą:
+
+- **normalizacja tekstu CKE na LaTeX stoi w Pythonie** (`mathjson/normalize.py`),
+  bo to tam rodzą się pomyłki — `∶` (U+2236) znaczy dzielenie, przecinek jest
+  dziesiętny, ułamek z rekonstrukcji jest liniowy — i tam da się je przetestować
+  bez Node'a, czyli także w CI;
+- **parsowanie w Node** (`convert.mjs`), bo `@cortex-js/compute-engine` jest
+  referencyjną implementacją MathJSON i tym samym silnikiem, którego użyje A3.
+
+Trzy sita przed konwersją istnieją po to, żeby NIE powstał błąd cichy: ucięcie
+polskiego ogona („lub zapisy równoważne"), odmowa dla zdania („zapisanie P=15"
+weszłoby jako iloczyn dziewięciu symboli — MathJSON poprawny i bezwartościowy)
+i odmowa przy pierwiastku.
+
+| Status | Znaczy |
+|---|---|
+| `none` | jeszcze nie próbowano |
+| `auto` | konwerter przerobił, nikt nie sprawdzał |
+| `approved` | człowiek potwierdził w ekranie korekty |
+| `failed` | konwerter nie ugryzł — **jawny stan**, z powodem w `mathjson_error` |
+
+## LLM w ingeście (G2.5) — ręcznie i za pieniądze
+
+**Model proponuje, człowiek zatwierdza.** Nic stąd nie wchodzi do korpusu bez bramki
+ekranu korekty, a provenance niesie schemat (`prefill_suggestion`,
+`description_status='auto'`), nie pamięć autora.
+
+```bash
+task prefill -- --year 2025 --variant 100 --limit 20            # próbka S6
+task describe -- --year 2025 --variant 100 --batch              # opisy, S7
+task prefill -- --model claude-haiku-4-5 --limit 20             # porównanie modeli
+```
+
+Klucz stoi wyłącznie w `.env` (`ANTHROPIC_API_KEY`), wzór w `.env.example`.
+Model jest **parametrem przebiegu**: różnica jakości `claude-opus-5` ($5/$25 za MTok)
+kontra `claude-haiku-4-5` ($1/$5) przy pięciokrotnej różnicy ceny jest częścią pomiaru
+S6/S7, a nie decyzją podjętą z góry. Przebiegi masowe przez Batch API (`--batch`, −50%),
+bo wynik i tak czyta się następnego dnia w ekranie.
+
+Pomiar S6 nie potrzebuje pamiętania, kiedy prefill był włączony: **ramię wyznacza
+istnienie wiersza w `prefill_suggestion`**, a odsetek zatwierdzeń bez poprawki i czas
+na zadanie liczy `task correction:report` z dziennika korekty.
+
+## Raport kompletności korpusu (G2.7)
+
+```bash
+task corpus:report                    # do data/reports/
+task corpus:report -- --copy-to-docs  # kopia zbiorcza do repozytorium
+```
+
+Trzynaście liczników „co jest" i sześć pytań o BRAK, każdy liczony **dwa razy**:
+po widoku `corpus_task` i po całej tabeli `task`. Druga kolumna nie jest ozdobnikiem —
+bez niej raport z pustego korpusu wygląda dokładnie tak samo jak raport z korpusu,
+którego nikt nie sparsował, a **różnica między kolumnami JEST pracą, która została
+do zrobienia w ekranie korekty**.
+
+## Regresja parsera bez bazy
+
+```bash
+task parser:snapshot -- --out ../data/reports/parser-przed.json
+# ...poprawka w parserze...
+task parser:snapshot -- --baseline ../data/reports/parser-przed.json
+```
+
+Reguła z G2.3.1: po każdej poprawce parsera idzie przebieg kontrolny wszystkich
+75 kluczy. Poprawka dla rocznika 2019 nie ma prawa ruszyć liczb 2020–2026, a zrzut
+łapie to w dwie minuty — w ekranie korekty ta sama regresja kosztuje dzień. Zrzut
+trzyma liczniki **i skróty treści**, bo sama liczba kryteriów nie odróżnia „tyle samo
+progów" od „tyle samo progów o innym tekście".
