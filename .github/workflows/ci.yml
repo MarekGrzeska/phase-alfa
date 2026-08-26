@@ -136,7 +136,9 @@ jobs:
     timeout-minutes: 15
 
     # Baza stoi także tutaj: bez niej `Zywa_baza_daje_odpowiedz_ok` pomija się,
-    # a health check przestaje być czymkolwiek sprawdzonym.
+    # a health check przestaje być czymkolwiek sprawdzonym. Od W2.1 sama baza
+    # nie wystarcza — testy odczytu korpusu potrzebują SCHEMATU, więc migracje
+    # wchodzą osobnym krokiem niżej.
     services:
       db:
         image: postgres:17-alpine
@@ -157,9 +159,26 @@ jobs:
       DB_NAME: klucz
       DB_USER: klucz
       DB_PASSWORD: klucz_ci
+      PYTHONIOENCODING: utf-8
 
     steps:
       - uses: actions/checkout@v5
+
+      # Schemat stawia ten sam runner migracji co produkcyjnie — nie `schema.sql`
+      # wklejony do workflow. Testy odczytu korpusu (W2.1) czytaja widok
+      # `corpus_task`, wiec bez migracji pomijalyby sie z powodem „baza nie
+      # odpowiada", choc baza odpowiada doskonale, tylko jest pusta.
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Zaleznosci runnera migracji
+        working-directory: ingest
+        run: uv sync --frozen
+
+      - name: Migracje schematu
+        working-directory: ingest
+        run: uv run python -m schema.migrate
 
       # Wersja SDK z `backend/global.json` — CI i maszyna budują tym samym.
       # Cache pakietow trzyma sie `packages.lock.json`: zmiana wersji w
