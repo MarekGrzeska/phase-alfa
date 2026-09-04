@@ -29,6 +29,7 @@ Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 
 - [`docs/plan-A1.md`](docs/plan-A1.md) — szczegółowy plan implementacji **G1.1–G1.5** (kamień A1)
 - [`docs/plan-A2.md`](docs/plan-A2.md) — szczegółowy plan implementacji **G2.1–G2.7 + W2** (kamień A2)
+- [`docs/plan-A2-auto.md`](docs/plan-A2-auto.md) — **A2-auto**: korekta korpusu modelem, człowiek na próbce (decyzja MVP z 4.09.2026)
 - [`ingest/README.md`](ingest/README.md) · [`backend/README.md`](backend/README.md) · [`web/README.md`](web/README.md) — jak uruchomić i czego pilnują bramki w każdej z warstw
 - [`docs/decyzje-A2.md`](docs/decyzje-A2.md) — rozstrzygnięcia zapadłe w A2, gotowe do przeniesienia do `DECYZJE.md`
 - [`docs/g1.2-ingest.html`](docs/g1.2-ingest.html) — **G1.2** ingest: co powstało, co osiąga, jak podłączyć się do bazy DBeaverem
