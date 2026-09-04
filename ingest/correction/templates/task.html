@@ -6,8 +6,9 @@
   <span class="tag {{ task.review_status }}">{{ STATUS_LABELS[task.review_status] }}</span>
 {% endblock %}
 {% block actions %}
-  {% if nav.previous %}<a href="/task/{{ nav.previous }}{% if scope_query %}?{{ scope_query }}{% endif %}">← poprzednie</a>{% endif %}
-  {% if nav.next %}<a href="/task/{{ nav.next }}{% if scope_query %}?{{ scope_query }}{% endif %}">następne →</a>{% endif %}
+  {% if nav.previous %}<a href="/task/{{ nav.previous }}{% if scope_query %}?{{ scope_query }}{% endif %}" title="przejście bez zapisu formularza">← poprzednie</a>{% endif %}
+  {% if nav.next %}<a href="/task/{{ nav.next }}{% if scope_query %}?{{ scope_query }}{% endif %}" title="przejście bez zapisu formularza">następne →</a>{% endif %}
+  {% if nav.previous or nav.next %}<span class="small">(bez zapisu)</span>{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -24,9 +25,18 @@
   .del { font-size: .75rem; color: var(--crit); white-space: nowrap; }
   .hints { border-left: 3px solid var(--warn); padding: .4rem .7rem; margin-bottom: .8rem; }
   .hints ul { margin: .3rem 0 0; padding-left: 1.1rem; }
-  .decide { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center;
-            position: sticky; bottom: 0; background: var(--surface);
-            border-top: 1px solid var(--rule); padding: .7rem 0; }
+  .checklist ol { margin: 0; padding-left: 1.2rem; }
+  .checklist li { margin: .15rem 0; }
+  .decide { position: sticky; bottom: 0; margin-bottom: 0;
+            border-top: 2px solid var(--accent); box-shadow: 0 -6px 12px -8px rgba(0,0,0,.25); }
+  .decide .row { gap: .8rem; }
+  .decide .primary { padding: .5rem 1.1rem; font-size: 1rem; }
+  .decide p { margin: .6rem 0 0; }
+  /* Domyślny przycisk formularza: przeglądarka wysyła Enter z pola tekstowego
+     do PIERWSZEGO przycisku w drzewie. Bez tego Enter w „numer" trafiał
+     w „Wytnij" albo „+ próg punktowy". Ukryty poza ekranem, nie display:none —
+     przycisk niewidoczny dla układu część przeglądarek pomija. */
+  .default-submit { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 </style>
 
 <div class="split">
@@ -81,6 +91,8 @@
   </div>
 
   <form method="post" action="/task/{{ task.id }}">
+    <button type="submit" name="action" value="save" class="default-submit"
+            tabindex="-1" aria-hidden="true">Zapisz</button>
     <input type="hidden" name="started_at" value="{{ started_at }}">
     {% if page %}<input type="hidden" name="page" value="{{ page }}">{% endif %}
     {# Poprawki zapisane wcześniej w tej rundzie (dokładanie wiersza zapisuje
@@ -93,6 +105,25 @@
     {% for name, value in scope.items() if value is not none %}
       <input type="hidden" name="{{ name }}" value="{{ value }}">
     {% endfor %}
+
+    {% set unframed = task.assets|rejectattr('framed')|list %}
+    <div class="card checklist">
+      <h2>Co sprawdzasz w tym zadaniu</h2>
+      <ol class="small">
+        <li>Treść i odpowiedź wzorcowa zgadzają się z kluczem po lewej{% if task.kind == 'closed' %} — w zadaniu zamkniętym to jest cała ocena{% endif %}.</li>
+        {% if task.kind != 'closed' or task.criteria %}
+          <li>Progi punktowe, pod nimi warunki, pod warunkami zapisy równoważne. Każdy poziom to alternatywa: dowolny warunek daje próg.</li>
+        {% endif %}
+        <li>Wymaganie podstawy programowej jest dopięte.</li>
+        {% if task.assets %}
+          <li>Wycinek rysunku obejmuje sam rysunek, nie całą stronę{% if unframed %} — <strong style="color:var(--warn)">tu {{ unframed|length }} jeszcze bez ramki</strong>{% endif %}.</li>
+        {% endif %}
+      </ol>
+      <p class="small" style="margin:.5rem 0 0">
+        Przyciski „+ …" i „Wytnij" tylko zapisują i wracają tutaj. Enter w polu też.
+        Rozstrzyga dopiero „Zatwierdź" albo „Odrzuć" na dole.
+      </p>
+    </div>
 
     <div class="card">
       <h2>Zadanie</h2>
@@ -127,72 +158,6 @@
         <p class="small">Zadanie nie ma ani jednej wersji — to błąd ładowania, nie korekty.</p>
       {% endfor %}
     </div>
-
-    {% if task.assets %}
-    <div class="card">
-      <h2>Wycinki graficzne <span class="small">ramka w punktach PDF, od lewego górnego rogu</span></h2>
-      <p class="small">
-        Strona zeszytu obok ma siatkę: kreska co 50 pt, podpis co 100.
-        Odczytaj rogi rysunku, wpisz je i kliknij „Wytnij" — wycinek pokaże się
-        pod ramką. Poprawianie jest tanie, plik nadpisuje się w miejscu.
-      </p>
-      {% for a in task.assets %}
-        <div class="criterion">
-          <div class="row">
-            <span class="mono small">{{ a.variant }}{% if a.version %}-{{ a.version }}{% endif %} · {{ a.kind }}</span>
-            <label class="small">strona
-              <input name="asset.{{ a.id }}.page" value="{{ a.page }}" size="3">
-              {% if a.paper_pages %}<span class="small">z {{ a.paper_pages }}</span>{% endif %}
-            </label>
-            {% for name in ['x0', 'top', 'x1', 'bottom'] %}
-              <label class="small">{{ name }}
-                <input name="asset.{{ a.id }}.{{ name }}" value="{{ a.box[name] }}" size="6">
-              </label>
-            {% endfor %}
-            <button name="action" value="crop" class="small">Wytnij</button>
-            {% if not a.framed %}<span class="tag pending">ramka: cała strona</span>{% endif %}
-          </div>
-          <div class="split" style="margin-top:.5rem">
-            <div>
-              <p class="small" style="margin:0 0 .2rem">zeszyt zadań, strona {{ a.page }}</p>
-              {% if a.paper_path %}
-                <img src="/asset/{{ a.id }}/page.png?n={{ a.page }}" style="width:100%"
-                     alt="strona {{ a.page }} zeszytu zadań z siatką współrzędnych">
-              {% else %}
-                <p class="small">Brak zeszytu w bazie — przeładuj klucz poleceniem
-                  <span class="mono">task ingest -- --with-papers</span>.</p>
-              {% endif %}
-            </div>
-            <div>
-              <p class="small" style="margin:0 0 .2rem">wycinek <span class="mono">{{ a.path }}</span></p>
-              {% if a.cropped %}
-                <img src="/asset/{{ a.id }}.png" style="max-width:100%"
-                     alt="wycinek zasobu {{ a.id }}">
-              {% else %}
-                <p class="small">Jeszcze nie wycięty.</p>
-              {% endif %}
-            </div>
-          </div>
-          {# Alt-text (G2.5.2, pomiar S7). Test jakości jest jeden: czy z opisu
-             da się rozwiązać zadanie bez patrzenia na rysunek. #}
-          <div style="margin-top:.6rem">
-            <div class="row">
-              <span class="small">opis rysunku (alt-text)</span>
-              <span class="tag {{ 'approved' if a.description_status == 'approved'
-                                  else ('corrected' if a.description_status == 'corrected'
-                                        else 'pending') }}">{{ a.description_status }}</span>
-              <label class="small">
-                <input type="checkbox" name="asset.{{ a.id }}.approve_description" value="1">
-                zatwierdź opis
-              </label>
-            </div>
-            <textarea name="asset.{{ a.id }}.description" rows="3"
-                      placeholder="opis pozwalający rozwiązać zadanie bez oglądania rysunku — propozycję modelu dorzuca `task describe`">{{ a.description or '' }}</textarea>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-    {% endif %}
 
     <div class="card">
       <h2>Kryteria <span class="small">próg → warunek → zapis równoważny</span></h2>
@@ -298,18 +263,98 @@
       </div>
     </div>
 
-    <div class="decide">
-      <button name="action" value="approve" class="primary">Zatwierdź</button>
-      <button name="action" value="reject" class="danger">Odrzuć</button>
-      {% if task.review_status != 'pending' %}
-        <button name="action" value="reopen">Cofnij do korekty</button>
-      {% endif %}
-      <span class="small">
-        „Zatwierdź" zapisuje poprawki i rozstrzyga. Status wychodzi z porównania
-        z bazą, nie z deklaracji: bez zmian —
-        <span class="tag approved">zatwierdzone</span>, ze zmianami —
-        <span class="tag corrected">poprawione</span>.
-      </span>
+    {% if task.assets %}
+    <div class="card">
+      <h2>Wycinki graficzne <span class="small">ramka w punktach PDF, od lewego górnego rogu</span></h2>
+      <p class="small">
+        Strona zeszytu obok ma siatkę: kreska co 50 pt, podpis co 100.
+        Odczytaj rogi rysunku, wpisz je i kliknij „Wytnij" — wycinek pokaże się
+        pod ramką. Poprawianie jest tanie, plik nadpisuje się w miejscu.
+      </p>
+      {% for a in task.assets %}
+        <div class="criterion">
+          <div class="row">
+            <span class="mono small">{{ a.variant }}{% if a.version %}-{{ a.version }}{% endif %} · {{ a.kind }}</span>
+            <label class="small">strona
+              <input name="asset.{{ a.id }}.page" value="{{ a.page }}" size="3">
+              {% if a.paper_pages %}<span class="small">z {{ a.paper_pages }}</span>{% endif %}
+            </label>
+            {% for name in ['x0', 'top', 'x1', 'bottom'] %}
+              <label class="small">{{ name }}
+                <input name="asset.{{ a.id }}.{{ name }}" value="{{ a.box[name] }}" size="6">
+              </label>
+            {% endfor %}
+            <button name="action" value="crop" class="small">Wytnij</button>
+            {% if not a.framed %}<span class="tag pending">ramka: cała strona</span>{% endif %}
+          </div>
+          <div class="split" style="margin-top:.5rem">
+            <div>
+              <p class="small" style="margin:0 0 .2rem">zeszyt zadań, strona {{ a.page }}</p>
+              {% if a.paper_path %}
+                <img src="/asset/{{ a.id }}/page.png?n={{ a.page }}" style="width:100%"
+                     alt="strona {{ a.page }} zeszytu zadań z siatką współrzędnych">
+              {% else %}
+                <p class="small">Brak zeszytu w bazie — przeładuj klucz poleceniem
+                  <span class="mono">task ingest -- --with-papers</span>.</p>
+              {% endif %}
+            </div>
+            <div>
+              <p class="small" style="margin:0 0 .2rem">wycinek <span class="mono">{{ a.path }}</span></p>
+              {% if a.cropped %}
+                <img src="/asset/{{ a.id }}.png" style="max-width:100%"
+                     alt="wycinek zasobu {{ a.id }}">
+              {% else %}
+                <p class="small">Jeszcze nie wycięty.</p>
+              {% endif %}
+            </div>
+          </div>
+          {# Alt-text (G2.5.2, pomiar S7). Test jakości jest jeden: czy z opisu
+             da się rozwiązać zadanie bez patrzenia na rysunek. #}
+          <div style="margin-top:.6rem">
+            <div class="row">
+              <span class="small">opis rysunku (alt-text)</span>
+              <span class="tag {{ 'approved' if a.description_status == 'approved'
+                                  else ('corrected' if a.description_status == 'corrected'
+                                        else 'pending') }}">{{ a.description_status }}</span>
+              <label class="small">
+                <input type="checkbox" name="asset.{{ a.id }}.approve_description" value="1">
+                opis sprawdzony, zgodny z rysunkiem
+              </label>
+            </div>
+            <textarea name="asset.{{ a.id }}.description" rows="3"
+                      placeholder="opis pozwalający rozwiązać zadanie bez oglądania rysunku — propozycję modelu dorzuca `task describe`">{{ a.description or '' }}</textarea>
+            <p class="small" style="margin:.2rem 0 0">
+              To osobna decyzja od rozstrzygnięcia zadania (pomiar S7). Opis może
+              zostać do sprawdzenia później; zadanie zatwierdzasz niezależnie.
+            </p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card decide">
+      <h2>Rozstrzygnięcie</h2>
+      <div class="row">
+        <button name="action" value="approve" class="primary">Zatwierdź i przejdź dalej →</button>
+        <button name="action" value="save">Zapisz, zostań</button>
+        <button name="action" value="reject" class="danger">Odrzuć</button>
+        {% if task.review_status != 'pending' %}
+          <button name="action" value="reopen">Cofnij do korekty</button>
+        {% endif %}
+      </div>
+      <p class="small">
+        {% if edited_before %}
+          W tej rundzie były już poprawki, więc „Zatwierdź" zapisze zadanie jako
+          <span class="tag corrected">poprawione</span>.
+        {% else %}
+          Status wychodzi z porównania z bazą, nie z deklaracji: pola bez zmian →
+          <span class="tag approved">zatwierdzone</span> (parser trafił sam),
+          pola zmienione → <span class="tag corrected">poprawione</span>.
+        {% endif %}
+        „Odrzuć" wyrzuca rekord poza korpus jako dziurę do zaraportowania.
+        „Zapisz, zostań" nie rozstrzyga i nie zatrzymuje zegara S8.
+      </p>
     </div>
   </form>
 </div>

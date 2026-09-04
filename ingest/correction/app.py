@@ -303,11 +303,13 @@ async def task_save(request: Request, task_id: int):
                 if db.load_task(cur, task_id) is None:
                     raise HTTPException(404, f"nie ma zadania {task_id}")
                 changes = db.save(cur, task_id, form)
-                if action == "crop":
+                if action in ("crop", "save"):
                     # Ramkę dociąga się na raty: wpisz, obejrzyj wycinek, popraw.
                     # Rozstrzygnięcia tu NIE MA — `db.save` już wyciął plik,
                     # a formularz wraca z tym samym `started_at`, żeby pomiar S8
                     # liczył czas pracy nad zadaniem, a nie od ostatniego cięcia.
+                    # `save` to ta sama droga bez ramki: Enter w polu i „Zapisz,
+                    # zostań" — inaczej Enter trafiał w pierwszy przycisk formularza.
                     target = f"/task/{task_id}?" + urlencode(
                         {"started_at": started_at.isoformat(),
                          # Usunięcia liczą się tak samo jak edycje: skasowany
