@@ -283,6 +283,12 @@ tasks:
     dir: ingest
     cmds: ['{{.PY}} -m correction.verify {{.CLI_ARGS}}']
 
+  # Plan A2-auto, X3: ramka rysunku z siatki przez model, dla zasobów „cała strona".
+  frame:
+    desc: Ramki rysunków z siatki przez LLM — zamiast ręcznego „Wytnij"; bez --apply tylko raport
+    dir: ingest
+    cmds: ['{{.PY}} -m correction.frame {{.CLI_ARGS}}']
+
   describe:
     desc: Opisy rysunków (alt-text) dla wycinków — pomiar S7
     dir: ingest

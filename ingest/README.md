@@ -19,6 +19,7 @@ task prefill -- --year 2025 --limit 20    # podpowiedzi LLM, próbka S6 (płatne
 task describe -- --year 2025 --batch      # opisy rysunków, S7 (płatne)
 task verify -- --year 2025 --variant 100          # drugi czytelnik: raport na sucho (płatne)
 task verify -- --year 2025 --variant 100 --apply  # …i rozstrzyga w bazie (plan A2-auto)
+task frame -- --variant 100 --apply               # ramki „cała strona” → ramka z siatki przez model (X3)
 task corpus:report                  # kompletność korpusu — domknięcie A2 (G2.7)
 task parser:snapshot -- --baseline ../data/reports/parser-przed.json
 task test:python                    # ruff + pytest

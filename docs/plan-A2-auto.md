@@ -208,6 +208,8 @@ Miara z prefillu: $0,012 na zadanie otwarte bez obrazu. Z obrazem strony 2–3×
 | 4.09 | `--apply` 2025/100 ($0,40) | 18 `approved`, 3 `corrected`, `reviewed_by = model` |
 | 4.09 | `--apply` reszta wariantu 100 (138 zadań, $2,54) | 118 `approved`, 20 `corrected`, 0 `unsure` |
 | 4.09 | **wariant 100 w korpusie** | 159 zadań: 136 `approved`, 23 `corrected`; `reviewed_by = model` 100%; koszt $2,94, ~$0,018 na zadanie |
+| 4.09 | X4 `task describe` wariant 100 ($0,26) | 57 z 58 zasobów z opisem `auto`; 1 to fałszywy zasób detektora (zadanie bez rysunku) |
+| 4.09 | X3 `task frame` wariant 100 ($0,06) | 3 z 4 ramek „cała strona" wycięte, 1 odmowa uzasadniona. Pierwsza wersja prosiła o punkty PDF i dostawała piksele obrazu w skali 2 — teraz model oddaje piksele, kod przelicza |
 
 Wniosek z pierwszego dnia: dry-run na jednym roczniku przed `--apply` jest obowiązkowy.
 Błąd systematyczny widać po powtarzalnym powodzie w `reasons`; naprawia się go w parserze,
