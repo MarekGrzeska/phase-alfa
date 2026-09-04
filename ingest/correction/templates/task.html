@@ -107,6 +107,17 @@
     {% endfor %}
 
     {% set unframed = task.assets|rejectattr('framed')|list %}
+    {% if task.model_notes %}
+      {# `task verify` nie rozstrzygnął — powody z dziennika, żeby człowiek
+         nie robił diagnozy drugi raz. #}
+      <div class="hints">
+        <strong class="small">Model {{ task.model_notes.model }} nie rozstrzygnął tego zadania
+          ({{ task.model_notes.when }}):</strong>
+        <ul class="small">
+          {% for r in task.model_notes.reasons %}<li>{{ r }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
     <div class="card checklist">
       <h2>Co sprawdzasz w tym zadaniu</h2>
       <ol class="small">

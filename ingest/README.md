@@ -17,6 +17,8 @@ task crops -- --prune               # skasuj pliki, do których nie prowadzi ża
 task mathjson                       # zapisy równoważne → MathJSON (G2.6)
 task prefill -- --year 2025 --limit 20    # podpowiedzi LLM, próbka S6 (płatne)
 task describe -- --year 2025 --batch      # opisy rysunków, S7 (płatne)
+task verify -- --year 2025 --variant 100          # drugi czytelnik: raport na sucho (płatne)
+task verify -- --year 2025 --variant 100 --apply  # …i rozstrzyga w bazie (plan A2-auto)
 task corpus:report                  # kompletność korpusu — domknięcie A2 (G2.7)
 task parser:snapshot -- --baseline ../data/reports/parser-przed.json
 task test:python                    # ruff + pytest
@@ -335,6 +337,44 @@ wyborem dla całego rocznika.
 Pomiar S6 nie potrzebuje pamiętania, kiedy prefill był włączony: **ramię wyznacza
 istnienie wiersza w `prefill_suggestion`**, a odsetek zatwierdzeń bez poprawki i czas
 na zadanie liczy `task correction:report` z dziennika korekty.
+
+### Drugi czytelnik rozstrzyga — `task verify` (plan A2-auto)
+
+Decyzja MVP z 4.09.2026 (`docs/plan-A2-auto.md`): **model rozstrzyga rekordy,
+człowiek sprawdza próbkę.** Model dostaje rekord zadania w kształcie formularza
+ekranu korekty i obrazy stron klucza (od strony zadania do początku następnego,
+najwyżej pięć), oddaje werdykt:
+
+| werdykt | co się dzieje |
+|---|---|
+| `match` | `db.decide("approve")` jak „Zatwierdź" człowieka → `approved` |
+| `fix` | pełny rekord po poprawce → `db.save` + `db.decide` → `corrected` |
+| `unsure` | zadanie zostaje `pending`; powody w dzienniku i nad formularzem w ekranie |
+
+Zapis idzie **tą samą drogą co u człowieka**, więc status wynika z porównania z bazą,
+a więzy schematu odrzucają śmieci modelu tak samo jak śmieci parsera — rekord
+odrzucony przez więz ląduje w `unsure`, więzów nie luzujemy. Kto rozstrzygnął, niesie
+schemat (migracja 0009): `task.reviewed_by`, `task.review_model`,
+`correction_event.actor`. Powrót do korekty ręcznej:
+
+```sql
+UPDATE task SET review_status = 'pending' WHERE reviewed_by = 'model';
+```
+
+```bash
+task verify -- --year 2025 --variant 100                 # raport + JSON, bez zapisu
+task verify -- --year 2025 --variant 100 --apply         # rozstrzyga
+task verify -- --variant 100 --apply --batch --limit 200 # cały wariant, Batch API
+task verify -- --retry-unsure --apply                    # drugie podejście do unsure
+```
+
+Wymagania podstawy programowej są dla modelu kontekstem, nie przedmiotem edycji —
+różnicę zgłasza w `reasons`. Odpowiedzi wzorcowych nie dokłada (formularz tego nie umie),
+poprawia albo kasuje istniejące. `task corpus:report` rozbija korpus na człowieka i model.
+
+Pierwszy przebieg na sucho (2025/100, $0,46) wykrył błąd systematyczny **parsera**, nie
+modelu: blok „Rozwiązanie – wersja X/Y" wchodził do warunku za 0 pkt w każdym zadaniu
+zamkniętym 2020+. Naprawione w parserze, nie 1346 razy modelem — reguła z G2.3.2.
 
 ## Raport kompletności korpusu (G2.7)
 

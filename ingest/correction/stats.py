@@ -94,9 +94,10 @@ def s6(cur) -> dict:
                   (SELECT extract(epoch FROM (e.finished_at - e.started_at))
                      FROM correction_event e
                     WHERE e.task_id = t.id AND e.action IN ('approve', 'correct')
+                      AND e.actor = 'human'
                     ORDER BY e.id DESC LIMIT 1) AS seconds
            FROM task t
-           WHERE t.kind <> 'closed'"""
+           WHERE t.kind <> 'closed' AND t.reviewed_by = 'human'"""
     )
     rows = cur.fetchall()
     with_hint = arm_summary([r for r in rows if r["prefilled"]])
@@ -139,7 +140,8 @@ def collect(cur) -> dict:
 
     cur.execute(
         """SELECT extract(epoch FROM (finished_at - started_at)) AS seconds
-           FROM correction_event WHERE action IN ('approve', 'correct')"""
+           FROM correction_event
+           WHERE action IN ('approve', 'correct') AND actor = 'human'"""
     )
     durations = duration_summary([float(r["seconds"]) for r in cur.fetchall()])
 
