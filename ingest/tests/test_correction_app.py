@@ -594,6 +594,26 @@ def test_przycisk_wytnij_nie_rozstrzyga_zadania(client, con, task, zasob):
     assert _events(con) == []
 
 
+def test_save_action_keeps_task_open_and_remembers_edit(client, con, task):
+    """„Zapisz, zostań" (także Enter w polu) zapisuje poprawkę bez rozstrzygania.
+
+    Enter w polu tekstowym trafiał w pierwszy przycisk formularza — „Wytnij"
+    albo „+ próg punktowy". Teraz trafia w `save`: poprawka jest w bazie,
+    zadanie dalej czeka, dziennik pusty, a znacznik `edited_before` jedzie
+    dalej, żeby późniejsze „Zatwierdź" nie policzyło się jako trafienie parsera.
+    """
+    formularz = _full(task, **{f"answer.{task['answer']}.answer": "106"})
+    response = _post(client, task, action="save", **formularz)
+
+    assert response.status_code == 303, response.text[:400]
+    assert response.headers["location"].startswith(f"/task/{task['id']}?")
+    assert "edited_before=1" in response.headers["location"]
+    assert _state(con, task["id"])["review_status"] == "pending"
+    assert _events(con) == []
+    assert con.execute("SELECT answer FROM model_answer WHERE id = %s",
+                       (task["answer"],)).fetchone()["answer"] == "106"
+
+
 def test_runda_wytnij_pamieta_usuniecie(client, con, task, zasob):
     """Skasowany wiersz w rundzie „Wytnij" jest poprawką, nie trafieniem parsera.
 
