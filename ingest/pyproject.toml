@@ -48,6 +48,13 @@ dependencies = [
     # structured output sa naszym kontraktem z modelem, wiec zaleznosc
     # ma byc zadeklarowana tam, gdzie jest uzywana.
     "pydantic>=2",
+    # --- menu ingestu (`task menu`) ---
+    # questionary (MIT, na prompt_toolkit BSD-3) do wyboru strzalkami, rich (MIT)
+    # do paneli i tabel. Menu nie powtarza logiki skryptow: sklada flagi
+    # z odpowiedzi i wola `task <nazwa> -- <flagi>`, wiec .env, katalog
+    # roboczy i komunikaty zostaja w Taskfile. Licencje sprawdzone 4.09.2026.
+    "questionary>=2.1.1",
+    "rich>=15.0.0",
 ]
 
 [project.optional-dependencies]

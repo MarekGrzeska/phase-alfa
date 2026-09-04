@@ -23,7 +23,19 @@ task frame -- --variant 100 --apply               # ramki „cała strona” →
 task corpus:report                  # kompletność korpusu — domknięcie A2 (G2.7)
 task parser:snapshot -- --baseline ../data/reports/parser-przed.json
 task test:python                    # ruff + pytest
+task menu                           # wszystko powyżej do wyboru strzałkami, bez flag z pamięci
 ```
+
+## Menu zamiast flag z pamięci
+
+`task menu` otwiera listę wszystkich poleceń ingestu (questionary + rich). Wybierasz
+akcję, odpowiadasz na pytania o flagi, dostajesz podgląd dokładnej komendy
+(`task ingest -- --year 2025 --variant 100 --with-papers`) i dopiero wtedy ją
+uruchamiasz. Menu nie powtarza logiki skryptów — składa flagi i woła `task`,
+więc `.env`, katalog roboczy i komunikaty zostają w `Taskfile.yml`. Akcje płatne
+(`[$]`) i kasujące (`[!]`) wymagają wpisania słowa `PŁACĘ` / `KASUJ`. Katalog akcji
+stoi w `cli/app.py` jako dane; test `test_cli.py` pilnuje, żeby każda nazwa zadania
+istniała w Taskfile, a każda flaga w `--help` modułu.
 
 Flagi runnera są po angielsku (`--wipe`, `--with-papers`, `--engine`, `--verbose`,
 `--report`, `--code`, `--year`, `--variant`) — zasada 4 z `CLAUDE.md`. **Mirror ich
@@ -52,6 +64,7 @@ już pobrany obok, ustaw `MIRROR_ROOT=../cke-mirror` zamiast pobierać go drugi 
 | `schema/` | migracje SQL + runner — patrz [`schema/README.md`](schema/README.md) |
 | `correction/` | ekran korekty: `app.py` (FastAPI) → `db.py` (SQL) → `stats.py` (S6/S7/S8); `prefill.py` i `describe.py` to warstwa LLM |
 | `reports/` | `corpus.py` — raport kompletności korpusu, liczony po widoku `corpus_task` |
+| `cli/` | `app.py` — menu ingestu (`task menu`): katalog akcji → pytania → `task <nazwa> -- <flagi>` |
 | `golden/` | golden set jako JSON (A3, jeszcze pusty) |
 | `tests/` | regresja warstwy pozycyjnej, więzy schematu, ładowanie korpusu, mirror |
 | `tests/fixtures/` | zrzuty stron (JSON) — regresja rekonstrukcji bez ani jednego PDF-a |

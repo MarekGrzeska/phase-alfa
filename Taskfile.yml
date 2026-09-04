@@ -207,6 +207,16 @@ tasks:
     cmds:
       - pnpm -C web --filter @klucz/web dev
 
+  # ------------------------------------------------------------------ menu
+  # Wszystkie polecenia ingestu do wyboru strzałkami, bez pisania flag z pamięci.
+  # Menu składa `task <nazwa> -- <flagi>` i uruchamia je stąd, więc nie ma
+  # drugiej ścieżki, która mogłaby się rozjechać z tym plikiem.
+  menu:
+    desc: Menu ingestu — wybierz akcję, odpowiedz na pytania, obejrzyj komendę
+    dir: ingest
+    interactive: true
+    cmds: ['{{.PY}} -m cli']
+
   # ------------------------------------------------------------ dalsze fazy
   mirror:
     desc: Zwózka korpusu CKE — idempotentna, dosypuje tylko brakujące

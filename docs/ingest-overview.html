@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ingest od środka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600;700&display=swap">
+
+<style>
+  :root {
+    --paper:      #f7f8fa;
+    --surface:    #ffffff;
+    --sunk:       #eef1f5;
+    --ink:        #12181f;
+    --ink-soft:   #4a5563;
+    --ink-faint:  #78838f;
+    --rule:       #c9d2dc;
+    --rule-soft:  #e2e8ef;
+    --seal:       #1b4d8f;
+    --seal-soft:  #e8eff8;
+    --mark:       #c0392b;
+    --mark-soft:  #fbeceb;
+    --done:       #2e7d63;
+    --done-soft:  #e7f2ee;
+    --amber:      #9a6b12;
+    --amber-soft: #f8f0dc;
+
+    --col: 68ch;
+    --wide: 64rem;
+
+    --face-display: "Spectral", "Georgia", "Times New Roman", serif;
+    --face-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --face-mono: "IBM Plex Mono", "Consolas", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #10151b;
+      --surface:   #161d26;
+      --sunk:      #1b232e;
+      --ink:       #e4e9ef;
+      --ink-soft:  #a9b4c0;
+      --ink-faint: #7b8794;
+      --rule:      #2f3b49;
+      --rule-soft: #232c37;
+      --seal:      #7fb0e8;
+      --seal-soft: #1a2735;
+      --mark:      #ef8378;
+      --mark-soft: #2c1d1d;
+      --done:      #63c3a1;
+      --done-soft: #16271f;
+      --amber:     #e0b35a;
+      --amber-soft:#2b2414;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #10151b;
+    --surface:   #161d26;
+    --sunk:      #1b232e;
+    --ink:       #e4e9ef;
+    --ink-soft:  #a9b4c0;
+    --ink-faint: #7b8794;
+    --rule:      #2f3b49;
+    --rule-soft: #232c37;
+    --seal:      #7fb0e8;
+    --seal-soft: #1a2735;
+    --mark:      #ef8378;
+    --mark-soft: #2c1d1d;
+    --done:      #63c3a1;
+    --done-soft: #16271f;
+    --amber:     #e0b35a;
+    --amber-soft:#2b2414;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--face-body);
+    font-size: clamp(1rem, 0.96rem + 0.2vw, 1.075rem);
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 1.25rem 6rem;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--wide); margin: 0 auto; }
+  .col { max-width: var(--col); }
+
+  /* ------------------------------------------------------------ nagłówek */
+  .masthead { padding: 4rem 0 2.25rem; border-bottom: 2px solid var(--ink); margin-bottom: 2.5rem; }
+  .eyebrow {
+    font-family: var(--face-mono); font-size: 0.75rem; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--seal); margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--face-display); font-weight: 700;
+    font-size: clamp(2.3rem, 1.5rem + 3.4vw, 3.9rem); line-height: 1.04;
+    letter-spacing: -0.02em; text-wrap: balance; margin: 0 0 1.25rem;
+  }
+  .standfirst { font-size: clamp(1.08rem, 1rem + 0.4vw, 1.28rem); line-height: 1.55; color: var(--ink-soft); max-width: 56ch; margin: 0; }
+  .stamp {
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-family: var(--face-mono); font-size: 0.78rem;
+    letter-spacing: 0.04em; color: var(--ink-faint); margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--rule-soft);
+  }
+
+  /* ------------------------------------------------------------ spis */
+  nav.toc { margin: 0 0 3.5rem; }
+  nav.toc ol {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1px;
+    background: var(--rule); border: 1px solid var(--rule);
+  }
+  nav.toc li { background: var(--surface); }
+  nav.toc a {
+    display: grid; grid-template-columns: 2.2rem 1fr; gap: 0.6rem; align-items: baseline;
+    padding: 0.75rem 1rem; color: var(--ink); text-decoration: none; font-size: 0.93rem; line-height: 1.35;
+  }
+  nav.toc a:hover, nav.toc a:focus-visible { background: var(--seal-soft); outline: none; }
+  nav.toc a .n { font-family: var(--face-mono); font-size: 0.75rem; color: var(--seal); font-weight: 600; }
+
+  /* ------------------------------------------------------------ sekcje */
+  section { margin: 0 0 4.5rem; scroll-margin-top: 1.5rem; }
+  h2 {
+    font-family: var(--face-display); font-weight: 600;
+    font-size: clamp(1.6rem, 1.25rem + 1.4vw, 2.2rem); line-height: 1.15;
+    letter-spacing: -0.015em; text-wrap: balance; margin: 0 0 0.4rem;
+  }
+  h3 { font-family: var(--face-body); font-weight: 600; font-size: 1.05rem; line-height: 1.35; margin: 0 0 0.4rem; }
+  h4 { font-family: var(--face-mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin: 1.4rem 0 0.5rem; }
+  .kicker {
+    font-family: var(--face-mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 1.6rem;
+  }
+  p { margin: 0 0 1.05rem; }
+  ul, ol { margin: 0 0 1.05rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.35rem; }
+  strong { font-weight: 600; }
+  em { font-style: normal; color: var(--seal); font-weight: 500; }
+  a { color: var(--seal); }
+
+  code, .mono { font-family: var(--face-mono); font-size: 0.87em; }
+  code { background: var(--sunk); border-radius: 3px; padding: 0.1em 0.34em; }
+  pre {
+    font-family: var(--face-mono); font-size: 0.83rem; line-height: 1.55;
+    background: var(--sunk); border: 1px solid var(--rule-soft); padding: 0.9rem 1.1rem;
+    overflow-x: auto; margin: 0.6rem 0 1.2rem; white-space: pre;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  /* ------------------------------------------------------------ przepływ */
+  .flow { list-style: none; margin: 2.25rem 0 0; padding: 0; display: grid; gap: 0; counter-reset: step; }
+  .flow li {
+    display: grid; grid-template-columns: 3.2rem 1fr; gap: 1rem; position: relative;
+    padding: 0 0 1.4rem;
+  }
+  .flow li::before {
+    counter-increment: step; content: counter(step);
+    font-family: var(--face-mono); font-weight: 600; font-size: 0.85rem;
+    width: 2.2rem; height: 2.2rem; display: grid; place-items: center;
+    background: var(--seal); color: var(--surface); border-radius: 50%;
+    position: relative; z-index: 1;
+  }
+  .flow li::after {
+    content: ""; position: absolute; left: 1.1rem; top: 2.2rem; bottom: 0; width: 2px; background: var(--rule);
+  }
+  .flow li:last-child::after { display: none; }
+  .flow li.gate::before { background: var(--mark); }
+  .flow .box { background: var(--surface); border: 1px solid var(--rule); padding: 0.9rem 1.1rem; }
+  .flow .box .name { font-weight: 600; }
+  .flow .box .cmd { font-family: var(--face-mono); font-size: 0.8rem; color: var(--seal); margin-left: 0.5rem; }
+  .flow .box p { margin: 0.3rem 0 0; font-size: 0.93rem; color: var(--ink-soft); max-width: 66ch; }
+  .flow .io {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; margin-top: 0.55rem;
+    font-family: var(--face-mono); font-size: 0.76rem; color: var(--ink-faint);
+  }
+  .flow .io b { font-weight: 600; color: var(--ink-soft); }
+
+  /* ------------------------------------------------------------ etap */
+  .stage { background: var(--surface); border: 1px solid var(--rule); padding: 1.6rem 1.5rem; margin-top: 1.75rem; }
+  .stage > .head { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; align-items: baseline; border-bottom: 1px solid var(--rule-soft); padding-bottom: 0.8rem; margin-bottom: 1.1rem; }
+  .stage > .head h3 { font-family: var(--face-display); font-size: 1.35rem; font-weight: 600; margin: 0; }
+  .stage > .head .files { font-family: var(--face-mono); font-size: 0.78rem; color: var(--ink-faint); }
+  .stage p, .stage li { max-width: 68ch; }
+  .stage .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); margin: 1rem 0 1.2rem; }
+  .stage .facts div { background: var(--sunk); padding: 0.7rem 0.9rem; font-size: 0.88rem; line-height: 1.45; }
+  .stage .facts div b { display: block; font-family: var(--face-mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 0.2rem; }
+  .warn { border-left: 3px solid var(--amber); background: var(--amber-soft); padding: 0.7rem 1rem; margin: 0.9rem 0 1.1rem; font-size: 0.93rem; }
+  .warn b { color: var(--amber); }
+  .note { border-left: 3px solid var(--seal); background: var(--seal-soft); padding: 0.7rem 1rem; margin: 0.9rem 0 1.1rem; font-size: 0.93rem; }
+
+  /* ------------------------------------------------------------ tabele */
+  .ledger-wrap { overflow-x: auto; margin: 1.25rem 0 1.5rem; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: 0.9rem; }
+  caption {
+    caption-side: top; text-align: left; font-family: var(--face-mono); font-size: 0.72rem;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); padding: 0.9rem 1rem 0.6rem;
+  }
+  th, td { padding: 0.55rem 1rem; text-align: left; vertical-align: top; }
+  thead th {
+    font-family: var(--face-mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-faint); border-bottom: 1px solid var(--rule); white-space: nowrap;
+  }
+  tbody tr + tr td { border-top: 1px solid var(--rule-soft); }
+  td.num { font-family: var(--face-mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  td code { white-space: nowrap; }
+
+  .tag {
+    font-family: var(--face-mono); font-size: 0.66rem; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 0.22rem 0.45rem; white-space: nowrap; display: inline-block;
+  }
+  .tag.done { background: var(--done-soft); color: var(--done); }
+  .tag.open { background: var(--mark-soft); color: var(--mark); }
+  .tag.plain { background: var(--seal-soft); color: var(--seal); }
+  .tag.warn { background: var(--amber-soft); color: var(--amber); }
+
+  /* ------------------------------------------------------------ liczby */
+  .figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 1.75rem; }
+  .fig { background: var(--surface); padding: 1.3rem 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .fig .big { font-family: var(--face-mono); font-weight: 600; font-size: clamp(1.7rem, 1.3rem + 1.3vw, 2.3rem); line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--seal); }
+  .fig .lede { font-weight: 600; font-size: 0.93rem; }
+  .fig .note-s { font-size: 0.84rem; line-height: 1.45; color: var(--ink-soft); }
+  .fig.is-done .big { color: var(--done); }
+  .fig.is-open .big { color: var(--mark); }
+
+  /* ------------------------------------------------------------ debug */
+  .debug { display: grid; gap: 1.5rem; margin-top: 1.75rem; }
+  .dbg { background: var(--surface); border: 1px solid var(--rule); padding: 1.3rem 1.4rem; }
+  .dbg h3 { font-family: var(--face-display); font-size: 1.2rem; margin-bottom: 0.7rem; }
+  .dbg .q { font-weight: 600; margin: 0.9rem 0 0.25rem; }
+  .dbg p, .dbg li { max-width: 70ch; }
+  .dbg pre { margin: 0.4rem 0 0.9rem; }
+
+  /* ------------------------------------------------------------ słownik */
+  dl.gloss { display: grid; grid-template-columns: 11rem 1fr; gap: 0.5rem 1.2rem; margin: 1.5rem 0 0; }
+  dl.gloss dt { font-weight: 600; font-size: 0.95rem; }
+  dl.gloss dd { margin: 0; font-size: 0.95rem; max-width: 62ch; }
+  @media (max-width: 34rem) {
+    dl.gloss { grid-template-columns: 1fr; }
+    .flow li { grid-template-columns: 2.6rem 1fr; }
+  }
+  :focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Projekt Klucz · faza alfa · warstwa <code>ingest/</code></p>
+  <h1>Ingest od środka</h1>
+  <p class="standfirst">Jak PDF-y z cke.gov.pl zamieniają się w rekordy korpusu w PostgreSQL: cała droga krok po kroku, każdy skrypt, co dokładnie robi, i jak zajrzeć mu pod maskę, gdy coś się nie zgadza.</p>
+  <div class="stamp">
+    <span>stan na 4.09.2026</span>
+    <span>źródło: kod w <code>phase-alfa/ingest/</code>, raporty w <code>data/reports/</code></span>
+    <span>kamienie G1.2 · A2 · A2-auto</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Spis treści">
+  <ol>
+    <li><a href="#czym"><span class="n">01</span><span>Czym jest ingest i gdzie się kończy</span></a></li>
+    <li><a href="#proces"><span class="n">02</span><span>Cały proces w jednym spojrzeniu</span></a></li>
+    <li><a href="#srodowisko"><span class="n">03</span><span>Środowisko: co musi stać, żeby cokolwiek ruszyło</span></a></li>
+    <li><a href="#menu"><span class="n">03a</span><span>Menu: task menu zamiast flag z pamięci</span></a></li>
+    <li><a href="#mirror"><span class="n">04</span><span>Mirror: zwózka PDF-ów</span></a></li>
+    <li><a href="#schemat"><span class="n">05</span><span>Schemat bazy i migracje</span></a></li>
+    <li><a href="#pdf"><span class="n">06</span><span>Warstwa PDF: znaki, kreski, ułamki, regiony</span></a></li>
+    <li><a href="#parser"><span class="n">07</span><span>Parser kluczy OMAP</span></a></li>
+    <li><a href="#loader"><span class="n">08</span><span>Ładowarka i runner</span></a></li>
+    <li><a href="#snapshot"><span class="n">09</span><span>Regresja parsera bez bazy i wycinki PNG</span></a></li>
+    <li><a href="#korekta"><span class="n">10</span><span>Ekran korekty: bramka do korpusu</span></a></li>
+    <li><a href="#llm"><span class="n">11</span><span>LLM w ingeście: prefill, opisy, ramki, verify</span></a></li>
+    <li><a href="#mathjson"><span class="n">12</span><span>MathJSON</span></a></li>
+    <li><a href="#golden"><span class="n">13</span><span>Golden set i raport kompletności</span></a></li>
+    <li><a href="#liczby"><span class="n">14</span><span>Stan liczbowy na dziś</span></a></li>
+    <li><a href="#testy"><span class="n">15</span><span>Testy: czego pilnują</span></a></li>
+    <li><a href="#debug"><span class="n">16</span><span>Debugowanie procesów</span></a></li>
+    <li><a href="#slownik"><span class="n">17</span><span>Słownik pojęć</span></a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ 01 -->
+<section id="czym">
+  <h2>Czym jest ingest i gdzie się kończy</h2>
+  <p class="kicker">granica warstw</p>
+  <div class="col">
+    <p>Ingest to warstwa Pythona, która pracuje <strong>offline</strong>. Nie obsługuje żadnego ruchu użytkownika. Uruchamia się ją ręcznie z terminala, a jej jedynym wynikiem są <strong>dane</strong>: wiersze w PostgreSQL i pliki PNG na dysku. Backend w C# czyta gotową strukturę i nigdy nie otwiera PDF-a.</p>
+    <p>Kontraktem między warstwami nie jest API, tylko <strong>schemat bazy</strong> (pliki SQL w <code>ingest/schema/migrations/</code>) plus pliki JSON golden setu. Dlatego schemat stoi jako czysty SQL, a nie model wyprowadzony z kodu.</p>
+    <p>Najważniejsza zasada, którą trzeba mieć w głowie czytając resztę: <em>parser produkuje kandydatów, nie korpus.</em> Rekord z parsera trafia do tabeli <code>task</code> ze statusem <code>pending</code>. Do korpusu wchodzi dopiero po rozstrzygnięciu w ekranie korekty (człowiek) albo przez drugiego czytelnika (model, plan A2-auto). Konsumenci czytają widok <code>corpus_task</code>, który zawiera tylko rekordy <code>approved</code> i <code>corrected</code>.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 02 -->
+<section id="proces">
+  <h2>Cały proces w jednym spojrzeniu</h2>
+  <p class="kicker">kolejność ma znaczenie, każdy krok czyta wynik poprzedniego</p>
+  <div class="col">
+    <p>Każde polecenie to <code>task &lt;nazwa&gt;</code> z <code>Taskfile.yml</code>, które pod spodem woła <code>uv run python -m &lt;moduł&gt;</code> z katalogu <code>ingest/</code>. Argumenty przekazuje się po <code>--</code>, np. <code>task ingest -- --year 2025 --variant 100</code>. Kto nie chce pamiętać flag, uruchamia <code>task menu</code> (sekcja <a href="#menu">03a</a>): to samo, tylko z listy i z pytaniami.</p>
+  </div>
+
+  <ol class="flow">
+    <li>
+      <div class="box">
+        <span class="name">Zwózka mirrora</span><span class="cmd">task mirror</span>
+        <p>Pobiera strony rocznikowe z cke.gov.pl, wyciąga z nich linki do PDF-ów, buduje spis i ściąga pliki. Jednorazowo; kolejne uruchomienia dosypują brakujące.</p>
+        <div class="io"><span><b>moduł</b> mirror/cke_mirror.py</span><span><b>wyjście</b> data/index/urls.tsv, data/raw/**/*.pdf</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="box">
+        <span class="name">Baza i migracje</span><span class="cmd">task up · task migrate</span>
+        <p>Postgres w Dockerze plus runner migracji, który stosuje brakujące pliki SQL w kolejności numerów i pilnuje sum SHA-256 tych już zastosowanych.</p>
+        <div class="io"><span><b>moduł</b> schema/migrate.py</span><span><b>wyjście</b> tabele korpusu, tabela schema_migrations</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="box">
+        <span class="name">Parser i ładowanie</span><span class="cmd">task ingest</span>
+        <p>Dla każdego klucza oceniania: warstwa PDF odtwarza tekst z matematyką, parser tnie go na zadania, kryteria, odpowiedzi i wymagania, ładowarka zapisuje to w jednej transakcji per klucz. Z flagą <code>--with-papers</code> doczytuje zeszyty zadań: treść i ramki rysunków.</p>
+        <div class="io"><span><b>moduły</b> pdf/*, parsers/omap_e8/{parser,loader,run}.py</span><span><b>wyjście</b> task, criterion, asset … (status pending); data/reports/ingest-DATA.txt</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="box">
+        <span class="name">Wycinki PNG</span><span class="cmd">task crops</span>
+        <p>Tnie z zeszytu zadań fragmenty stron według ramek zapisanych w <code>asset.bbox</code>. Działa po ładowaniu, poza transakcją, bo dysk nie cofa się razem z bazą.</p>
+        <div class="io"><span><b>moduł</b> parsers/omap_e8/crops.py + pdf/crop.py</span><span><b>wyjście</b> data/blob/OMAP/&lt;sesja&gt;/&lt;wariant&gt;/&lt;wersja&gt;/zN-i.png</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="box">
+        <span class="name">MathJSON</span><span class="cmd">task mathjson</span>
+        <p>Zapisy równoważne z kryteriów („P = 1/2·15·2”) zamienia na LaTeX w Pythonie, a potem na MathJSON w Node przez Compute Engine. Odmowy dostają jawny status <code>failed</code> z powodem.</p>
+        <div class="io"><span><b>moduły</b> mathjson/{normalize.py,convert.mjs,fill.py}</span><span><b>wyjście</b> condition_expression.mathjson + mathjson_status</span></div>
+      </div>
+    </li>
+    <li class="gate">
+      <div class="box">
+        <span class="name">Bramka: rozstrzygnięcie rekordu</span><span class="cmd">task correction · task verify</span>
+        <p>Człowiek w ekranie korekty na localhoście albo model w <code>task verify</code> porównuje rekord ze stroną klucza i zatwierdza, poprawia lub odrzuca. Dopiero to zmienia <code>review_status</code> i wpuszcza rekord do widoku <code>corpus_task</code>.</p>
+        <div class="io"><span><b>moduły</b> correction/{app,db,verify}.py</span><span><b>wyjście</b> task.review_status, task.reviewed_by, dziennik correction_event</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="box">
+        <span class="name">Wzbogacenie modelem</span><span class="cmd">task prefill · task describe · task frame</span>
+        <p>Podpowiedzi kryteriów do ekranu (pomiar S6), opisy rysunków jako alt-text (S7) i ramki rysunków z siatki tam, gdzie automat geometryczny nie domknął. Ręczne, płatne, nigdy w CI.</p>
+        <div class="io"><span><b>moduły</b> correction/{llm,prefill,describe,frame}.py</span><span><b>wyjście</b> prefill_suggestion, asset.description (auto), asset.bbox</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="box">
+        <span class="name">Golden set i raporty</span><span class="cmd">task golden:generate · task golden:grade · task corpus:report</span>
+        <p>Model A pisze odpowiedzi ucznia do zadań otwartych z korpusu, model B je ocenia wg klucza. Raport kompletności liczy definicję „zrobione” dla A2 dwa razy: po korpusie i po całym sparsowanym materiale.</p>
+        <div class="io"><span><b>moduły</b> golden/{generate,grade}.py, reports/corpus.py</span><span><b>wyjście</b> ingest/golden/&lt;rok&gt;/task-N.json, data/reports/corpus-A2-DATA.txt</span></div>
+      </div>
+    </li>
+  </ol>
+
+  <div class="ledger-wrap">
+    <table>
+      <caption>Polecenia ingestu i to, co uruchamiają</caption>
+      <thead><tr><th>Polecenie</th><th>Moduł</th><th>Zmienia bazę?</th><th>Płatne?</th><th>Najważniejsze flagi</th></tr></thead>
+      <tbody>
+        <tr><td><code>task mirror</code></td><td><code>mirror.cke_mirror</code></td><td>nie (dysk)</td><td>nie</td><td><code>--filtr matematyka</code>, <code>--rocznik</code>, <code>--segment</code>, <code>--dry-run</code>, <code>--tylko-spis</code>, <code>--limit</code>, <code>--force</code>, <code>--jobs</code></td></tr>
+        <tr><td><code>task migrate</code> / <code>migrate:status</code></td><td><code>schema.migrate</code></td><td>tak (DDL)</td><td>nie</td><td><code>--status</code>, <code>--migrations</code></td></tr>
+        <tr><td><code>task ingest</code></td><td><code>parsers.omap_e8.run</code></td><td>tak</td><td>nie</td><td><code>--year</code>, <code>--variant</code>, <code>--code</code>, <code>--limit</code>, <code>--with-papers</code>, <code>--wipe</code>, <code>--overwrite-reviewed</code>, <code>--engine</code>, <code>--verbose</code>, <code>--report</code></td></tr>
+        <tr><td><code>task parser:snapshot</code></td><td><code>parsers.omap_e8.snapshot</code></td><td>nie</td><td>nie</td><td><code>--out</code>, <code>--baseline</code>, <code>--compare A B</code>, <code>--year</code>, <code>--variant</code></td></tr>
+        <tr><td><code>task crops</code></td><td><code>parsers.omap_e8.crops</code></td><td>nie (dysk)</td><td>nie</td><td><code>--force</code>, <code>--prune</code>, <code>--prune --yes</code></td></tr>
+        <tr><td><code>task mathjson</code></td><td><code>mathjson.fill</code></td><td>tak</td><td>nie</td><td><code>--year</code>, <code>--variant</code>, <code>--force</code></td></tr>
+        <tr><td><code>task correction</code></td><td><code>uvicorn correction.app:app</code></td><td>tak (przez formularz)</td><td>nie</td><td>port z <code>CORRECTION_PORT</code>, tylko 127.0.0.1</td></tr>
+        <tr><td><code>task correction:report</code></td><td><code>correction.report</code></td><td>nie</td><td>nie</td><td><code>--report</code></td></tr>
+        <tr><td><code>task prefill</code></td><td><code>correction.prefill</code></td><td>tak (prefill_suggestion)</td><td><span class="tag warn">tak</span></td><td><code>--year</code>, <code>--variant</code>, <code>--model</code>, <code>--limit</code>, <code>--batch</code></td></tr>
+        <tr><td><code>task describe</code></td><td><code>correction.describe</code></td><td>tak (asset.description)</td><td><span class="tag warn">tak</span></td><td>jak wyżej + <code>--force</code></td></tr>
+        <tr><td><code>task frame</code></td><td><code>correction.frame</code></td><td>tak z <code>--apply</code></td><td><span class="tag warn">tak</span></td><td><code>--apply</code>, <code>--year</code>, <code>--variant</code>, <code>--limit</code></td></tr>
+        <tr><td><code>task verify</code></td><td><code>correction.verify</code></td><td>tak z <code>--apply</code></td><td><span class="tag warn">tak</span></td><td><code>--apply</code>, <code>--batch</code>, <code>--retry-unsure</code>, <code>--year</code>, <code>--variant</code>, <code>--limit</code></td></tr>
+        <tr><td><code>task golden:generate</code> / <code>golden:grade</code></td><td><code>golden.generate</code> / <code>golden.grade</code></td><td>nie (pliki JSON)</td><td><span class="tag warn">tak</span></td><td><code>--variant</code>, <code>--year</code>, <code>--model</code>, <code>--force</code></td></tr>
+        <tr><td><code>task corpus:report</code></td><td><code>reports.corpus</code></td><td>nie</td><td>nie</td><td><code>--copy-to-docs</code></td></tr>
+        <tr><td><code>task test:python</code></td><td>ruff + pytest</td><td>tworzy bazy testowe</td><td>nie</td><td>markery <code>integracyjny</code>, <code>mirror</code></td></tr>
+        <tr><td><code>task menu</code></td><td><code>cli.app</code></td><td>to, co wybrana akcja</td><td>to, co wybrana akcja</td><td>bez flag: wszystko przez pytania; wybrane polecenie widać przed uruchomieniem</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section id="srodowisko">
+  <h2>Środowisko: co musi stać, żeby cokolwiek ruszyło</h2>
+  <p class="kicker">jedno wejście: task, konfiguracja: .env</p>
+  <div class="col">
+    <p>Wszystkie polecenia idą przez <strong>go-task</strong>, który ma wbudowany interpreter POSIX sh, więc te same komendy działają na Windows, macOS i w CI. Python uruchamia <strong>uv</strong> (<code>uv run python -m …</code>), zależności są przypięte w <code>ingest/uv.lock</code>.</p>
+    <p>Konfiguracja stoi w <code>.env</code> w korzeniu <code>phase-alfa/</code> (wzór w <code>.env.example</code>). Taskfile ładuje ten plik automatycznie (<code>dotenv: ['.env']</code>).</p>
+  </div>
+  <div class="ledger-wrap">
+    <table>
+      <caption>Zmienne .env, które czyta ingest</caption>
+      <thead><tr><th>Zmienna</th><th>Kto czyta</th><th>Co znaczy</th></tr></thead>
+      <tbody>
+        <tr><td><code>DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD</code></td><td><code>schema.migrate.polaczenie()</code>, wszystkie skrypty z bazą</td><td>Składane w adres <code>postgresql://user:pass@host:port/db</code>. Domyślny port 55434, użytkownik i baza <code>klucz</code>.</td></tr>
+        <tr><td><code>DATABASE_URL</code></td><td>jak wyżej, ma pierwszeństwo</td><td>Gotowy adres, gdy celujesz w inną bazę (tak robią testy).</td></tr>
+        <tr><td><code>MIRROR_ROOT</code></td><td><code>sciezki.korzen_mirrora()</code>: mirror, runner, snapshot, ekran korekty, verify, frame</td><td>Katalog, w którym leżą <code>data/index/urls.tsv</code> i <code>data/raw/</code>. Ścieżka względna liczy się od korzenia repo. Na tej maszynie: <code>../cke-mirror</code>.</td></tr>
+        <tr><td><code>BLOB_ROOT</code></td><td><code>pdf.crop.blob_root()</code>, crops, ekran, describe</td><td>Korzeń plików PNG; domyślnie <code>data/blob</code>. Ta sama wartość, którą czyta <code>DiskBlobStore</code> w C#.</td></tr>
+        <tr><td><code>CORRECTION_PORT</code></td><td>Taskfile (<code>task correction</code>)</td><td>Port ekranu korekty, domyślnie 8600.</td></tr>
+        <tr><td><code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code></td><td><code>correction.llm.check_key()</code></td><td>Klucz dostawcy wybranego przez <code>--model dostawca:nazwa</code>. Nigdy w repozytorium.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <p><strong>Uruchamianie modułami, nie ścieżkami.</strong> Korzeniem pakietu jest <code>ingest/</code>, więc <code>uv run python -m parsers.omap_e8.run</code> działa, a <code>python parsers/omap_e8/run.py</code> nie: przy uruchomieniu przez ścieżkę <code>sys.path</code> wskazuje katalog pliku i importy między pakietami (<code>pdf.layout</code>, <code>schema.migrate</code>) się sypią.</p>
+    <p><strong>Docker.</strong> <code>docker-compose.yml</code> stawia <code>postgres:17-alpine</code> (klaster w <code>C.UTF-8</code>, polskie sortowanie przez kolację ICU <code>pl_icu</code> z migracji 0001) oraz emulator Azurite na blob. Bez <code>restart: unless-stopped</code>, więc bazę podnosi wyłącznie <code>task up</code>.</p>
+    <p><strong>Licencje.</strong> Ekstrakcja stoi na <code>pdfplumber</code> (MIT), render stron na <code>pypdfium2</code> (Apache/BSD). <code>PyMuPDF</code> odrzucono (AGPL), choć interfejs w <code>pdf/layout.py</code> dalej go przewiduje jako drugi silnik.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 03a -->
+<section id="menu">
+  <h2>Menu: <code>task menu</code> zamiast flag z pamięci</h2>
+  <p class="kicker">questionary + rich; kategoria → akcja → pytania → podgląd komendy → uruchomienie</p>
+  <div class="stage">
+    <div class="head"><h3>cli/app.py</h3><span class="files">ingest/cli/app.py · <code>task menu</code> → <code>uv run python -m cli</code></span></div>
+    <div class="col">
+      <p>Wszystkie polecenia z tabeli wyżej da się uruchomić <strong>bez pisania komendy</strong>: strzałkami wybierasz akcję, odpowiadasz na pytania o flagi, oglądasz gotową linię i potwierdzasz. Menu jest cienką warstwą nad Taskfile, nie drugą implementacją: składa <code>task &lt;nazwa&gt; -- &lt;flagi&gt;</code> i uruchamia je z korzenia repo, więc <code>.env</code>, katalog <code>ingest/</code>, komunikaty i kody wyjścia są dokładnie te same, co przy ręcznym wywołaniu.</p>
+      <h4>Jak to działa</h4>
+      <ol>
+        <li><strong>Katalog akcji</strong> (<code>CATALOG</code>) to dane: grupy (baza, mirror, parser, korekta, LLM, MathJSON, raporty), a w nich <code>Action(task, title, about, params, paid, destructive, foreground)</code>. Każdy <code>Param</code> to jedna flaga z rodzajem pytania: <code>text</code>, <code>int</code>, <code>bool</code> (flaga bez wartości), <code>choice</code> (lista, np. roczniki 2019–2026, warianty, modele z cennika <code>llm.PRICING</code>) albo <code>words</code> (kilka wartości, jak <code>--compare stary.json nowy.json</code>).</li>
+        <li><strong>Dwa poziomy list.</strong> Najpierw kategoria (nazwa, liczba akcji, zdanie opisu), potem akcje tej kategorii: tytuł, znacznik (<code>[$]</code> płatne, <code>[!]</code> kasuje, <code>[⏵]</code> stoi do Ctrl-C), nazwa zadania i opis w jednej linii. Po wyborze akcji karta z opisem i tabelą flag (pytanie, rodzaj, co znaczy), dopiero potem pytania.</li>
+        <li><strong>Pytania</strong> zadaje <code>questionary</code>; pusta odpowiedź, „(bez flagi)” albo „nie” znaczą „bez tej flagi”. Pola liczbowe przyjmują tylko cyfry. Ctrl-C w środku pytań wraca do kategorii, na liście kategorii wychodzi.</li>
+        <li><strong><code>build_args()</code></strong> (funkcja czysta, testowana) zamienia odpowiedzi na listę argumentów w kolejności z katalogu, a <code>command_for()</code> dokleja <code>task</code> i <code>--</code> tylko wtedy, gdy są flagi.</li>
+        <li><strong>Podgląd</strong> w panelu <code>rich</code>: opis akcji, dokładna komenda, ostrzeżenia. Akcje płatne (<code>[$]</code>: verify, prefill, describe, frame, golden) wymagają wpisania <code>PŁACĘ</code>, kasujące (<code>[!]</code>: db:reset) wpisania <code>KASUJ</code>. Reszta: Enter.</li>
+        <li><strong>Uruchomienie</strong> przez <code>subprocess.run</code> z odziedziczonym terminalem, więc wyjście skryptu leci na żywo, a serwer korekty i konsola psql (<code>foreground</code>) stoją do Ctrl-C lub <code>\q</code>, po czym menu wraca. Kod wyjścia jest tłumaczony: 0 dobrze, 1 poniżej progu lub różnice, 2 nie ruszyło.</li>
+        <li><strong>Własne polecenie task…</strong> na końcu listy przyjmuje dowolne zadanie spoza katalogu (<code>test:contract</code>, <code>dev</code>).</li>
+      </ol>
+      <h4>Czego pilnuje test</h4>
+      <p><code>tests/test_cli.py</code> sprawdza, że każda nazwa zadania z katalogu istnieje w <code>Taskfile.yml</code> (regex po nazwach na początku linii), że każda flaga z katalogu występuje w <code>--help</code> odpowiedniego modułu (menu nie może wymyślać własnych flag), oraz zachowanie <code>build_args</code>: pomijanie pustych i fałszywych, flaga bool bez wartości, kolejność jak w katalogu. Warstwa interaktywna (questionary, rich) ładuje się leniwie, więc testy nie potrzebują terminala.</p>
+      <div class="note">Menu nie zna <code>.env</code>: to <code>task</code> ładuje go przy każdym uruchomieniu. Baner pokazuje <code>MIRROR_ROOT</code> tylko wtedy, gdy stoi w środowisku procesu; inaczej pisze „(z .env przez task)”, co jest stanem normalnym.</div>
+<pre><code>task menu
+# ? Kategoria
+#   ▸ Baza i środowisko     7 akcji   Docker z Postgresem, migracje schematu, konsola SQL.
+#     Mirror CKE            1 akcja   Zwózka PDF-ów z cke.gov.pl do lokalnego mirrora.
+#     Parser i ładowanie    3 akcje   PDF → rekordy w Postgresie, regresja, wycinki PNG.
+#     …
+# ? Akcja
+#   ▸ Parser kluczy → baza        ingest           Klucze OMAP z mirrora do Postgresa…
+#     Zrzut liczb parsera         parser:snapshot  Regresja bez bazy…
+#     Wycinki PNG                 crops            Dotnij brakujące wycinki…
+#     ← wróć do kategorii
+# ╭ Parser kluczy → baza   task ingest ─────────────────────────╮
+# │ Klucze OMAP z mirrora do Postgresa. Raport do data/reports… │
+# ╰─────────────────────────────────────────────────────────────╯
+#   flaga           pytanie                   rodzaj    co znaczy
+#   --year          Rocznik                   lista     puste = wszystkie roczniki 2019–2026
+#   --with-papers   Doczytać zeszyty zadań?   tak/nie   treść zadań i rysunki · domyślnie tak
+# ? --year  Rocznik                 2025
+# ? --variant  Wariant arkusza      100
+# ? --with-papers  Doczytać zeszyty zadań?  Yes
+# ╭ Do uruchomienia ────────────────────────────────────────────╮
+# │ $ task ingest -- --year 2025 --variant 100 --with-papers    │
+# ╰─────────────────────────────────────────────────────────────╯
+# ? Uruchomić?  Yes</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section id="mirror">
+  <h2>Mirror: zwózka PDF-ów</h2>
+  <p class="kicker">mirror raz, potem tylko kopia</p>
+  <div class="stage">
+    <div class="head"><h3>cke_mirror.py</h3><span class="files">ingest/mirror/cke_mirror.py · 626 linii · wołany przez <code>task mirror</code></span></div>
+    <div class="facts">
+      <div><b>Zakres</b> E8 2019–2026, matura formuła 2023 (2023–2026), matura formuła 2015 (2015–2023)</div>
+      <div><b>Zmierzone</b> 2508 plików, 43 101 stron, ok. 2,6 GiB; 8 strumieni daje ok. 0,42 s na plik</div>
+      <div><b>User-Agent</b> <code>Scrapy/2.11</code>, bo robots.txt CKE przepuszcza tylko ten UA</div>
+    </div>
+    <h4>Jak działa, krok po kroku</h4>
+    <ol>
+      <li><strong>Spis.</strong> <code>collect_inventory()</code> pobiera każdą stronę rocznikową (np. <code>cke.gov.pl/egzamin-osmoklasisty/arkusze/2025-2/</code>), zapisuje surowy HTML w <code>data/index/pages/&lt;segment&gt;-&lt;rok&gt;.html</code> i wyciąga regexem wszystkie <code>href</code> kończące się na <code>.pdf</code>. Adresy są normalizowane (<code>normalize_url</code>: absolutny https, bezpieczna ścieżka, host bez <code>www</code>) i odsiewane z duplikatów.</li>
+      <li><strong>Metadane z nazwy pliku.</strong> <code>parse_filename()</code> rozkłada <code>OMAP-100-2505-zasady.pdf</code> na kod (<code>OMAP</code>), warianty (<code>100</code>), sesję (<code>2505</code> → <code>2025-05</code>) i typ dokumentu. Typ rozpoznaje w czterech miejscach po kolei: prefiks nazwy (rocznik 2019: <code>Zasady_oceniania_…</code>), sufiks (od ok. 2022: <code>…-zasady</code>, <code>…-zeszyt-zadan</code>), katalog w URL (2020–2021) albo wartość domyślna <code>arkusz</code>. Kolumna <code>zrodlo_typu</code> mówi, skąd wynik. Sesja jest szukana od prawej strony tokenów, bo w maturze po sesji stoi jeszcze wariant.</li>
+      <li><strong>Zapis spisu.</strong> <code>write_inventory()</code> tworzy <code>data/index/urls.tsv</code> (jeden wiersz na plik, 13 kolumn: segment, rocznik, podkatalog, plik, kod, warianty, sesja, typ, zrodlo_typu, wzorzec, url, sciezka_lokalna) i <code>manifest.json</code> z licznikami.</li>
+      <li><strong>Pobieranie.</strong> <code>download_all()</code> puszcza <code>ThreadPoolExecutor</code> z 8 wątkami. <code>download_one()</code> pomija plik, który już leży na dysku i ma rozmiar większy od zera. Pobrany bajt sprawdza pod kątem sygnatury <code>%PDF</code>, zapisuje do <code>.part</code> i podmienia atomowo (<code>tmp.replace(dest)</code>), więc w mirrorze nigdy nie ma pół pliku. Trzy próby z rosnącym odstępem; HTTP 404, 403 i 410 nie są ponawiane.</li>
+      <li><strong>Raport.</strong> <code>build_report()</code> porównuje spis ze stanem dysku, sprawdza sygnaturę każdego pliku i pisze <code>data/reports/kompletnosc.md</code>, <code>kompletnosc.csv</code>, <code>braki.tsv</code> oraz dopisuje do <code>download-log.tsv</code>. Kod wyjścia 1, gdy są braki lub pliki uszkodzone.</li>
+    </ol>
+    <div class="note">Flagi mirrora są jeszcze po polsku (<code>--filtr</code>, <code>--rocznik</code>, <code>--tylko-spis</code>, <code>--cicho</code>), inaczej niż w reszcie ingestu. Ten sam plik żyje w repozytorium <code>cke-mirror</code>, więc zmiana nazw musi pójść w obu miejscach naraz.</div>
+    <h4>Typowe wywołania</h4>
+<pre><code>task mirror -- --filtr matematyka        # tylko pliki ze ścieżką zawierającą „matematyka"
+task mirror -- --dry-run                 # nic nie pobiera, raport ze spisu na dysku
+task mirror -- --tylko-spis              # odśwież urls.tsv, nie ściągaj PDF-ów
+task mirror -- --rocznik 2026 --jobs 4   # jeden rocznik, mniej strumieni</code></pre>
+  </div>
+</section>
+
+<!-- ============================================================ 05 -->
+<section id="schemat">
+  <h2>Schemat bazy i migracje</h2>
+  <p class="kicker">kontrakt między Pythonem a C#, więzy zostają ostre</p>
+  <div class="stage">
+    <div class="head"><h3>migrate.py i dziewięć migracji</h3><span class="files">ingest/schema/migrate.py · ingest/schema/migrations/000N_*.sql</span></div>
+    <h4>Jak działa runner</h4>
+    <ul>
+      <li>Adres bazy bierze wyłącznie z konfiguracji (<code>polaczenie()</code>: <code>DATABASE_URL</code> albo pięć zmiennych <code>DB_*</code>). Brak zmiennej kończy się komunikatem, nie stack trace'em.</li>
+      <li>Tworzy tabelę <code>schema_migrations (version, applied_at, sha256)</code>, jeśli jej nie ma.</li>
+      <li>Liczy SHA-256 każdego pliku <strong>po normalizacji</strong> BOM-u i CRLF (<code>suma()</code>). Migracja, która już weszła, a ma inną sumę, zatrzymuje runner z napisem <code>ROZJAZD</code>. Zastosowanej migracji się nie edytuje, dopisuje się nową.</li>
+      <li>Każdy brakujący plik wykonuje w <strong>jednej transakcji razem z wpisem</strong> do <code>schema_migrations</code>. Połączenie jest w <code>autocommit=True</code>, bo bez tego <code>conn.transaction()</code> zakładałby tylko savepoint i wszystkie migracje lądowałyby w jednej transakcji.</li>
+      <li>Pliki SQL nie mają <code>BEGIN</code>/<code>COMMIT</code>. Transakcję otwiera runner.</li>
+    </ul>
+    <div class="ledger-wrap">
+      <table>
+        <caption>Migracje w kolejności</caption>
+        <thead><tr><th>Plik</th><th>Co wnosi</th><th>Dlaczego</th></tr></thead>
+        <tbody>
+          <tr><td><code>0001_corpus.sql</code></td><td>Cały model korpusu: <code>requirement_regime</code>, <code>requirement</code>, <code>document</code>, <code>exam_form</code>, <code>exam_form_document</code>, <code>task</code>, <code>task_requirement</code>, <code>task_version</code>, <code>model_answer</code>, <code>criterion</code>, <code>criterion_condition</code>, <code>condition_expression</code>, <code>example_solution</code>, <code>answer_example</code>, <code>rule</code>, <code>asset</code>; widoki <code>tasks_per_requirement</code> i <code>twins</code>; kolacja <code>pl_icu</code>.</td><td>Awans ze schematu badawczego bez zmian modelu. Relacja klucz ↔ arkusz jest N:M, bo jeden klucz obsługuje do sześciu form arkusza.</td></tr>
+          <tr><td><code>0002_indexes.sql</code></td><td>Indeksy na kluczach obcych.</td><td>Postgres nie zakłada ich sam; bez nich każdy <code>DELETE</code> na rodzicu skanuje dziecko.</td></tr>
+          <tr><td><code>0003_nulls_not_distinct.sql</code></td><td><code>UNIQUE NULLS NOT DISTINCT</code> na <code>requirement</code>, <code>exam_form</code>, <code>model_answer</code>.</td><td>Domyślnie <code>NULL &lt;&gt; NULL</code>, więc dwa wymagania ogólne bez etapu wchodziły oba. Wymaga PostgreSQL 15+.</td></tr>
+          <tr><td><code>0004_review_status.sql</code></td><td><code>task.review_status</code> (pending/approved/corrected/rejected), <code>task.reviewed_at</code>, <code>task.page</code>; tabela <code>correction_event</code>; widok <code>corpus_task</code>.</td><td>Bramka korekty. <code>approved</code> i <code>corrected</code> to dwa stany, bo różnica między nimi to pomiar S8.</td></tr>
+          <tr><td><code>0005_mathjson_status.sql</code></td><td><code>condition_expression.mathjson_status</code> (none/auto/approved/failed) i <code>mathjson_error</code>.</td><td>NULL nie odróżnia „nie próbowano” od „nie da się” od „sprawdzone”.</td></tr>
+          <tr><td><code>0006_prefill_suggestion.sql</code></td><td>Tabela <code>prefill_suggestion</code> (task_id, model, payload jsonb, tokeny, batch).</td><td>Podpowiedź modelu leży obok korpusu, nigdy w <code>criterion</code>. Wiersz jest znacznikiem ramienia S6.</td></tr>
+          <tr><td><code>0007_description_corrected.sql</code></td><td>Status opisu rysunku dostaje <code>corrected</code>.</td><td>S7 pyta o opisy przyjęte bez poprawki.</td></tr>
+          <tr><td><code>0008_description_manual.sql</code></td><td>Status opisu dostaje <code>manual</code>.</td><td>Opis napisany od zera przez człowieka stoi poza mianownikiem S7.</td></tr>
+          <tr><td><code>0009_review_actor.sql</code></td><td><code>task.reviewed_by</code> (human/model), <code>task.review_model</code>; <code>correction_event.actor</code>, <code>.model</code>, akcja <code>unsure</code>.</td><td>Plan A2-auto: model rozstrzyga, ale schemat wie kto. Powrót do ręcznej korekty to jeden <code>UPDATE</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h4>Jak zbudowany jest model</h4>
+    <div class="col">
+      <p><strong>Dokument</strong> (<code>document</code>) to jeden PDF z mirrora: klucz oceniania (<code>marking_scheme</code>) albo zeszyt zadań (<code>paper</code>). <strong>Forma arkusza</strong> (<code>exam_form</code>) to to, co uczeń dostaje na stole: kod, wariant dostosowania (100, 200, 400, 700, 800, C00, K00, Q00), wersja bliźniacza (X/Y) i sesja. Tabela <code>exam_form_document</code> spina je N:M z rolą.</p>
+      <p><strong>Zadanie</strong> (<code>task</code>) wisi na kluczu i niesie numer, pulę punktów, rodzaj, stronę w kluczu, status korekty. Kryteria (<code>criterion</code> → <code>criterion_condition</code> → <code>condition_expression</code>) i wymagania podstawy (<code>task_requirement</code>) wiszą na zadaniu, bo bliźniaki X i Y dzielą kryteria. <strong>Wersja zadania</strong> (<code>task_version</code>) wisi na formie i niesie to, co bliźniaki różni: treść z zeszytu, odpowiedź wzorcową (<code>model_answer</code>) i rysunek (<code>asset</code>).</p>
+      <p>Trzy poziomy kryteriów to trzy poziomy alternatywy: próg (ile punktów) jest osiągnięty, gdy spełniony jest <strong>dowolny</strong> warunek, a warunek, gdy uczeń zapisał <strong>dowolny</strong> z równoważnych zapisów. Więz <code>UNIQUE (task_id, points)</code> na <code>criterion</code> złapał w sondzie prawdziwy błąd parsera i dlatego nikt go nie luzuje.</p>
+      <p><strong>Reguły przekrojowe</strong> (<code>rule</code>) to sekcja „Uwagi ogólne” klucza (błąd rachunkowy, sam wynik za 0 pkt) z zakresem zadań <code>tasks_from</code>–<code>tasks_to</code>. Uwagi spod pojedynczego zadania też lądują tutaj, z zakresem równym numerowi zadania i pozycją 1000+.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 06 -->
+<section id="pdf">
+  <h2>Warstwa PDF: znaki, kreski, ułamki, regiony</h2>
+  <p class="kicker">cztery moduły w ingest/pdf/, wspólne dla parsera i ekranu korekty</p>
+
+  <div class="stage">
+    <div class="head"><h3>layout.py: jedno API, dwa silniki</h3><span class="files">ingest/pdf/layout.py</span></div>
+    <div class="col">
+      <p>Otwiera PDF przez <code>open_pdf(path, engine)</code> i oddaje strony jako obiekty <code>Page</code> z czterema leniwie liczonymi warstwami:</p>
+      <ul>
+        <li><code>chars</code>: każdy glif jako <code>Char(c, x0, x1, y0, y1, size)</code>; <code>y0</code>/<code>y1</code> liczone od <strong>górnej</strong> krawędzi strony.</li>
+        <li><code>bars</code>: kreski kandydujące na kreskę ułamkową. Linia albo prostokąt o grubości ≤ 1,6 pt i długości od 3 do 90 pt (<code>_is_bar</code>). Odsiewane są te, które leżą wewnątrz wykrytej tabeli, bo to krawędzie komórek. <code>find_tables()</code> kosztuje ok. dwa razy tyle co reszta, więc uruchamia się tylko gdy są kandydaci.</li>
+        <li><code>tables</code>: tabele z pdfplumbera z rozwiniętymi komórkami (potrzebne do wymagań podstawy).</li>
+        <li><code>shapes</code>: obrazy, krzywe, prostokąty, linie z ramkami <code>(x0, top, x1, bottom)</code>; wejście wykrywania regionu graficznego.</li>
+      </ul>
+      <p><code>zrzut_strony()</code> zapisuje te warstwy do JSON, a <code>StronaZeZrzutu</code> odtwarza z nich stronę o tym samym interfejsie. Na tym stoją testy regresji bez ani jednego PDF-a w repozytorium (<code>tests/fixtures/strony-omap-100-2505.json</code>, <code>arkusz-omap-100-x-2505.json</code>).</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>reconstruct.py: matematyka z geometrii strony</h3><span class="files">ingest/pdf/reconstruct.py</span></div>
+    <div class="col">
+      <p>Płaska ekstrakcja tekstu gubi ułamki i potęgi: licznik, kreska i mianownik to trzy osobne obiekty na różnych wysokościach. Ten moduł składa je z powrotem.</p>
+      <h4>Ułamki</h4>
+      <p><code>_pietra(chars, bar)</code> szuka znaków nad i pod kreską w oknie 1,45 × rozmiar pisma (mediana rozmiaru w wierszu, nie pierwszy znak). Znak należy do kreski, gdy jego środek mieści się w jej zasięgu z zapasem 1,2 pt. <code>_fits()</code> odrzuca piętro, które jest słowem (≥ 3 litery), bo podkreślenie pod nagłówkiem „Uwagi” przechodziło wszystkie testy geometryczne i dawało ułamek <code>Uwagi/1</code>. <code>render()</code> obsługuje ułamki zagnieżdżone rekurencyjnie (kreska wewnątrz zasięgu innej kreski) i wypisuje <code>licznik/mianownik</code>.</p>
+      <h4>Potęgi i indeksy</h4>
+      <p><code>_mark_scripts()</code> uznaje znak za indeks, gdy jest mniejszy niż 0,82 rozmiaru bazowego i przesunięty o więcej niż 0,18 wysokości fontu: w górę daje <code>^</code>, w dół <code>_</code>. Ciąg <code>k^-^1^0</code> jest scalany do <code>k^(-10)</code>, a <code>P_A_E_C_F</code> do <code>P_(AECF)</code>.</p>
+      <h4>Normalizacja i wiersze</h4>
+      <p><code>normalize()</code> sprowadza kursywę matematyczną Unicode (U+1D400–U+1D7FF) do zwykłych liter przez NFKC i wszystkie warianty myślnika do minusa. <code>page_text()</code> grupuje znaki w wiersze co 3 pt, ale wcześniej <strong>kotwiczy</strong> piętra ułamków i indeksy do najbliższego wiersza tekstu bazowego, żeby ułamek stojący w zdaniu nie wylądował w osobnej linijce. Wiersz tnie na segmenty tam, gdzie odstęp przekracza 25 pt (rynna między kolumnami). Liczba mieszana dostaje spację przed ułamkiem: <code>1 2/3 km</code>, nie <code>12/3 km</code>, bo sklejona wersja wyglądała jak poprawny ułamek o innej wartości.</p>
+      <h4>Przypisy</h4>
+      <p><code>przypisy()</code> znajduje blok u dołu strony złożony z wierszy mniejszych od tekstu bazowego, pod warunkiem że w bloku jest wiersz o rozmiarze przypisu (≤ baza − 1,5 pt). Parser odcina go od treści, ale czyta z niego numer Dziennika Ustaw, po którym poznaje obowiązującą podstawę programową.</p>
+      <div class="warn"><b>Świadomie nie działa:</b> pierwiastki. Zasięg daszka jest w geometrii niejednoznaczny, wystąpień jest mało, a brak domknięcia widać w ekranie. Test <code>test_pierwiastek_ma_zasieg</code> stoi jako <code>xfail</code> z powodem „ŚWIADOMIE: korekta ręczna”, a konwerter MathJSON odmawia takich zapisów wprost.</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>regions.py: gdzie na stronie jest rysunek</h3><span class="files">ingest/pdf/regions.py · G2.4.1</span></div>
+    <div class="col">
+      <p><code>detect(page, top, bottom)</code> dostaje pionowy pas zadania (od jego nagłówka do nagłówka następnego) i oddaje listę ramek. Diagram to zwykle kilkadziesiąt kresek, które mają zostać <strong>jednym</strong> zasobem.</p>
+      <ol>
+        <li><strong>Kandydaci.</strong> Kształty, których co najmniej połowa wysokości leży w pasie. Trzy sita, każde zmierzone na arkuszu: kreska pod odpowiedź ucznia (≤ 1 pt grubości i ≤ 20 pt długości; jedna strona ma ich 4479), linijka strony (≥ 95% szerokości kolumny tekstu przy wysokości ≤ 20 pt), oraz limit 400 kandydatów, powyżej którego strona jest ozdobna i automat oddaje pole człowiekowi.</li>
+        <li><strong>Klastrowanie.</strong> <code>cluster()</code> scala ramki oddalone o mniej niż 8 pt (mniej niż odstęp między wierszami, ok. 12 pt) i powtarza przejścia do skutku, bo A styka się z B, B z C, a A z C już nie.</li>
+        <li><strong>Odsiew klastrów.</strong> Odpadają za małe (bok &lt; 24 pt albo pole &lt; 2500 pt²) i te rozpięte na ≥ 97% szerokości kolumny: to tabela „Prawda/Fałsz”, nie rysunek. Wykres z 2025 r. zajmuje 0,86 kolumny, tabela 0,99, więc próg rozdziela je z zapasem. Filtrowania po wykrytych tabelach <strong>nie ma celowo</strong>: pdfplumber widzi w wykresie słupkowym tabelę o dziewięciu wierszach.</li>
+        <li><strong>Margines.</strong> Każda ramka dostaje 6 pt zapasu i jest przycięta do strony.</li>
+      </ol>
+      <p>Pusta lista znaczy „automat nie domyka”. Parser zapisuje wtedy ramkę całej strony <code>[0, 0, szerokość, wysokość]</code>, a dociąga ją człowiek w ekranie albo model w <code>task frame</code>. Zmierzone na całym korpusie: 558 z 607 zasobów (92%) dostało ramkę z automatu.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>crop.py: wycinek PNG</h3><span class="files">ingest/pdf/crop.py</span></div>
+    <div class="col">
+      <p><code>crop(pdf_path, page, bbox, relative_target)</code> renderuje fragment strony przez pypdfium2 w 200 DPI (skala 200/72) i zapisuje PNG pod <code>BLOB_ROOT/relative_target</code>. Jedna funkcja dla trzech źródeł ramki: automat, ręczne pola formularza, model. Różnią się wyłącznie tym, skąd bierze się <code>bbox</code>.</p>
+      <p>Dwie pułapki, które ten plik zamyka: <code>bbox</code> jest w punktach PDF od <strong>lewego górnego</strong> rogu (jak <code>top</code>/<code>bottom</code> w layout.py), a pdfium chce <strong>marginesów</strong> w kolejności lewy, dolny, prawy, górny, stąd przeliczenie <code>(x0, height − bottom, width − x1, top)</code>. Numer strony jest liczony od 1, jak w stopce PDF-a. <code>target_path()</code> odmawia ścieżki wychodzącej poza korzeń blobów. Każdy błąd wychodzi jako <code>CropError</code> z powodem po polsku, do pokazania w ekranie.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 07 -->
+<section id="parser">
+  <h2>Parser kluczy OMAP</h2>
+  <p class="kicker">słownik nagłówków zamiast jednego regexu; nie dotyka bazy</p>
+  <div class="stage">
+    <div class="head"><h3>parser.py</h3><span class="files">ingest/parsers/omap_e8/parser.py · 972 linie · awans z research/ bez zmian logiki</span></div>
+    <div class="col">
+      <p><code>czytaj_klucz(path)</code> zwraca obiekt <code>Klucz</code> z listą <code>Zadanie</code>. Wszystko po polsku, w języku dokumentu (<code>zamkniete</code>, <code>zasady_oceniania</code>), bo parser czyta polskie klucze. Tłumaczenie na angielski schemat robi dopiero ładowarka.</p>
+    </div>
+    <h4>Przebieg dla jednego klucza</h4>
+    <ol>
+      <li><strong>Strona po stronie.</strong> Dla każdej strony: tekst z <code>reconstruct.page_text(page, pomin_przypisy=True)</code>, pozycje nagłówków zadań (<code>_heading_positions</code>: wiersz zaczynający się od „Zadanie N. (0–k)”), stopka z przypisami, oraz tabele, w których w pierwszych pięciu wierszach stoi słowo „Wymagani”. Tekst wszystkich stron skleja się w jeden string; parser pamięta granice stron, żeby potem policzyć numer strony zadania (<code>strona_offsetu</code>, od 1).</li>
+      <li><strong>Dialekt.</strong> <code>wykryj_dialekt()</code> mierzy tekst, nie zgaduje z nazwy. „Egzamin maturalny” w pierwszych 4000 znakach → <code>matura</code> lub <code>matura-2015</code> (gdy jest wzorzec „Zdający otrzymuje … N pkt”). Pagina „Egzamin ósmoklasisty z … – termin … r.” → <code>e8-2020</code>. Reszta → <code>e8-2019</code>. Dialekt (<code>Dialekt</code>, klasa zamrożona) niesie komplet regexów: postać progu, separator warunków (LUB/lub/ALBO), separator zapisów (albo/lub w osobnej linii lub odsunięte trzema spacjami), czytniki odpowiedzi, nagłówek rozwiązań, „I sposób”, „Uwagi”, „Uwagi ogólne”, koniec części zadaniowej i paginę do wycięcia.</li>
+      <li><strong>Reżimy, termin, formy.</strong> <code>_rezimy()</code> rozpoznaje podstawę programową z podpisu tabeli i z przypisu (poz. 996 lub 1019 → pp2024, poz. 356 → pp2017, poz. 977 → pp2012, „Wymagania egzaminacyjne 2021” → wym2021). <code>_termin()</code> czyta „Termin egzaminu: 14 maja 2025” na datę. <code>_formy()</code> czyta nagłówek „Formy arkusza: OMAP-100-2505 (wersje X i Y), OMAP-200-2505 …” i to jest sedno relacji N:M.</li>
+      <li><strong>Cięcie na zadania.</strong> <code>_tnij_zadania()</code> dzieli tekst po nagłówkach <code>RE_ZADANIE</code>; ostatnie zadanie kończy się na nagłówku „Ogólne zasady oceniania” lub podobnym (<code>koniec_zadan</code>), inaczej sekcja reguł doklejałaby się do ostatniego zadania.</li>
+      <li><strong>Parowanie tabel wymagań.</strong> <code>_sparuj_tabele()</code> przypisuje tabelę do <strong>najbliższego nagłówka nad nią</strong> (z tolerancją 6 pt, bo ramka tabeli bywa tuż nad nagłówkiem). Parowanie kolejnością przesuwałoby resztę, gdy jedno zadanie nie ma tabeli.</li>
+      <li><strong>Jedno zadanie.</strong> <code>_parsuj_zadanie()</code> najpierw wycina paginę, potem czyta odpowiedzi (<code>_odpowiedzi</code>), rozwiązania przykładowe (<code>_rozwiazania</code>), a tekst kryteriów bierze od „Zasady oceniania” do <strong>wcześniejszego</strong> z dwóch nagłówków: rozwiązań albo bloku odpowiedzi „Rozwiązanie – wersja X/Y”. Ta druga granica to poprawka z 4.09.2026: bez niej blok odpowiedzi wchodził do warunku za 0 pkt w każdym zadaniu zamkniętym od 2020 r. Sekcja „Uwagi” pod zadaniem jest odcinana i staje się regułą tego zadania. Typ: <code>zamkniete</code>, gdy są odpowiedzi bez rozwiązań; <code>otwarte_krotkie</code> do 2 pkt; inaczej <code>otwarte_rozszerzone</code>.</li>
+      <li><strong>Kryteria.</strong> <code>_kryteria()</code> znajduje progi (nagłówek „2 punkty” lub linia „1 pkt –”), sortuje po pozycji, dedupuje po punktach (pierwszy wygrywa), tnie blok każdego progu separatorem alternatywy na warunki, a warunek separatorem zapisu na zapisy równoważne. Granicą pierwszego zapisu jest „np.”, które w kluczach CKE wprowadza zapis, nie zdanie.</li>
+      <li><strong>Odpowiedzi.</strong> Trzy czytniki: <code>wersje</code> (nagłówek „Rozwiązanie – wersja X / wersja Y”, dwie kolumny rozdzielane wierszami lub podpunktami 1.1/1.2), <code>ab</code> (matura: „Wersja A / Wersja B”), <code>solo</code> (sama linia „Rozwiązanie”). Pozycja pierwszego trafienia jest granicą tekstu kryteriów.</li>
+      <li><strong>Wymagania.</strong> <code>parsuj_wymagania()</code> znajduje pary kolumn „Wymagania ogólne / szczegółowe” (rocznik 2019 ma dwie pary, bo mapuje na dwie podstawy), reżim bierze z podpisu nad kolumnami albo z kolejności, wykrywa etap („KLASY IV–VI”, „VII–VIII”) i ścieżki: dział rzymski + punkt arabski (<code>XI.3</code>) w E8 albo jawne (<code>I.1)</code>, <code>XIII.R1)</code>) w maturze.</li>
+      <li><strong>Reguły.</strong> <code>_reguly()</code> czyta sekcję „Uwagi ogólne”, klasyfikuje każdą (<code>rodzaj_reguly</code>: rachunkowa, sam_wynik, sprzeczne_rozwiazania, dostosowanie, kalkulator, inna) i wyciąga zakres „w zadaniach 16–21”.</li>
+      <li><strong>Ostrzeżenia.</strong> Do <code>Klucz.ostrzezenia</code> trafiają m.in.: brak formy w nagłówku, zadania bez wymagań, otwarte bez kryteriów, zamknięte bez odpowiedzi. Osobno: „zadania zamknięte bez kryteriów mimo klucza, który je ma”. <code>closed_without_criteria()</code> mierzy, czy w <strong>tym</strong> kluczu jakiekolwiek zadanie zamknięte ma kryteria. Jeśli żadne, to norma dokumentu (rocznik 2019), a nie dziura.</li>
+    </ol>
+    <h4>Zeszyt zadań: czytaj_arkusz()</h4>
+    <div class="col">
+      <p>Dla każdej strony zeszytu: tekst, nagłówki zadań i ich pasy (<code>_task_bands</code>). Treść zadania to tekst od nagłówka do następnego nagłówka, obcięty do 1500 znaków. Jeśli treść wspomina wykres, diagram, rysunek, siatkę albo oś liczbową (<code>graphic_kind</code>), parser woła <code>regions.detect</code> w pasie zadania. Więcej niż 3 ramki na stronie znaczy rozsypany klaster i całą listę oddaje się człowiekowi (<code>frames_for_assets</code>). Brak ramki daje zasób z ramką całej strony. Zasoby liczą się raz na stronę, bo numer zadania trafia się na dwóch stronach.</p>
+    </div>
+    <h4>Podgląd jednego klucza z konsoli</h4>
+<pre><code>cd phase-alfa/ingest
+uv run python -m parsers.omap_e8.parser "../../cke-mirror/data/raw/e8/2025/zasady_oceniania/matematyka/OMAP-100-2505-zasady.pdf"
+uv run python -m parsers.omap_e8.parser "&lt;plik&gt;" --zadanie 20     # tylko jedno zadanie, pełna struktura</code></pre>
+  </div>
+</section>
+
+<!-- ============================================================ 08 -->
+<section id="loader">
+  <h2>Ładowarka i runner</h2>
+  <p class="kicker">loader.py tłumaczy słownik i pilnuje pracy człowieka; run.py to test regresji, nie tylko raport</p>
+
+  <div class="stage">
+    <div class="head"><h3>loader.py</h3><span class="files">ingest/parsers/omap_e8/loader.py</span></div>
+    <div class="col">
+      <p>Klasa <code>Ladowarka</code> dostaje obiekt <code>Klucz</code> i wiersz z <code>urls.tsv</code>, a oddaje liczniki wstawionych wierszy. Na górze pliku stoją słowniki PL → EN (<code>zamkniete</code> → <code>closed</code>, <code>rachunkowa</code> → <code>arithmetic</code>, <code>wykres</code> → <code>chart</code>). Wszędzie <code>[...]</code>, nie <code>.get()</code>: brak klucza w słowniku ma być głośny.</p>
+      <h4>Kolejność zapisu w jednej transakcji per klucz</h4>
+      <ol>
+        <li><code>_wyczysc_klucz()</code>: szuka dokumentu po URL. Jeśli klucz ma zadania ze statusem innym niż <code>pending</code>, rzuca <code>ReviewedKeyError</code>, chyba że <code>overwrite_reviewed=True</code>. Ta bramka stoi tuż przed <code>DELETE</code>, więc obowiązuje każdą drogę: runner, testy, ekran. Dopiero potem kasuje zadania, reguły i powiązania form tego dokumentu.</li>
+        <li>Reżimy wymagań (<code>ON CONFLICT (code) DO NOTHING</code>; inna nazwa dla tego samego kodu ląduje w <code>kolizje_rezimow</code>).</li>
+        <li>Dokument klucza: <code>INSERT … ON CONFLICT (url) DO UPDATE</code>, przy czym <code>ingest_status</code> wraca na <code>new</code>, bo zadania właśnie zniknęły i wchodzą od nowa.</li>
+        <li>Formy arkusza z nagłówka, każda wersja osobno; forma <strong>własna</strong> pliku to ta z jego nazwy (<code>RE_WLASNA_FORMA</code>), bo zeszyt istnieje tylko dla niej. Gdy nagłówka „Formy arkusza” nie ma (2019, 2020), forma powstaje z nazwy pliku.</li>
+        <li>Zeszyty zadań jako dokumenty <code>paper</code> z liczbą stron (ekran pokazuje „strona N z M”).</li>
+        <li>Zadania: <code>task</code> (ze stroną w kluczu), <code>task_requirement</code> (wymagania przez <code>ON CONFLICT (regime_id, kind, stage, path) DO NOTHING</code>; inna treść pod tą samą ścieżką trafia do <code>kolizje_wymagan</code>, do bazy wchodzi pierwsza), <code>task_version</code> per wersja własna z treścią z zeszytu, <code>model_answer</code> (gdy forma nie ma litery wersji, a klucz podaje dwie kolumny, bierze pierwszą), <code>asset</code> ze ścieżką <code>kod/sesja/wariant/wersja/zN-i.png</code>, kryteria trzech poziomów, rozwiązania przykładowe, uwagi jako reguły.</li>
+        <li>Reguły przekrojowe klucza.</li>
+      </ol>
+      <p>Po wycofanej transakcji <code>zapomnij_slowniki()</code> czyści pamięć identyfikatorów, bo te z cofniętej transakcji już nie istnieją.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>run.py: punkt wejścia task ingest</h3><span class="files">ingest/parsers/omap_e8/run.py</span></div>
+    <div class="col">
+      <ol>
+        <li>Czyta <code>urls.tsv</code> z <code>MIRROR_ROOT</code> i filtruje wiersze: typ <code>zasady_oceniania</code>, kod (domyślnie <code>OMAP</code>), segment, rocznik, wariant. Wariant porównuje po <strong>pierwszym członie</strong> kolumny <code>warianty</code>, bo zeszyty trzymają tam też literę wersji („100,X”).</li>
+        <li>Łączy się z bazą w <code>autocommit=True</code>, żeby <code>con.transaction()</code> w ładowarce była prawdziwą transakcją na klucz, a nie savepointem.</li>
+        <li><code>--wipe</code>: odmawia, gdy w bazie jest jakakolwiek korekta <strong>albo</strong> jakikolwiek wpis w <code>correction_event</code> (dziennik ginie w kaskadzie <code>TRUNCATE</code>, a jest pomiarem S8). Zgoda tylko z <code>--wipe --overwrite-reviewed</code>. Potem <code>TRUNCATE … RESTART IDENTITY CASCADE</code> na 15 tabelach.</li>
+        <li>Jedno zapytanie wstępne <code>reviewed_by_url()</code>: klucze z korektą są pomijane <strong>przed</strong> parsowaniem (klucz kosztuje ok. 1,5 s) i wypisane jako <code>POMIJAM</code>. Twarda ochrona i tak siedzi w ładowarce.</li>
+        <li>Dla każdego klucza: <code>czytaj_klucz</code>, przy <code>--with-papers</code> także <code>arkusze_dla()</code> (zeszyty o tym samym kodzie, sesji i wariancie; litera wersji z nazwy; zeszyt <strong>bez</strong> litery obsługuje każdą wersję klucza, poprawka z 4.09) i <code>czytaj_arkusz</code>, potem <code>lad.zaladuj</code>.</li>
+        <li><code>_ocena()</code>: udział zadań z wymaganiem (próg 95%), zamkniętych z odpowiedzią (95%), otwartych z kryteriami (90%), minimum 10 zadań, ciągłość numeracji. Każde niedotrzymanie to uwaga i kod wyjścia 1.</li>
+        <li>Po pętli <code>crops.cut_missing(con)</code> dociąża brakujące wycinki (pod strażą, żeby błąd cięcia nie zabrał raportu).</li>
+        <li>Raport na ekran i do <code>data/reports/ingest-RRRR-MM-DD.txt</code> (klasa <code>_Tee</code>). Sekcje: co weszło do bazy, pokrycie per rocznik (z kolumną „pomin.”), warianty dostosowane i bliźniaki, mapa braków (najczęściej sprawdzane punkty podstawy), formy obsługiwane przez wiele kluczy, spójność (pytania, na które więzy nie odpowiadają), wycinki, podsumowanie.</li>
+      </ol>
+      <div class="facts">
+        <div><b>Czas</b> cały zakres 75 kluczy: ok. 2,5 min; z <code>--with-papers</code> ok. 8× wolniej; jeden klucz z zeszytami: 29 s</div>
+        <div><b>Liczby kontrolne</b> 75 kluczy, 1436 zadań, 2062 punkty, pokrycie 100/100/100</div>
+        <div><b>Nie błędy</b> 1 próg ponad pulą (literówka CKE w OMAP-900-2105), 90 zadań zamkniętych bez kryteriów w 2019 (norma dokumentu)</div>
+      </div>
+      <div class="warn"><b>Czego bramka nie łapie:</b> <code>--with-papers</code> pominięte w powtórce. Zadania <code>pending</code> przeładowują się bez pytania i jeśli poprzedni przebieg czytał zeszyty, a ten nie, klucz zostaje bez treści i bez zasobów. Klucz raz wczytany z arkuszami wczytuj z nimi zawsze.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 09 -->
+<section id="snapshot">
+  <h2>Regresja parsera bez bazy i wycinki PNG</h2>
+  <p class="kicker">dwa narzędzia obok runnera</p>
+  <div class="stage">
+    <div class="head"><h3>snapshot.py</h3><span class="files">ingest/parsers/omap_e8/snapshot.py · G2.3.1</span></div>
+    <div class="col">
+      <p>Parsuje klucze tak jak runner, ale nie dotyka bazy. Dla każdego klucza liczy: zadania, punkty, wymagania, odpowiedzi, kryteria, warunki, zapisy, rozwiązania, reguły, uwagi, zamknięte i otwarte bez kryteriów, plus dwa skróty SHA-256 (16 znaków) sklejonych treści warunków i zapisów. Skrót jest po to, żeby „tyle samo progów” nie maskowało „tyle samo progów o innym tekście”. <code>compare()</code> wypisuje jedną linię na klucz, który się ruszył; kod wyjścia 1 przy różnicach.</p>
+<pre><code>task parser:snapshot -- --out ../data/reports/parser-przed.json
+# … poprawka w parserze …
+task parser:snapshot -- --baseline ../data/reports/parser-przed.json
+task parser:snapshot -- --compare A.json B.json     # bez parsowania</code></pre>
+      <p>W <code>data/reports/</code> leżą już <code>parser-baseline.json</code>, <code>parser-po-g232.json</code> i <code>parser-po-a2auto.json</code>.</p>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="head"><h3>crops.py</h3><span class="files">ingest/parsers/omap_e8/crops.py</span></div>
+    <div class="col">
+      <p><code>cut_missing()</code> czyta wszystkie zasoby z bazą zeszytu (<code>LEFT JOIN document p ON p.id = tv.paper_id</code>). Zasób z ramką całej strony (zero w lewym górnym rogu) liczy jako „ręczny” i nie tnie, bo wycinek byłby całym arkuszem i wyglądałby na gotowy. Zasób z plikiem już na dysku pomija (chyba że <code>--force</code>). Reszta idzie przez <code>pdf.crop.crop</code>. Wynik to podsumowanie: total, framed, manual, cut, kept, no_paper, failed.</p>
+      <p><code>orphans()</code> szuka plików w blobie, które pasują do wzorca ścieżki wycinka, a nie mają wiersza w <code>asset</code>. Potrzebne po <code>task db:reset</code>, który kasuje wolumen Postgresa, ale pliki PNG zostawia. <code>--prune</code> tylko wypisuje, <code>--prune --yes</code> kasuje. Kasowanie jest osobnym krokiem celowo: pomylony <code>DATABASE_URL</code> wskazuje pustą bazę i każdy wycinek jest wtedy osierocony.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 10 -->
+<section id="korekta">
+  <h2>Ekran korekty: bramka do korpusu</h2>
+  <p class="kicker">FastAPI + Jinja2, zero JavaScriptu, tylko 127.0.0.1</p>
+  <div class="stage">
+    <div class="head"><h3>correction/app.py, db.py, assets.py, pages.py, stats.py</h3><span class="files">uruchamiane przez <code>task correction</code> → <code>uvicorn correction.app:app --host 127.0.0.1 --port 8600 --reload</code></span></div>
+    <div class="ledger-wrap">
+      <table>
+        <caption>Trasy HTTP</caption>
+        <thead><tr><th>Trasa</th><th>Co robi</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /</code></td><td>Lista zadań z filtrami status / rocznik / kod / wariant, liczby S8 (<code>stats.collect</code>), przycisk „Następne do korekty”. Filtry przyjmują tekst, puste znaczy „wszystkie”.</td></tr>
+          <tr><td><code>GET /next?year=&amp;code=&amp;variant=</code></td><td>Przekierowanie do pierwszego zadania <code>pending</code> w zakresie, w kolejności sesja → plik → pozycja. Zakres jedzie w adresie, żeby pilot jednego rocznika nie wyprowadził do 2019 r.</td></tr>
+          <tr><td><code>GET /task/{id}</code></td><td>Formularz zadania: rekord, wersje z odpowiedziami, kryteria trzech poziomów, wymagania, rozwiązania przykładowe, reguły obejmujące ten numer (<code>rule_applies</code>, porównanie liczbowe zakresu), zasoby z ramkami, podpowiedzi prefillu jako różnice (<code>hints</code>), uwagi modelu (<code>model_notes</code>). Ukryte pole <code>started_at</code> powstaje przy renderowaniu.</td></tr>
+          <tr><td><code>POST /task/{id}</code></td><td>Zapis formularza. Odrzuca żądania z <code>Sec-Fetch-Site</code> innym niż <code>same-origin</code> (ochrona przed cudzą stroną w tej samej przeglądarce). Akcje: <code>save</code>, <code>crop</code>, <code>add:criterion</code>, <code>add:condition:&lt;id&gt;</code>, <code>add:expression:&lt;id&gt;</code>, <code>approve</code>, <code>reject</code>, <code>reopen</code>.</td></tr>
+          <tr><td><code>GET /task/{id}/page.png?n=</code></td><td>Strona <strong>klucza</strong> jako PNG (<code>pages.render</code>, skala 2 ≈ 144 DPI, cache w <code>data/cache/pages/&lt;sha-ścieżki&gt;-&lt;strona&gt;-2.png</code>).</td></tr>
+          <tr><td><code>GET /asset/{id}.png</code></td><td>Wycinek z bloba.</td></tr>
+          <tr><td><code>GET /asset/{id}/page.png?grid=1</code></td><td>Strona <strong>zeszytu</strong> z siatką współrzędnych w punktach PDF (kreska co 50 pt, podpis co 100), do ręcznej ramki.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h4>Jak nazwane są pola formularza</h4>
+    <div class="col">
+      <p>Nazwa pola adresuje wiersz i kolumnę: <code>criterion.12.points</code> to kolumna <code>points</code> wiersza 12 tabeli <code>criterion</code>. Słownik <code>EDITABLE</code> w <code>db.py</code> mówi, co wolno edytować: <code>task.number|max_points|kind</code>, <code>version.&lt;id&gt;.content</code>, <code>answer.&lt;id&gt;.answer</code>, <code>criterion.&lt;id&gt;.points|label|description</code>, <code>condition.&lt;id&gt;.description</code>, <code>expression.&lt;id&gt;.expression</code>. Kasowanie to checkbox <code>delete.&lt;prefiks&gt;.&lt;id&gt;</code> (tylko answer, criterion, condition, expression; wersji nie, bo kaskadą zabrałaby odpowiedzi i zasoby). Wymagania: <code>add_requirement=&lt;id&gt;</code> i <code>delete.requirement.&lt;id&gt;</code>. Zasoby: <code>asset.&lt;id&gt;.x0|top|x1|bottom|page</code>, <code>asset.&lt;id&gt;.description</code>, <code>asset.&lt;id&gt;.approve_description</code>.</p>
+      <p>Każdy <code>UPDATE</code> i <code>DELETE</code> ma doklejony warunek przynależności do zadania (<code>OWNERSHIP</code>), więc podmieniony identyfikator w formularzu nie sięga do cudzego zadania.</p>
+      <h4>Jak powstaje status</h4>
+      <p><code>db.save()</code> działa w transakcji: najpierw kasuje zaznaczone wiersze (z kaskadą w pamięci, <code>_rows_to_vanish</code>, żeby walidacja nie szukała warunków skasowanego progu), potem zapisuje zadanie, wiersze tabel i wymagania, a dopiero gdy nie ma problemów, rusza zasoby (cięcie PNG dotyka dysku, który nie cofa się z transakcją). Zwraca słownik <code>{edited, deleted, described}</code>, czyli to, co się <strong>naprawdę</strong> zmieniło w porównaniu z bazą.</p>
+      <p><code>db.decide()</code> zamienia akcję na status. Jeden przycisk „Zatwierdź” daje <code>approved</code>, gdy nic nie zmieniono teraz, wcześniej w tej rundzie (<code>edited_before</code> w adresie po dodaniu wiersza) ani kiedykolwiek (<code>was_corrected</code> z dziennika); inaczej <code>corrected</code>. Statusu nie da się przekłamać deklaracją. Wpis w <code>correction_event</code> niesie <code>started_at</code> (z formularza, przycięty do „teraz”), <code>finished_at</code> (zegar bazy, <code>LEAST(…, now())</code>), <code>fields_changed</code>, <code>actor</code> i <code>model</code>. <code>refresh_document_status()</code> ustawia <code>document.ingest_status</code> na parsed / approved / rejected.</p>
+      <p>Więzy bazy zostają ostre, a komunikaty nie: <code>_friendly()</code> tłumaczy <code>UniqueViolation</code> na <code>criterion</code> na zdanie o dwóch progach z tą samą punktacją. Po błędzie formularz wraca z tym, co człowiek wpisał (<code>_overlay</code>), ze statusem 422.</p>
+      <h4>Opisy rysunków i ramki w ekranie</h4>
+      <p><code>assets.save_description()</code> rozstrzyga status opisu po stanie <strong>poprzednim</strong>: <code>auto</code> zatwierdzone bez zmiany → <code>approved</code> (trafienie S7), <code>auto</code> zmienione → <code>corrected</code>, <code>none</code> wpisane ręcznie → <code>manual</code> (poza S7). Ramka z pól formularza tnie plik i aktualizuje <code>bbox</code>; zmiana ramki liczy się jako poprawka (S8), zatwierdzenie opisu nie.</p>
+      <h4>Pomiary: stats.py i report.py</h4>
+      <p><code>stats.collect()</code> liczy: stan (ile pending/approved/corrected/rejected, udział trafień parsera), czasy z dziennika (mediana, suma, sesje dłuższe niż 30 min), prognozę (pending × mediana, nie średnia, bo formularz zostawiony na noc wchodzi jako praca), S6 (ramię z podpowiedzią kontra bez, po istnieniu wiersza w <code>prefill_suggestion</code>, tylko rozstrzygnięcia człowieka), S7 (opisy). <code>task correction:report</code> zapisuje to do <code>data/reports/correction-RRRR-MM-DD.txt</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 11 -->
+<section id="llm">
+  <h2>LLM w ingeście: prefill, opisy, ramki, verify</h2>
+  <p class="kicker">ręcznie, płatne, nigdy w CI; provenance niesie schemat</p>
+
+  <div class="stage">
+    <div class="head"><h3>llm.py: wspólna mechanika</h3><span class="files">ingest/correction/llm.py</span></div>
+    <div class="col">
+      <ul>
+        <li><strong>Model i dostawca to jeden parametr</strong> <code>--model dostawca:nazwa</code>. Ta sama wartość jest kluczem cennika <code>PRICING</code> (za MTok wejścia/wyjścia: <code>openai:gpt-5.6-terra</code> 2/12, <code>openai:gpt-5.6-luna</code> 0,2/1,2, <code>anthropic:claude-opus-5</code> 5/25, <code>anthropic:claude-haiku-4-5</code> 1/5), wejściem <code>init_chat_model</code> z LangChaina i nazwą zmiennej z kluczem (<code>API_KEYS</code>). Model bez ceny jest odrzucany, bo koszt jest wynikiem alfy.</li>
+        <li><code>chat_model()</code> zwraca <code>BaseChatModel</code>; wołający używa <code>.with_structured_output(Schemat, include_raw=True)</code> (pydantic) i <code>.invoke(messages)</code>. <code>include_raw</code> jest po to, żeby nie przepadł rachunek tokenów (<code>usage_of</code>).</li>
+        <li><code>Spend</code> zbiera wywołania, tokeny, porażki i liczy dolary (z rabatem 50% dla wsadu).</li>
+        <li><strong>Batch API</strong> to jedyny fragment poniżej LangChaina: <code>Runnable.batch()</code> to tylko równoległość po stronie klienta za pełną cenę. <code>run_batch()</code> buduje plik JSONL z <code>custom_id</code>, wysyła przez surowe SDK OpenAI, odpytuje stan co 30 s, kończy po 6 h albo przy stanie failed/expired/cancelled, znosi 5 kolejnych błędów sieci, a wyniki i błędy zbiera po <code>custom_id</code>, nigdy po pozycji. Adapter jest dziś tylko dla <code>openai</code>; inny dostawca z <code>--batch</code> dostaje odmowę z instrukcją.</li>
+        <li><code>batch_body()</code> tłumaczy wiadomości LangChaina konwerterem <code>convert_to_openai_messages</code>, żeby prompt we wsadzie i pojedynczo był identyczny; używa <code>max_completion_tokens</code>, bo do limitu liczą się tokeny rozumowania.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>prefill.py: podpowiedzi kryteriów (S6)</h3><span class="files">ingest/correction/prefill.py · <code>task prefill</code></span></div>
+    <div class="col">
+      <p>Bierze zadania <code>pending</code>, otwarte, w zakresie roku i wariantu, bez wpisu dla tego modelu. Wejściem jest <strong>to, co parser zrozumiał</strong> (<code>marking_text()</code> składa progi/warunki/zapisy z bazy), nie surowy PDF, więc S6 pyta „czy model układa strukturę lepiej”, nie „czy czyta PDF lepiej”. Schemat odpowiedzi <code>Prefill → Criterion → Condition</code> jest identyczny z modelem parsera. Wynik ląduje w <code>prefill_suggestion</code> (<code>ON CONFLICT (task_id, model) DO UPDATE</code>) i pokazuje się w ekranie jako różnice (<code>differences()</code>: criterion_missing, condition_missing, criterion_extra), porównywane po punktach progu. Dla wsadu schemat JSON buduje <code>strict_schema()</code>, które dokłada <code>additionalProperties: false</code> i pełne <code>required</code>, bo tryb <code>json_schema</code> OpenAI tego żąda, a pydantic tego nie robi dla pól z wartością domyślną.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>describe.py: alt-text rysunków (S7)</h3><span class="files">ingest/correction/describe.py · <code>task describe</code></span></div>
+    <div class="col">
+      <p>Dla zasobów ze statusem opisu <code>none</code> (z <code>--force</code> także <code>auto</code>, nigdy approved/corrected/manual) wysyła wycinek PNG z bloba jako <code>image_url</code> data-URI plus treść zadania. Test jakości w prompcie jest jeden: po opisie ma się dać rozwiązać zadanie bez rysunku. Odpowiedź zapisuje jako <code>description_status = 'auto'</code>, z warunkiem powtarzającym sito, bo między odczytem a zapisem człowiek mógł zatwierdzić. Brak wycinka to porażka jednego zasobu z komunikatem „najpierw <code>task crops</code>”, nie pusty opis.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>frame.py: ramka rysunku z siatki (X3)</h3><span class="files">ingest/correction/frame.py · <code>task frame</code></span></div>
+    <div class="col">
+      <p>Dla zasobów z ramką całej strony (SQL: <code>a.bbox[1] = 0 AND a.bbox[2] = 0</code>, tablice w Postgresie liczą od 1) renderuje stronę zeszytu z siatką (ten sam obraz, który widzi człowiek) i prosi o cztery liczby w <strong>pikselach obrazu</strong>. Pierwsza wersja prosiła o punkty PDF i dostawała piksele w skali 2, czyli ramki poza stroną. Teraz <code>to_points()</code> dzieli przez <code>pages.SCALE</code>, przycina wystawanie do 6 pt, odrzuca większe (zła skala), za małe (&lt; 20 pt) i zaczynające się w rogu (0,0). Z <code>--apply</code> tnie plik tą samą funkcją co „Wytnij” i aktualizuje <code>bbox</code>. Provenance ramki nie ma w schemacie (luka MVP), śladem jest raport i JSON obok.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>verify.py: drugi czytelnik rozstrzyga (X2)</h3><span class="files">ingest/correction/verify.py · <code>task verify</code></span></div>
+    <div class="col">
+      <ol>
+        <li><code>collect_tasks()</code>: zadania <code>pending</code> w zakresie, bez wpisu <code>unsure</code> tego modelu (chyba że <code>--retry-unsure</code>). Każde ładuje przez <code>db.load_task</code> (ten sam kształt, co ekran) i dokłada <code>page_to</code>: stronę następnego zadania w kluczu.</li>
+        <li><code>messages_for()</code>: obrazy stron klucza od strony zadania do <code>page_to</code>, maksymalnie 5 (<code>key_pages</code>), plus tekst: rekord jako JSON <strong>z identyfikatorami wierszy</strong>, wymagania jako kontekst (nie do edycji), informacja czy w tym kluczu zadania zamknięte mają zasady 1 pkt / 0 pkt (norma rocznika 2019 kontra dziura).</li>
+        <li>Odpowiedź <code>Verdict</code>: <code>match</code>, <code>fix</code> (z pełnym <code>TaskRecord</code>, nie diffem) albo <code>unsure</code> z powodami po polsku.</li>
+        <li><code>apply_verdict()</code> (tylko z <code>--apply</code>): <code>match</code> → <code>db.decide(…, "approve", actor="model")</code>, powody trafiają do dziennika jako <code>notes</code>. <code>fix</code> → <code>create_missing()</code> nadaje nowym wierszom (<code>id: null</code>) identyfikatory przez <code>db.add_*</code>, <code>form_for()</code> przepisuje rekord na słownik formularza (wiersz nieobecny w rekordzie dostaje <code>delete.*</code>), potem <code>db.save</code> i <code>db.decide</code>. Różnicę liczy baza, więc <code>fix</code> bez faktycznej zmiany daje <code>approved</code>. Odmowa walidacji albo więzu cofa transakcję i zapisuje <code>unsure</code> z powodem; więzów nie luzujemy.</li>
+        <li>Zapis idzie po każdym zadaniu (<code>on_verdict</code>), bo odpowiedź jest opłacona, gdy wróci. Raport per rocznik i lista powodów do <code>data/reports/verify-RRRR-MM-DD.txt</code> plus <code>.json</code> z werdyktami.</li>
+      </ol>
+      <div class="note">Pierwszy dry-run na 2025/100 ($0,46) wykrył błąd systematyczny <strong>parsera</strong>, nie modelu: 15 z 18 <code>fix</code> mówiło to samo o bloku „Rozwiązanie – wersja X/Y” w warunku za 0 pkt. Naprawiono w parserze raz, nie 1346 razy modelem. Powtarzalny powód w <code>reasons</code> to sygnał do kodu.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 12 -->
+<section id="mathjson">
+  <h2>MathJSON</h2>
+  <p class="kicker">normalizacja w Pythonie, parsowanie w Node</p>
+  <div class="stage">
+    <div class="head"><h3>normalize.py → convert.mjs → fill.py</h3><span class="files">ingest/mathjson/ · <code>task mathjson</code>, zależności przez <code>task mathjson:setup</code></span></div>
+    <div class="col">
+      <p>Bez MathJSON-a silnik w A3 porównywałby stringi, więc <code>2(x+1)</code> i <code>2x+2</code> byłyby dwiema odpowiedziami. Zakres to wyłącznie <code>condition_expression</code>; odpowiedzi zadań zamkniętych to litery <code>BD</code>/<code>FP</code>, gdzie MathJSON nic nie wnosi.</p>
+      <h4>normalize.to_latex(expression) → (latex, None) albo (None, powód)</h4>
+      <ol>
+        <li>Cyfry w indeksie górnym (<code>²</code>) na <code>^{2}</code>, NFKC.</li>
+        <li>Ucięcie polskiego ogona do pierwszego spójnika (<code>TAIL</code>: lub, albo, oraz, gdzie, jeżeli, przy, dla, i, „, np”) i czasownikowego wstępu (<code>LEAD</code>: zapisanie, obliczenie, wyznaczenie …).</li>
+        <li>Odmowa przy pierwiastku (<code>√</code>), bo zasięg nie jest odtworzony.</li>
+        <li>Mapowanie operatorów CKE: <code>⋅ ∙ ·</code> → <code>\cdot</code>, <code>∶</code> (U+2236) i <code>:</code> → <code>\div</code>, wszystkie myślniki → <code>-</code>, <code>≈ ≤ ≥ ≠</code>, <code>π</code>, <code>∘</code>.</li>
+        <li>Nawiasy klamrowe dla <code>^(…)</code>, <code>_(…)</code> i pojedynczych indeksów; przecinek dziesiętny na kropkę; ułamki liniowe <code>a/b</code> na <code>\frac{a}{b}</code> w pętli do skutku (obsługuje <code>1/2/3</code>). Litera jako człon ułamka musi stać samotnie, żeby <code>60 min/40 min</code> nie rozpadło się na <code>mi</code> + <code>n/40</code>.</li>
+        <li>Odmowa, gdy zostało słowo prozy (<code>prose_word</code>: ≥ 3 litery, nie jednostka jak km, cm, min, zł). Bez tego „zapisanie P=15” weszłoby jako iloczyn dziewięciu symboli: MathJSON poprawny i bezwartościowy.</li>
+      </ol>
+      <h4>convert.mjs</h4>
+      <p>Czyta NDJSON ze stdin (<code>{"id", "latex"}</code>), woła <code>engine.parse(latex, { canonical: false })</code> z <code>@cortex-js/compute-engine</code> i oddaje <code>{"id", "mathjson"}</code> albo <code>{"id", "error"}</code>. Compute Engine nie rzuca, tylko wstawia węzeł <code>["Error", …]</code> w drzewo, stąd <code>findError()</code>. Postać niekanoniczna, bo ekran ma pokazać to, co napisał klucz; kanonizację robi konsument w A3.</p>
+      <h4>fill.py</h4>
+      <p>Wybiera zapisy o statusie innym niż <code>approved</code> (domyślnie <code>none</code> i <code>failed</code>, z <code>--force</code> także <code>auto</code>, w granicach roku i wariantu). Normalizuje w Pythonie, odmowy od razu oznacza <code>failed</code>, resztę wysyła jednym procesem Node (start Node'a to ok. 200 ms, więc nie proces na zapis). Zapis: <code>mathjson_status='auto'</code> z MathJSON-em albo <code>failed</code> z <code>mathjson_error</code> po polsku i wyzerowanym <code>mathjson</code>. Raport grupuje powody odmów po etykiecie do pierwszego nawiasu.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 13 -->
+<section id="golden">
+  <h2>Golden set i raport kompletności</h2>
+  <p class="kicker">plan A2-auto X5 i domknięcie A2 (G2.7)</p>
+  <div class="stage">
+    <div class="head"><h3>golden/generate.py i golden/grade.py</h3><span class="files">pliki w <code>ingest/golden/&lt;rok&gt;/task-&lt;numer&gt;.json</code></span></div>
+    <div class="col">
+      <p><code>common.open_tasks()</code> bierze zadania otwarte z <strong>widoku <code>corpus_task</code></strong> (tylko rozstrzygnięte), z kontekstem: rozwiązania przykładowe, opisy rysunków, reguły obejmujące zadanie, tekst kryteriów. Zeszyty od 2025 r. odsyłają do karty rozwiązań, której mirror nie ma: treść zawiera „ZNAJDUJE SIĘ NA KARCIE” i wtedy autor rekonstruuje ją z rozwiązania przykładowego, a plik ma <code>content_source: "key"</code>.</p>
+      <p><strong>Model A</strong> (domyślnie <code>openai:gpt-5.6-luna</code>) pisze trzy odpowiedzi ucznia: <code>full</code>, <code>partial</code>, <code>wrong</code>, każda z polem <code>intent</code> dla oceniającego. Klucza nie dostaje. <strong>Model B</strong> (domyślnie <code>openai:gpt-5.6-terra</code>) ocenia każdą odpowiedź próg po progu z cytatem i zapisuje pod <code>answers[i].grading</code> z <code>grader: "model:…"</code>. Autor ≠ oceniający ≠ model testowany w A3, inaczej benchmark mierzy zgodność modelu z samym sobą. Człowiek dopisuje w tym samym pliku ocenę z <code>grader: "human"</code>.</p>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="head"><h3>reports/corpus.py</h3><span class="files"><code>task corpus:report</code>, <code>--copy-to-docs</code> kopiuje do <code>docs/corpus-A2.txt</code></span></div>
+    <div class="col">
+      <p>Trzynaście liczników „co jest” i sześć pytań o brak, każde liczone <strong>dwa razy</strong>: po widoku <code>corpus_task</code> i po całej tabeli <code>task</code>. Bez drugiej kolumny raport z pustego korpusu wygląda jak raport z korpusu, którego nikt nie sparsował, a różnica między kolumnami to praca, która została w ekranie. Dalej: postęp per rocznik (z kolumnami <code>model</code> i <code>unsure</code>), kto rozstrzygnął korpus, oraz sekcje S6, S7, S8 z <code>stats.py</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 14 -->
+<section id="liczby">
+  <h2>Stan liczbowy na dziś</h2>
+  <p class="kicker">z docs/corpus-A2.txt i data/reports/, 4.09.2026</p>
+  <div class="figures">
+    <div class="fig"><span class="big">1436</span><span class="lede">zadań sparsowanych</span><span class="note-s">75 kluczy OMAP 2019–2026, 2062 punkty, pokrycie wymagań, odpowiedzi i kryteriów 100%</span></div>
+    <div class="fig is-done"><span class="big">159</span><span class="lede">zadań w korpusie</span><span class="note-s">cały wariant 100: 136 approved, 23 corrected, 100% rozstrzygnięte modelem <code>openai:gpt-5.6-terra</code>, koszt ok. $2,94</span></div>
+    <div class="fig is-open"><span class="big">1277</span><span class="lede">zadań czeka</span><span class="note-s">pozostałe warianty; plan: jeden przebieg nocny <code>task verify --batch</code> po potwierdzeniu, że wariant 100 się trzyma</span></div>
+    <div class="fig"><span class="big">651</span><span class="lede">zasobów graficznych</span><span class="note-s">598 z ramką węższą niż strona, 53 z ramką całej strony; 115 opisów <code>auto</code>, 0 zatwierdzonych</span></div>
+    <div class="fig"><span class="big">81%</span><span class="lede">zapisów z MathJSON</span><span class="note-s">419 auto, 98 świadomych <code>failed</code> z powodem, 0 nietkniętych</span></div>
+    <div class="fig"><span class="big">120</span><span class="lede">ocen w golden secie</span><span class="note-s">40 zadań otwartych wariantu 100 × 3 odpowiedzi; udział punktów: full 0,94, partial 0,46, wrong 0,04</span></div>
+  </div>
+  <div class="ledger-wrap">
+    <table>
+      <caption>Co weszło do bazy (raport ingest z 4.09.2026, cały korpus)</caption>
+      <thead><tr><th>Tabela</th><th>Wierszy</th><th>Tabela</th><th>Wierszy</th></tr></thead>
+      <tbody>
+        <tr><td><code>document</code></td><td class="num">150</td><td><code>criterion</code></td><td class="num">3315</td></tr>
+        <tr><td><code>exam_form</code></td><td class="num">88</td><td><code>criterion_condition</code></td><td class="num">4382</td></tr>
+        <tr><td><code>exam_form_document</code></td><td class="num">269</td><td><code>condition_expression</code></td><td class="num">517</td></tr>
+        <tr><td><code>requirement_regime</code></td><td class="num">8</td><td><code>example_solution</code></td><td class="num">1227</td></tr>
+        <tr><td><code>requirement</code></td><td class="num">383</td><td><code>rule</code></td><td class="num">725</td></tr>
+        <tr><td><code>task</code></td><td class="num">1436</td><td><code>asset</code></td><td class="num">651</td></tr>
+        <tr><td><code>task_requirement</code></td><td class="num">3809</td><td><code>model_answer</code></td><td class="num">1222</td></tr>
+        <tr><td><code>task_version</code></td><td class="num">1574</td><td></td><td class="num"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <p>Pomiary S6 (prefill), S7 (opisy) i S8 (czas korekty ręcznej) są dziś <strong>niegotowe</strong>: prefill ma 6 podpowiedzi, a żaden opis i żadne zadanie nie przeszło przez ręce człowieka. Plan A2-auto zastępuje je S6′ (zgodność modelu z próbką ludzką 16 zadań) i S8′ (dolary na zadanie, odsetek <code>unsure</code>). Próbka ludzka jest warunkiem jakiejkolwiek liczby do wniosku.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 15 -->
+<section id="testy">
+  <h2>Testy: czego pilnują</h2>
+  <p class="kicker">task test:python = ruff + pytest; 246 testów zebranych na 4.09.2026 (pytest --collect-only)</p>
+  <div class="col">
+    <p>Dwa markery: <code>integracyjny</code> (wymaga działającej bazy) i <code>mirror</code> (wymaga pobranego mirrora; bez niego testy się pomijają, bo PDF-y CKE nie wchodzą do repozytorium). Fixture <code>fresh_database</code> w <code>conftest.py</code> tworzy <strong>osobną bazę na moduł testowy</strong> (<code>klucz_test_&lt;moduł&gt;</code>) i stawia schemat tym samym runnerem migracji, co produkcyjnie. Test, który stawiałby schemat inną drogą, przechodziłby także z zepsutym runnerem.</p>
+  </div>
+  <div class="ledger-wrap">
+    <table>
+      <caption>Pliki testów i ich rola</caption>
+      <thead><tr><th>Plik</th><th>Co sprawdza</th></tr></thead>
+      <tbody>
+        <tr><td><code>test_pdf_layer.py</code></td><td>Rekonstrukcja na zrzucie trzech stron: ułamki, potęgi, normalizacja kursywy, przypisy, liczba mieszana; <code>test_zrzut_zgadza_sie_z_plikiem</code> (marker mirror) pilnuje, żeby zrzut nie rozjechał się z PDF-em.</td></tr>
+        <tr><td><code>test_regions.py</code>, <code>test_crop.py</code>, <code>test_crops.py</code></td><td>Wykrywanie regionu na zrzucie zeszytu z kształtami (wykres w jednej ramce, tabela Prawda/Fałsz nie jest rysunkiem, rozsypany klaster idzie do ręki), cięcie i sprzątanie bloba.</td></tr>
+        <tr><td><code>test_parser_units.py</code></td><td>Funkcje czyste parsera: norma kontra dziura dla zadań zamkniętych, kryteria kończą się przed blokiem odpowiedzi, zeszyt bez litery obsługuje każdą wersję.</td></tr>
+        <tr><td><code>test_corpus_load.py</code></td><td>Ładowanie do świeżej bazy: liczby zgadzają się z sondą, N:M form, bliźniaki, drugi przebieg nie dubluje, numery stron jak w stopce.</td></tr>
+        <tr><td><code>test_schema.py</code>, <code>test_migrate.py</code></td><td>Więzy <strong>odrzucają</strong> złe dane (nie tylko istnieją), kolacja sortuje po polsku, sumy migracji, migracja która padła nie cofa poprzedniej.</td></tr>
+        <tr><td><code>test_review_gate.py</code>, <code>test_rerun_guard.py</code></td><td>Widok <code>corpus_task</code>, dziennik przeżywa skasowanie zadania, ładowarka odmawia skasowania korekty, <code>--wipe</code> broni dziennika.</td></tr>
+        <tr><td><code>test_correction_app.py</code>, <code>test_correction_stats.py</code></td><td>Ekran przez TestClient: statusy approved/corrected z porównania, zakres pracy, ręczna ramka, obcy identyfikator nie sięga cudzego zadania, mediana i prognoza.</td></tr>
+        <tr><td><code>test_llm_batch.py</code>, <code>test_prefill.py</code>, <code>test_describe_report.py</code>, <code>test_description_provenance.py</code>, <code>test_frame.py</code>, <code>test_verify.py</code></td><td>Część czysta warstwy LLM na utrwalonych odpowiedziach: JSONL wsadu, martwy wsad nie czeka do terminu, model bez dostawcy odrzucony, rekord ↔ formularz, <code>fix</code> odrzucony przez więz ląduje w <code>unsure</code>, piksele → punkty.</td></tr>
+        <tr><td><code>test_mathjson.py</code>, <code>test_mathjson_scope.py</code></td><td>Normalizacja na parach z <code>fixtures/mathjson-2026-08-26.json</code>, konwerter przez Node, <code>--force</code> nie sięga pracy człowieka ani innego rocznika.</td></tr>
+        <tr><td><code>test_golden.py</code>, <code>test_mirror.py</code></td><td>Układ plików golden setu i provenance; mirror w trybie dry-run nie pobiera nic.</td></tr>
+        <tr><td><code>test_cli.py</code></td><td>Katalog menu zgadza się z Taskfile i z <code>--help</code> modułów; składanie flag z odpowiedzi.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================ 16 -->
+<section id="debug">
+  <h2>Debugowanie procesów</h2>
+  <p class="kicker">jak zajrzeć do środka każdego kroku, zanim zaczniesz zgadywać</p>
+  <div class="col">
+    <p>Zasady wspólne, zanim przejdziesz do konkretnego procesu:</p>
+    <ul>
+      <li><strong>Zawężaj zakres.</strong> Prawie każde polecenie ma <code>--year</code>, <code>--variant</code>, <code>--limit</code>. Jeden klucz to sekundy, cały korpus to minuty lub dolary. Gdy nie pamiętasz flag, <code>task menu</code> zapyta o nie i pokaże gotową komendę, którą można skopiować do terminala.</li>
+      <li><strong>Czytaj raport z pliku.</strong> Każdy przebieg pisze do <code>data/reports/&lt;nazwa&gt;-RRRR-MM-DD.txt</code>. Porównuj pliki, nie pamięć. Kod wyjścia 1 znaczy „coś poniżej progu”, 2 znaczy „nie ruszyło” (brak spisu, brak klucza API, odmowa <code>--wipe</code>).</li>
+      <li><strong>Uruchamiaj z <code>ingest/</code> modułami</strong> (<code>uv run python -m …</code>). Import <code>pdf.layout</code> w błędzie to prawie zawsze uruchomienie przez ścieżkę.</li>
+      <li><strong>Na Windows</strong> polskie znaki w konsoli potrafią się rozjechać przy przekierowaniu; skrypty same przestawiają strumienie na UTF-8, ale przy własnych skryptach ustaw <code>$env:PYTHONIOENCODING = "utf-8"</code>.</li>
+      <li><strong>Sprawdź, na którą bazę patrzysz</strong>: <code>DATABASE_URL</code> wygrywa z <code>DB_*</code>. Pusta baza przy pełnym blobie to klasyczny objaw złego adresu.</li>
+    </ul>
+  </div>
+
+  <div class="debug">
+
+    <div class="dbg">
+      <h3>Mirror</h3>
+      <p class="q">Czy spis i pliki się zgadzają?</p>
+<pre><code>task mirror -- --dry-run                  # nic nie pobiera, liczy braki i uszkodzone
+cat ../cke-mirror/data/reports/kompletnosc.md
+cat ../cke-mirror/data/reports/braki.tsv          # które pliki brakują
+tail -20 ../cke-mirror/data/reports/download-log.tsv   # co działo się w ostatniej zwózce</code></pre>
+      <p class="q">Plik jest, ale parser go nie widzi</p>
+      <p>Sprawdź kolumny <code>typ</code> i <code>warianty</code> w <code>urls.tsv</code> dla tego pliku: runner filtruje <code>typ == zasady_oceniania</code> i pierwszy człon wariantów. Zła klasyfikacja typu wynika z <code>parse_filename()</code>; kolumna <code>zrodlo_typu</code> mówi, która reguła zadecydowała.</p>
+<pre><code>grep "OMAP-100-2505" ../cke-mirror/data/index/urls.tsv
+head -c 4 "../cke-mirror/data/raw/e8/2025/zasady_oceniania/matematyka/OMAP-100-2505-zasady.pdf"   # ma być %PDF</code></pre>
+    </div>
+
+    <div class="dbg">
+      <h3>Schemat i migracje</h3>
+<pre><code>task migrate:status                 # [x] weszła, [ ] czeka
+task db:psql                        # konsola w kontenerze
+\dt                                 -- tabele
+\d+ task                            -- kolumny i więzy
+SELECT version, applied_at, sha256 FROM schema_migrations ORDER BY version;</code></pre>
+      <p class="q">„ROZJAZD: migracja 000N została zmieniona po zastosowaniu”</p>
+      <p>Ktoś edytował plik, który już wszedł. Cofnij edycję w pliku (git) albo dopisz nową migrację. Sama zmiana końcówek linii lub BOM-u nie liczy się jako podmiana, ale przepuszczenie pliku przez złe kodowanie (<code>·</code> → <code>Â·</code>) tak, i słusznie.</p>
+      <p class="q">Podłączenie DBeaverem lub innym klientem</p>
+      <p>Host <code>localhost</code>, port z <code>DB_PORT</code> (domyślnie 55434), baza, użytkownik i hasło <code>klucz</code> / <code>klucz</code> / <code>klucz_dev</code>. Widoki <code>corpus_task</code>, <code>twins</code> i <code>tasks_per_requirement</code> są najszybszym wejściem.</p>
+    </div>
+
+    <div class="dbg">
+      <h3>Warstwa PDF</h3>
+      <p class="q">Co dokładnie parser „widzi” na stronie?</p>
+      <p>Otwórz plik w REPL-u i oglądaj warstwy strony. Numer strony w <code>doc[i]</code> jest od zera, w bazie od 1.</p>
+<pre><code>cd phase-alfa/ingest
+uv run python
+&gt;&gt;&gt; from pdf.layout import open_pdf, zrzut_strony
+&gt;&gt;&gt; from pdf import reconstruct
+&gt;&gt;&gt; doc = open_pdf("../../cke-mirror/data/raw/e8/2025/zasady_oceniania/matematyka/OMAP-100-2505-zasady.pdf").__enter__()
+&gt;&gt;&gt; p = doc[7]                                   # strona 8 w stopce
+&gt;&gt;&gt; print(reconstruct.page_text(p, pomin_przypisy=True))
+&gt;&gt;&gt; len(p.chars), len(p.bars), len(p.tables), len(p.shapes)
+&gt;&gt;&gt; [(b.x0, b.x1, b.y) for b in p.bars]          # kreski uznane za ułamkowe
+&gt;&gt;&gt; reconstruct.band_text(p, 300, 340)           # sam pas między y=300 a 340 pt
+&gt;&gt;&gt; [t.rows[:3] for t in p.tables]               # nagłówki wykrytych tabel</code></pre>
+      <p class="q">Ułamek nie składa się albo składa się źle</p>
+      <ul>
+        <li>Kreska nie jest na liście <code>p.bars</code>: sprawdź <code>p._read_bars()</code> (kandydaci przed odsiewem tabel). Jeśli jest tam, a nie ma w <code>bars</code>, leży wewnątrz wykrytej tabeli.</li>
+        <li>Kreska jest, ale piętro nie pasuje: <code>_fits()</code> odrzuca piętra-słowa i znaki wystające poza kreskę więcej niż 1,2 pt. Zobacz znaki w oknie: <code>[c for c in p.chars if bar.x0-2 &lt; c.cx &lt; bar.x1+2]</code>.</li>
+        <li>Ułamek trafia do innego wiersza: to kotwiczenie w <code>page_text()</code>, tolerancja <code>LINE_TOL</code> = 3 pt.</li>
+      </ul>
+      <p class="q">Region rysunku wychodzi za duży, za mały albo go nie ma</p>
+<pre><code>&gt;&gt;&gt; from pdf import regions
+&gt;&gt;&gt; from parsers.omap_e8.parser import _task_bands
+&gt;&gt;&gt; ark = open_pdf("../../cke-mirror/data/raw/e8/2025/matematyka/OMAP-100-2505.pdf").__enter__()
+&gt;&gt;&gt; pg = ark[4]; bands = _task_bands(pg); bands
+&gt;&gt;&gt; top, bottom = bands["16"]
+&gt;&gt;&gt; len(regions.candidates(pg, top, bottom))     # &gt; 400 → automat świadomie odpuszcza
+&gt;&gt;&gt; regions.text_column(pg)                      # szerokość kolumny tekstu do progów 0,95 / 0,97
+&gt;&gt;&gt; regions.detect(pg, top, bottom)</code></pre>
+      <p>Zapisz zrzut strony do JSON (<code>json.dump(zrzut_strony(pg), …)</code>), jeśli chcesz dołożyć przypadek do testów bez PDF-a w repo.</p>
+    </div>
+
+    <div class="dbg">
+      <h3>Parser</h3>
+      <p class="q">Zobacz strukturę jednego klucza bez bazy</p>
+<pre><code>uv run python -m parsers.omap_e8.parser "&lt;ścieżka do zasady.pdf&gt;"              # nagłówek + wszystkie zadania
+uv run python -m parsers.omap_e8.parser "&lt;ścieżka&gt;" --zadanie 17               # jedno zadanie: progi, warunki, zapisy, odpowiedzi</code></pre>
+      <p>Pierwsze linie mówią, który <strong>dialekt</strong> wykryto, jakie reżimy i formy, oraz ostrzeżenia (<code>UWAGA:</code>). Zły dialekt to zły komplet regexów i wszystko poniżej będzie krzywe; wtedy patrz na <code>wykryj_dialekt()</code> i paginę.</p>
+      <p class="q">Kryterium ma śmieci albo brakuje warunku</p>
+      <ol>
+        <li>Wydrukuj tekst zadania tak, jak widzi go <code>_parsuj_zadanie</code>: <code>page_text</code> dla stron zadania (numer strony jest w podglądzie), poszukaj „Zasady oceniania”, „Rozwiązanie – wersja”, „Przykładowe rozwiązania”. Granica kryteriów to <strong>wcześniejszy</strong> z tych nagłówków.</li>
+        <li>Sprawdź separator: w <code>e8-2019</code> alternatywa to <code>LUB</code> lub <code>lub</code> w osobnej linii, od 2020 tylko <code>LUB</code>. Spójnik w środku zdania celowo nie tnie.</li>
+        <li>Zapis równoważny zaczyna się po „np.”; jeśli w kluczu jest „np” bez kropki, zapis zostanie w warunku.</li>
+        <li>Powtarzalny błąd w wielu kluczach naprawia się w parserze, potem <code>task parser:snapshot -- --baseline …</code> pokazuje, które klucze się ruszyły. Reguła G2.3.2: błąd cichy (wygląda poprawnie, np. <code>12/3</code> zamiast <code>1 2/3</code>) idzie do kodu; błąd widoczny może zostać korekcie.</li>
+      </ol>
+      <p class="q">Wymagania podstawy puste lub cudze</p>
+      <p>Tabela musi mieć „Wymagani” w pierwszych 5 wierszach (<code>WIERSZE_NAGLOWKA</code>) i leżeć pod nagłówkiem zadania. Ostrzeżenie „tabele wymagań sparowane kolejnością” znaczy, że nagłówków w układzie strony było mniej niż zadań; obejrzyj <code>_heading_positions(page)</code> dla tej strony. <code>p.tables[i].rows</code> pokaże, czy pdfplumber w ogóle rozpoznał siatkę.</p>
+    </div>
+
+    <div class="dbg">
+      <h3>Ładowarka i runner</h3>
+      <p class="q">Klucz „POMIJAM — zadań po korekcie: N”</p>
+      <p>To nie błąd. Klucz ma rozstrzygnięte zadania i przeładowanie skasowałoby pracę. Jeśli naprawdę chcesz: <code>task ingest -- --year 2025 --variant 100 --with-papers --overwrite-reviewed</code>. Rozstrzygnięcia modelu wrócą po ponownym <code>task verify --apply</code> za kilkadziesiąt centów; rozstrzygnięcia człowieka nie wrócą.</p>
+      <p class="q">BŁĄD z więzem bazy przy ładowaniu</p>
+      <p>Cała transakcja tego klucza jest wycofana, reszta przebiegu idzie dalej. <code>UniqueViolation</code> na <code>criterion (task_id, points)</code> znaczy dwa progi o tej samej punktacji w jednym zadaniu: parser dokleił obcy tekst (sekcja reguł, aneks). Patrz na <code>koniec_zadan</code> dialektu i na podgląd zadania z konsoli.</p>
+      <p class="q">Czy rekordy wyglądają dobrze?</p>
+<pre><code>-- zadanie z kompletem kryteriów
+SELECT t.id, t.number, t.max_points, t.kind, t.review_status, t.page, d.path
+FROM task t JOIN document d ON d.id = t.marking_scheme_id
+WHERE d.path LIKE '%OMAP-100-2505%' ORDER BY t.position;
+
+SELECT c.points, c.label, cc.position, cc.description, ce.expression, ce.mathjson_status
+FROM criterion c
+LEFT JOIN criterion_condition cc ON cc.criterion_id = c.id
+LEFT JOIN condition_expression ce ON ce.condition_id = cc.id
+WHERE c.task_id = 3401 ORDER BY c.points DESC, cc.position, ce.position;
+
+-- wersje bez treści (klucz wczytany bez --with-papers)
+SELECT count(*) FROM task_version WHERE content IS NULL;
+
+-- zasoby z ramką całej strony
+SELECT a.id, a.path, a.page FROM asset a WHERE a.bbox[1] = 0 AND a.bbox[2] = 0;
+
+-- co mówi widok korpusu
+SELECT review_status, reviewed_by, count(*) FROM task GROUP BY 1, 2;
+SELECT count(*) FROM corpus_task;</code></pre>
+      <p class="q">Sekcja SPÓJNOŚĆ w raporcie ingestu</p>
+      <p>To pytania, na które więzy nie odpowiadają: próg ponad pulą, zadania z kryteriami bez progu 0 pkt, otwarte bez kryteriów, kryteria bez warunku. Dwa niezerowe wyniki są udokumentowane jako nie-błędy (sekcja wyżej). Każdy nowy niezerowy wiersz to regresja.</p>
+    </div>
+
+    <div class="dbg">
+      <h3>Wycinki PNG</h3>
+<pre><code>task crops                       # raport: total / framed / manual / cut / kept / failed
+task crops -- --prune            # osierocone pliki, nic nie kasuje
+task crops -- --force            # przetnij od nowa (np. po zmianie DPI)
+ls data/blob/OMAP/2025-05-14/100/X/</code></pre>
+      <ul>
+        <li>„bez zeszytu w bazie”: <code>task_version.paper_id</code> jest NULL. Przeładuj klucz z <code>--with-papers</code>.</li>
+        <li><code>CropError: ramka wychodzi poza stronę</code>: bbox w złych jednostkach (piksele zamiast punktów) albo zły numer strony. Punkty PDF: strona A4 ma ok. 595 × 842.</li>
+        <li>Plik jest na dysku, ale ekran mówi „nie ma wycinka”: porównaj <code>asset.path</code> z rzeczywistą ścieżką i <code>BLOB_ROOT</code>; separator w bazie to <code>/</code>.</li>
+      </ul>
+    </div>
+
+    <div class="dbg">
+      <h3>Ekran korekty</h3>
+      <p class="q">Serwer</p>
+      <p>Uruchamiaj w swoim terminalu, nie w tle innego procesu. <code>--reload</code> restartuje po zmianie kodu, logi uvicorna pokazują każde żądanie ze statusem. Odpowiedź 422 to walidacja formularza (komunikaty na stronie), 403 to <code>Sec-Fetch-Site</code> (żądanie spoza ekranu), 404 z tekstem to brak strony lub pliku, 500 to prawdziwy błąd w logu.</p>
+      <p class="q">Strona klucza się nie pokazuje</p>
+      <ul>
+        <li>„to zadanie nie ma zapisanej strony w kluczu”: <code>task.page</code> jest NULL (klucz wczytany z arkuszami przed migracją 0004). Przeładuj.</li>
+        <li>„brak pliku w mirrorze”: <code>MIRROR_ROOT</code> wskazuje w złe miejsce, <code>document.path</code> jest względne wobec niego.</li>
+        <li>Stara wersja obrazu po zmianie skali lub pliku: skasuj cache <code>data/cache/pages/</code>. Klucz cache to skrót ścieżki, numer strony, skala i flaga siatki.</li>
+      </ul>
+      <p class="q">Status wyszedł inny, niż się spodziewałeś</p>
+      <p><code>corrected</code> mimo braku zmian w tej rundzie: zadanie miało wcześniejszy wpis <code>correct</code> w dzienniku albo <code>edited_before=1</code> w adresie (dodanie wiersza to edycja). Sprawdź:</p>
+<pre><code>SELECT id, action, actor, model, started_at, finished_at, fields_changed
+FROM correction_event WHERE task_id = 3401 ORDER BY id;</code></pre>
+      <p class="q">Cofnięcie rozstrzygnięć do korekty ręcznej</p>
+<pre><code>UPDATE task SET review_status = 'pending', reviewed_at = NULL, reviewed_by = 'human', review_model = NULL
+WHERE reviewed_by = 'model';        -- albo WHERE id = …</code></pre>
+      <p>Dziennik zostaje; to ślad, nie stan.</p>
+    </div>
+
+    <div class="dbg">
+      <h3>LLM: prefill, describe, frame, verify</h3>
+      <p class="q">Zanim zapłacisz</p>
+      <ul>
+        <li><code>LlmUnavailable</code> z komunikatem po polsku mówi wprost: brak klucza w <code>.env</code>, model bez dostawcy, nieznany model, brak adaptera wsadu. Kod wyjścia 2, zero wywołań.</li>
+        <li>Zawsze najpierw <strong>dry-run na jednym roczniku</strong>: <code>task verify -- --year 2025 --variant 100</code> (bez <code>--apply</code>) i <code>task frame -- --variant 100</code>. Raport i <code>.json</code> obok pokazują werdykty i powody bez zapisu.</li>
+        <li><code>--limit 1</code> na próbę promptu; koszt jednego zadania verify z obrazami to ok. $0,02.</li>
+      </ul>
+      <p class="q">Czytanie wyników</p>
+      <ul>
+        <li>Sekcja <code>POWODY</code> w raporcie verify: ten sam powód w wielu zadaniach to błąd <strong>parsera</strong>. Napraw w kodzie, przeładuj klucze, powtórz dry-run.</li>
+        <li><code>.json</code> obok raportu ma pełne <code>reasons</code> per zadanie (<code>data/reports/verify-*.json</code>, <code>frame-*.json</code>).</li>
+        <li><code>unsure</code>: zadanie zostaje <code>pending</code>, powody widać w ekranie nad formularzem i w dzienniku: <code>SELECT * FROM correction_event WHERE action = 'unsure'</code>. Powód zaczynający się od „zapis odrzucony przez walidację lub więz bazy” znaczy, że rekord modelu nie przeszedł przez <code>db.save</code>; więzu nie luzujemy, zadanie idzie do ręki.</li>
+        <li><code>NIEUDANE</code> w raporcie: wyjątek sieci, odmowa modelu, odpowiedź poza schematem (<code>parsing_error</code>) albo ucięcie na limicie tokenów (<code>finish_reason</code>). Modele myślące liczą rozumowanie do limitu, stąd <code>MAX_OUTPUT_TOKENS</code> 16000 w prefill i verify.</li>
+      </ul>
+      <p class="q">Wsad (--batch)</p>
+      <p>Konsola wypisuje <code>wsad batch_…: wysłany</code> i stan co 30 s. Po 6 h albo Ctrl-C wsad żyje dalej po stronie API pod tym identyfikatorem; dziś nie ma polecenia „odbierz stary wsad”, więc wynik trzeba pobrać ręcznie w konsoli dostawcy albo puścić przebieg ponownie. Odpowiedzi są zapisywane dopiero po zebraniu całego wsadu.</p>
+      <p class="q">Podpowiedzi prefillu nie widać w ekranie</p>
+<pre><code>SELECT task_id, model, created_at, jsonb_pretty(payload) FROM prefill_suggestion WHERE task_id = 3401;</code></pre>
+      <p>Ekran pokazuje tylko <strong>różnice</strong> względem rekordu (<code>differences()</code>). Gdy model i parser zgadzają się co do progów i warunków, listy podpowiedzi nie ma i to jest poprawne.</p>
+    </div>
+
+    <div class="dbg">
+      <h3>MathJSON</h3>
+      <p class="q">Dlaczego zapis dostał failed?</p>
+<pre><code>SELECT id, expression, mathjson_status, mathjson_error FROM condition_expression WHERE mathjson_status = 'failed' ORDER BY id;</code></pre>
+      <p class="q">Sprawdź normalizację bez bazy i bez Node'a</p>
+<pre><code>uv run python -c "from mathjson.normalize import to_latex; print(to_latex('P = 1/2 ⋅ 15 · 2 ⋅ (15∶5) lub zapisy równoważne'))"</code></pre>
+      <p class="q">Sprawdź sam konwerter Node</p>
+<pre><code>cd ingest/mathjson
+# JSON przez Pythona, bo powłoka na Windows zjada backslashe LaTeX-a
+uv run --project .. python -c "import json;print(json.dumps({'id':1,'latex':r'\frac{1}{2} \cdot 15'}))" | node convert.mjs
+# {"id":1,"mathjson":["Multiply",["Divide",1,2],15]}   (postać niekanoniczna: Divide, nie Rational)</code></pre>
+      <p>Błąd „unexpected-delimiter” lub „unexpected-command” pochodzi z Compute Engine: LaTeX po normalizacji ma niesparowany nawias albo komendę, której silnik nie zna w tym miejscu. Powtórka po poprawce: <code>task mathjson -- --year 2025 --force</code> (nie tyka <code>approved</code>).</p>
+    </div>
+
+    <div class="dbg">
+      <h3>Golden set i raporty</h3>
+      <ul>
+        <li>Pliki leżą w <code>ingest/golden/&lt;rok&gt;/task-&lt;numer&gt;.json</code> i są w repozytorium. <code>content_source: "key"</code> znaczy treść zrekonstruowaną z rozwiązania; te warto obejrzeć w pierwszej kolejności.</li>
+        <li><code>task golden:grade</code> ocenia tylko odpowiedzi bez <code>grading</code>; <code>--force</code> ocenia od nowa. Raport z 4.09 pokazuje 0 wywołań, bo wszystko już było ocenione.</li>
+        <li>Zadanie „nie ma w korpusie” w raporcie grade: zadanie wypadło z <code>corpus_task</code> (cofnięte do <code>pending</code>). Grade czyta korpus, nie tabelę.</li>
+        <li><code>task corpus:report</code> po każdej większej zmianie; różnica między kolumnami „korpus” i „sparsowane” to lista roboty, a wiersz „wymagania bez ani jednego zadania” w kolumnie korpusu maleje w miarę rozstrzygania.</li>
+      </ul>
+    </div>
+
+    <div class="dbg">
+      <h3>Testy</h3>
+<pre><code>cd phase-alfa/ingest
+uv run ruff check .
+uv run pytest -q                                   # wszystko; bez bazy testy integracyjne się pomijają
+uv run pytest -q -m "not integracyjny"             # tylko czyste
+uv run pytest -q tests/test_parser_units.py -k closed  # jeden plik, jeden wzorzec nazwy
+uv run pytest -q -x --lf                           # zatrzymaj na pierwszym, tylko ostatnio czerwone</code></pre>
+      <p>Test integracyjny tworzy bazę <code>klucz_test_&lt;moduł&gt;</code> i kasuje ją po sobie; jeśli został po przerwanym przebiegu, <code>DROP DATABASE … WITH (FORCE)</code> w <code>task db:psql</code>. Test z markerem <code>mirror</code> pominięty bez <code>MIRROR_ROOT</code> jest normalny w CI.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================================ 17 -->
+<section id="slownik">
+  <h2>Słownik pojęć</h2>
+  <p class="kicker">jedno tłumaczenie, to samo w kodzie, schemacie i dokumentach</p>
+  <dl class="gloss">
+    <dt>klucz (marking scheme)</dt><dd>PDF „zasady oceniania” CKE. Źródło kryteriów, odpowiedzi wzorcowych, rozwiązań przykładowych, wymagań podstawy i reguł. Jeden klucz obsługuje wiele form arkusza.</dd>
+    <dt>zeszyt / arkusz (paper)</dt><dd>PDF z treścią zadań, które widzi uczeń. Źródło <code>task_version.content</code> i rysunków. Od 2024 r. nazywa się „zeszyt zadań”.</dd>
+    <dt>forma arkusza (exam form)</dt><dd>Kod + wariant + wersja + sesja, np. OMAP-100-X w sesji 2025-05-14. Nie plik; plik jest nośnikiem.</dd>
+    <dt>wariant (variant)</dt><dd>Dostosowanie: 100 bazowy, 200/400/500 dostosowania, 700/800 inne, łatwiejsze zadania na to samo wymaganie, C00/K00/Q00 wersje językowe i inne.</dd>
+    <dt>wersja (version)</dt><dd>Bliźniaki X i Y: inna treść i inne odpowiedzi w zadaniach zamkniętych, te same kryteria i wymagania.</dd>
+    <dt>dialekt</dt><dd>Zestaw regexów nagłówków jednego układu dokumentu: <code>e8-2019</code>, <code>e8-2020</code>, <code>matura</code>, <code>matura-2015</code>. Mierzony z tekstu, nie z nazwy.</dd>
+    <dt>reżim wymagań (regime)</dt><dd>Która podstawa programowa lub wymagania egzaminacyjne obowiązują: pp2012, pp2017, pp2024, wym2021 itd. Rozpoznawany z podpisu tabeli i z numeru Dziennika Ustaw w przypisie.</dd>
+    <dt>próg / warunek / zapis</dt><dd>Trzy poziomy kryteriów: <code>criterion</code> (ile punktów), <code>criterion_condition</code> (alternatywa warunków), <code>condition_expression</code> (równoważne zapisy tego samego warunku, np. wzory).</dd>
+    <dt>reguła przekrojowa (rule)</dt><dd>„Uwagi ogólne” klucza, obowiązujące zakres zadań, stosowane po ocenie kryteriów.</dd>
+    <dt>zasób (asset)</dt><dd>Rysunek, wykres lub diagram zadania: ścieżka PNG w blobie, strona i ramka <code>bbox</code> w punktach PDF od lewego górnego rogu, opis alt-text ze statusem.</dd>
+    <dt>korpus</dt><dd>Widok <code>corpus_task</code>: zadania <code>approved</code> i <code>corrected</code>, niezależnie od tego, czy rozstrzygnął człowiek, czy model.</dd>
+    <dt>S6 / S7 / S8</dt><dd>Pomiary alfy: S6 czy podpowiedź modelu przyspiesza korektę; S7 odsetek opisów rysunków przyjętych bez poprawki; S8 koszt półautomatu (mediana czasu × zadania). W planie A2-auto: S6′ zgodność modelu z próbką ludzką, S8′ dolary na zadanie i odsetek <code>unsure</code>.</dd>
+    <dt>G2.x, X1–X7</dt><dd>Numery zadań z planów: G2.1 ekran korekty, G2.3 parser i regresja, G2.4 regiony i wycinki, G2.5 LLM, G2.6 MathJSON, G2.7 raport; X1–X7 to klocki planu A2-auto (migracja 0009, verify, frame, opisy auto, golden set, raporty, decyzje).</dd>
+  </dl>
+</section>
+
+</div>
+</body>
+</html>

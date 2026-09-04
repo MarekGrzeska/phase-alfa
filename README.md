@@ -78,6 +78,7 @@ task setup     # sprawdza, czy maszyna ma komplet narzędzi
 task up        # docker compose up -d + migracje schematu
 task dev       # dotnet watch + vite dev server
 task test      # testy: architektura, zero-DOM, regresja parsera, więzy schematu
+task menu      # wszystkie polecenia ingestu do wyboru strzałkami, z podglądem komendy
 task ingest    # przebieg parsera (po A2)
 task correction        # ekran korekty — bramka między parserem a korpusem (G2.1)
 task correction:report # pomiary S6, S7, S8: stan korekty, czasy, prognoza
