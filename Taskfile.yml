@@ -275,6 +275,14 @@ tasks:
     dir: ingest
     cmds: ['{{.PY}} -m correction.prefill {{.CLI_ARGS}}']
 
+  # Plan A2-auto: model porównuje rekord ze stroną klucza i rozstrzyga.
+  #   task verify -- --year 2025 --variant 100            # sam raport, bez zapisu
+  #   task verify -- --year 2025 --variant 100 --apply    # rozstrzyga w bazie
+  verify:
+    desc: Drugi czytelnik LLM — rozstrzyga rekordy w zakresie; bez --apply tylko raport
+    dir: ingest
+    cmds: ['{{.PY}} -m correction.verify {{.CLI_ARGS}}']
+
   describe:
     desc: Opisy rysunków (alt-text) dla wycinków — pomiar S7
     dir: ingest

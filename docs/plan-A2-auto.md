@@ -197,6 +197,26 @@ systematyczny w promptcie na 159 zadaniach naprawia się w godzinę, na 1436 w d
 
 Miara z prefillu: $0,012 na zadanie otwarte bez obrazu. Z obrazem strony 2–3× więcej.
 
+## Dziennik wykonania
+
+| Data | Co | Wynik |
+|---|---|---|
+| 4.09 | X1 migracja 0009, X2 `task verify`, X6 raport (gałąź `feat/a2-auto`) | 96 testów zielonych |
+| 4.09 | dry-run #1 na 2025/100 ($0,46) | 18 `fix`, w tym 15 to **błąd parsera**: blok „Rozwiązanie – wersja X/Y" w warunku 0 pkt, 1346/1346 zadań zamkniętych 2020+ |
+| 4.09 | naprawa w parserze (G2.3.2: cichy błąd → kod), przeładowanie korpusu | liczby zadań/kryteriów/warunków/odpowiedzi bez zmian; `notes` 444→397 (reguły ogólne przestały być uwagą ostatniego zadania) |
+| 4.09 | dry-run #3 po przeładowaniu ($0,42) | 17 `match`, 4 `fix`, 0 `unsure` — cztery prawdziwe usterki w otwartych |
+| 4.09 | `--apply` 2025/100 ($0,40) | 18 `approved`, 3 `corrected`, `reviewed_by = model` |
+| 4.09 | `--apply` reszta wariantu 100 (138 zadań, $2,54) | 118 `approved`, 20 `corrected`, 0 `unsure` |
+| 4.09 | **wariant 100 w korpusie** | 159 zadań: 136 `approved`, 23 `corrected`; `reviewed_by = model` 100%; koszt $2,94, ~$0,018 na zadanie |
+
+Wniosek z pierwszego dnia: dry-run na jednym roczniku przed `--apply` jest obowiązkowy.
+Błąd systematyczny widać po powtarzalnym powodzie w `reasons`; naprawia się go w parserze,
+nie płaci modelowi 1436 razy.
+
+X4 (opisy `auto`) nie wymaga zmian w C# ani w webie: przeglądarka W2 pokazuje
+`asset.description` niezależnie od statusu, a licznik „opisów zatwierdzonych" zostaje
+liczbą S7 z próbki ludzkiej.
+
 ## Ryzyka, które zostają
 
 - **Błąd cichy.** Reguła z G2.3.2 („cichy naprawia się w kodzie") zakładała, że człowiek

@@ -307,6 +307,7 @@ def load_task(cur, task_id: int) -> dict | None:
     task["versions"] = versions
     task["assets"] = assets.for_task(cur, task_id)
     task["hints"] = prefill_hints(cur, task_id, criteria)
+    task["model_notes"] = model_notes(cur, task_id)
     return task
 
 
@@ -609,7 +610,7 @@ def _save_requirements(cur, task_id: int, form: Mapping[str, str],
 
 # ------------------------------------------------------------- nowe wiersze
 
-def add_criterion(cur, task_id: int) -> None:
+def add_criterion(cur, task_id: int) -> int:
     """Nowy próg punktowy — z pierwszą wolną punktacją, bo UNIQUE (task_id, points)."""
     cur.execute("SELECT max_points FROM task WHERE id = %s", (task_id,))
     row = cur.fetchone()
@@ -626,25 +627,29 @@ def add_criterion(cur, task_id: int) -> None:
     cur.execute(
         """INSERT INTO criterion (task_id, points, position)
            VALUES (%s, %s, (SELECT coalesce(max(position), 0) + 1
-                            FROM criterion WHERE task_id = %s))""",
+                            FROM criterion WHERE task_id = %s))
+           RETURNING id""",
         (task_id, free[0], task_id),
     )
+    return cur.fetchone()["id"]
 
 
-def add_condition(cur, task_id: int, criterion_id: int) -> None:
+def add_condition(cur, task_id: int, criterion_id: int) -> int:
     cur.execute(
         """INSERT INTO criterion_condition (criterion_id, description, position)
            SELECT c.id, '', coalesce(
                     (SELECT max(cc.position) FROM criterion_condition cc
                       WHERE cc.criterion_id = c.id), 0) + 1
-             FROM criterion c WHERE c.id = %s AND c.task_id = %s""",
+             FROM criterion c WHERE c.id = %s AND c.task_id = %s
+           RETURNING id""",
         (criterion_id, task_id),
     )
     if not cur.rowcount:
         raise ValidationError(["Próg nie należy do tego zadania."])
+    return cur.fetchone()["id"]
 
 
-def add_expression(cur, task_id: int, condition_id: int) -> None:
+def add_expression(cur, task_id: int, condition_id: int) -> int:
     cur.execute(
         """INSERT INTO condition_expression (condition_id, expression, position)
            SELECT cc.id, '', coalesce(
@@ -652,11 +657,13 @@ def add_expression(cur, task_id: int, condition_id: int) -> None:
                       WHERE ce.condition_id = cc.id), 0) + 1
              FROM criterion_condition cc
              JOIN criterion c ON c.id = cc.criterion_id
-            WHERE cc.id = %s AND c.task_id = %s""",
+            WHERE cc.id = %s AND c.task_id = %s
+           RETURNING id""",
         (condition_id, task_id),
     )
     if not cur.rowcount:
         raise ValidationError(["Warunek nie należy do tego zadania."])
+    return cur.fetchone()["id"]
 
 
 # ------------------------------------------------------------ rozstrzygnięcie
@@ -701,7 +708,8 @@ def was_corrected(cur, task_id: int) -> bool:
 # Decyzja człowieka → status zadania. `approve` rozdwaja się na dwa stany
 # w zależności od tego, czy coś poprawił — i to jest cała mechanika S6/S8.
 def decide(cur, task_id: int, action: str, started_at, changes: dict,
-           edited_before: bool = False) -> str:
+           edited_before: bool = False, actor: str = "human",
+           model: str | None = None) -> str:
     changed_now = bool(changes.get("edited") or changes.get("deleted"))
     # Opis nie rozstrzyga o statusie zadania, ale ma zostać w dzienniku.
     recorded = changed_now or bool(changes.get("described"))
@@ -722,11 +730,16 @@ def decide(cur, task_id: int, action: str, started_at, changes: dict,
     else:
         raise ValidationError([f"Nieznane rozstrzygnięcie: [{action}]."])
 
+    # Kto rozstrzygnął, niesie schemat (plan A2-auto): cofnięcie do korekty
+    # zdejmuje też autora, bo `pending` nie ma autora.
     cur.execute(
-        """UPDATE task SET review_status = %s,
-                           reviewed_at = CASE WHEN %s = 'pending' THEN NULL ELSE now() END
-           WHERE id = %s""",
-        (status, status, task_id),
+        """UPDATE task
+              SET review_status = %(status)s,
+                  reviewed_at  = CASE WHEN %(status)s = 'pending' THEN NULL ELSE now() END,
+                  reviewed_by  = CASE WHEN %(status)s = 'pending' THEN 'human' ELSE %(actor)s END,
+                  review_model = CASE WHEN %(status)s = 'pending' THEN NULL ELSE %(model)s END
+            WHERE id = %(id)s""",
+        {"status": status, "actor": actor, "model": model, "id": task_id},
     )
     cur.execute(
         # LEAST(..., now()): `started_at` powstaje na zegarze HOSTA, `finished_at`
@@ -735,9 +748,38 @@ def decide(cur, task_id: int, action: str, started_at, changes: dict,
         # wirtualnej Dockera potrafi zostać w tyle po uśpieniu laptopa. Przycięcie
         # gubi wtedy jeden pomiar czasu, zamiast wywrócić rozstrzygnięcie, którego
         # treść była w porządku.
-        """INSERT INTO correction_event (task_id, action, started_at, fields_changed)
-           VALUES (%s, %s, LEAST(%s, now()), %s)""",
-        (task_id, event, started_at, Jsonb(changes) if recorded else None),
+        """INSERT INTO correction_event
+               (task_id, action, started_at, fields_changed, actor, model)
+           VALUES (%s, %s, LEAST(%s, now()), %s, %s, %s)""",
+        (task_id, event, started_at, Jsonb(changes) if recorded else None,
+         actor, model),
     )
     refresh_document_status(cur, task_id)
     return status
+
+
+def record_unsure(cur, task_id: int, model: str, reasons: list[str],
+                  started_at) -> None:
+    """Model nie rozstrzygnął — powody do dziennika, zadanie zostaje `pending`."""
+    cur.execute(
+        """INSERT INTO correction_event
+               (task_id, action, started_at, fields_changed, actor, model)
+           VALUES (%s, 'unsure', LEAST(%s, now()), %s, 'model', %s)""",
+        (task_id, started_at, Jsonb({"reasons": reasons}), model),
+    )
+
+
+def model_notes(cur, task_id: int) -> dict | None:
+    """Ostatnie `unsure` modelu dla zadania — do pokazania nad formularzem."""
+    cur.execute(
+        """SELECT model, fields_changed, finished_at FROM correction_event
+           WHERE task_id = %s AND action = 'unsure'
+           ORDER BY id DESC LIMIT 1""",
+        (task_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+    return {"model": row["model"],
+            "reasons": (row["fields_changed"] or {}).get("reasons", []),
+            "when": row["finished_at"].strftime("%Y-%m-%d %H:%M")}

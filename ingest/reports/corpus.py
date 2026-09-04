@@ -142,12 +142,33 @@ def per_year(cur) -> list[dict]:
                   count(*) FILTER (WHERE t.review_status = 'approved')  AS approved,
                   count(*) FILTER (WHERE t.review_status = 'corrected') AS corrected,
                   count(*) FILTER (WHERE t.review_status = 'rejected')  AS rejected,
-                  count(*) FILTER (WHERE t.review_status = 'pending')   AS pending
+                  count(*) FILTER (WHERE t.review_status = 'pending')   AS pending,
+                  count(*) FILTER (WHERE t.review_status IN ('approved', 'corrected')
+                                     AND t.reviewed_by = 'model')     AS by_model,
+                  count(*) FILTER (WHERE t.review_status = 'pending' AND EXISTS (
+                      SELECT 1 FROM correction_event e
+                       WHERE e.task_id = t.id AND e.action = 'unsure')) AS unsure
            FROM task t
            JOIN document d ON d.id = t.marking_scheme_id
            GROUP BY d.year ORDER BY d.year"""
     )
     return cur.fetchall()
+
+
+def by_actor(cur) -> dict:
+    """Kto rozstrzygnął korpus — liczby do wniosku po planie A2-auto (S8′)."""
+    cur.execute(
+        """SELECT reviewed_by, review_model, count(*) AS n
+           FROM corpus_task c JOIN task t ON t.id = c.id
+           GROUP BY reviewed_by, review_model ORDER BY n DESC"""
+    )
+    rows = cur.fetchall()
+    cur.execute("SELECT count(*) AS n FROM task t WHERE t.review_status = 'pending' AND EXISTS "
+                "(SELECT 1 FROM correction_event e WHERE e.task_id = t.id AND e.action = 'unsure')")
+    unsure = cur.fetchone()["n"]
+    return {"rows": rows, "unsure": unsure,
+            "total": sum(r["n"] for r in rows),
+            "model": sum(r["n"] for r in rows if r["reviewed_by"] == "model")}
 
 
 def build(con) -> str:
@@ -174,13 +195,27 @@ def build(con) -> str:
 
     lines += ["", "POSTĘP KOREKTY PER ROCZNIK", RULE,
               f"  {'rocznik':<8} {'sparsow.':>9} {'bez zmian':>10} {'poprawione':>11}"
-              f" {'odrzuc.':>8} {'czeka':>7}"]
+              f" {'odrzuc.':>8} {'czeka':>7} {'model':>7} {'unsure':>7}"]
     with con.cursor(row_factory=dict_row) as cur:
         years = per_year(cur)
         numbers = stats.collect(cur)
+        actors = by_actor(cur)
     for row in years:
         lines.append(f"  {row['year']:<8} {row['parsed']:>9} {row['approved']:>10}"
-                     f" {row['corrected']:>11} {row['rejected']:>8} {row['pending']:>7}")
+                     f" {row['corrected']:>11} {row['rejected']:>8} {row['pending']:>7}"
+                     f" {row['by_model']:>7} {row['unsure']:>7}")
+
+    # Plan A2-auto: korpus rozstrzygany modelem, człowiek na próbce. Kolumna
+    # „model" wyżej i ta sekcja to S8′ — bez nich raport nie odróżnia korekty
+    # ręcznej od automatu, a to jest liczba do wniosku.
+    lines += ["", "KTO ROZSTRZYGNĄŁ KORPUS (plan A2-auto)", RULE]
+    for r in actors["rows"]:
+        who = r["reviewed_by"] + (f" ({r['review_model']})" if r["review_model"] else "")
+        lines.append(f"  {who:<40} {r['n']:>7}")
+    if actors["total"]:
+        lines.append(f"  udział modelu w korpusie : "
+                     f"{100 * actors['model'] / actors['total']:.1f}%")
+    lines.append(f"  unsure — czeka na człowieka : {actors['unsure']}")
 
     lines += ["", "LICZBY DO WNIOSKU — S6, S7, S8", RULE, ""]
     lines += stats.s6_lines(numbers["s6"], RULE)

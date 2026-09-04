@@ -524,14 +524,18 @@ def _parsuj_zadanie(numer: str, punkty: int, body: str, kolejnosc: int,
 
     ogolne, szczegolowe = (parsuj_wymagania(tab, dial, rezimy)
                           if tab is not None else ([], []))
-    odpowiedzi = _odpowiedzi(body, dial)
+    odpowiedzi, i_odp = _odpowiedzi(body, dial)
     rozwiazania, i_rozw = _rozwiazania(body, dial)
 
     # Nagłówek „Zasady oceniania" znika, gdy zadanie łamie się przez stronę — wtedy czytamy całe ciało.
     i_zas = body.find("Zasady oceniania")
     poczatek = i_zas if i_zas >= 0 else 0
-    kryteria_txt = body[poczatek:i_rozw] if (i_rozw is not None and i_rozw > poczatek) \
-        else body[poczatek:]
+    # Kryteria kończą się na WCZEŚNIEJSZYM z nagłówków: rozwiązań przykładowych
+    # (zadania otwarte) albo bloku odpowiedzi „Rozwiązanie – wersja X/Y"
+    # (zamknięte, układ 2020+). Bez tej drugiej granicy blok odpowiedzi wchodził
+    # w całości do warunku za 0 pkt — w każdym zadaniu zamkniętym, cicho.
+    granice = [i for i in (i_rozw, i_odp) if i is not None and i > poczatek]
+    kryteria_txt = body[poczatek:min(granice)] if granice else body[poczatek:]
     # Uwagi to reguła TEGO zadania, nie część progu 0 pkt.
     uwagi = []
     m_uw = dial.uwagi_zadania.search(kryteria_txt)
@@ -556,10 +560,17 @@ def _parsuj_zadanie(numer: str, punkty: int, body: str, kolejnosc: int,
                    kryteria=kryteria, rozwiazania=rozwiazania, uwagi=uwagi[:6])
 
 
-def _odpowiedzi(body: str, dial: Dialekt) -> Dict[Optional[str], List[Tuple[Optional[str], str]]]:
-    """Odpowiedzi wzorcowe per wersja arkusza."""
+def _odpowiedzi(body: str, dial: Dialekt) -> Tuple[
+        Dict[Optional[str], List[Tuple[Optional[str], str]]], Optional[int]]:
+    """Odpowiedzi wzorcowe per wersja arkusza i początek ich bloku w ciele.
+
+    Pozycja jest granicą tekstu kryteriów — tylko z czytnika, który naprawdę
+    oddał odpowiedzi, bo samotna linia „Rozwiązanie" trafia się też w środku
+    rozwiązań przykładowych.
+    """
     out: Dict[Optional[str], List[Tuple[Optional[str], str]]] = {}
     for czytnik in dial.odpowiedzi:
+        m = None
         if czytnik == "wersje":
             m = RE_ODP_WERSJE.search(body)
             if m:
@@ -575,8 +586,8 @@ def _odpowiedzi(body: str, dial: Dialekt) -> Dict[Optional[str], List[Tuple[Opti
                 if pozycje:
                     out.setdefault(None, pozycje)
         if out:
-            break
-    return out
+            return out, m.start()
+    return out, None
 
 
 def _rozdziel_kolumny(blok: str, wersje: Sequence[str], out: dict) -> None:
