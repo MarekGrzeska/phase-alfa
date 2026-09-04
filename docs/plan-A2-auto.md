@@ -206,7 +206,8 @@ Miara z prefillu: $0,012 na zadanie otwarte bez obrazu. Z obrazem strony 2–3×
 | 4.09 | naprawa w parserze (G2.3.2: cichy błąd → kod), przeładowanie korpusu | liczby zadań/kryteriów/warunków/odpowiedzi bez zmian; `notes` 444→397 (reguły ogólne przestały być uwagą ostatniego zadania) |
 | 4.09 | dry-run #3 po przeładowaniu ($0,42) | 17 `match`, 4 `fix`, 0 `unsure` — cztery prawdziwe usterki w otwartych |
 | 4.09 | `--apply` 2025/100 ($0,40) | 18 `approved`, 3 `corrected`, `reviewed_by = model` |
-| 4.09 | `--apply` reszta wariantu 100 | w toku |
+| 4.09 | `--apply` reszta wariantu 100 (138 zadań, $2,54) | 118 `approved`, 20 `corrected`, 0 `unsure` |
+| 4.09 | **wariant 100 w korpusie** | 159 zadań: 136 `approved`, 23 `corrected`; `reviewed_by = model` 100%; koszt $2,94, ~$0,018 na zadanie |
 
 Wniosek z pierwszego dnia: dry-run na jednym roczniku przed `--apply` jest obowiązkowy.
 Błąd systematyczny widać po powtarzalnym powodzie w `reasons`; naprawia się go w parserze,
