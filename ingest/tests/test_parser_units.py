@@ -178,3 +178,19 @@ def test_closed_task_criteria_stop_before_the_answers_block():
     conditions = [w["opis"] for k in task.kryteria for w in k["warunki"]]
     assert conditions == ["odpowiedź poprawna.",
                           "odpowiedź niepoprawna albo brak odpowiedzi."]
+
+
+def test_a_letterless_paper_serves_every_version(tmp_path, monkeypatch):
+    """Roczniki 2020–2023: jeden zeszyt `OMAP-100-2004.pdf` bez litery wersji,
+    a klucz deklaruje X i Y. Zeszyt nie trafiał do żadnej wersji, więc trzy
+    roczniki wariantu bazowego zostały bez treści zadań i bez zasobów."""
+    (tmp_path / "OMAP-100-2004.pdf").write_bytes(b"%PDF")
+    monkeypatch.setattr(run, "ROOT", str(tmp_path))
+    key = {"kod": "OMAP", "sesja": "2020-04", "warianty": "100"}
+    inventory = [{"kod": "OMAP", "sesja": "2020-04", "warianty": "100",
+                  "sciezka_lokalna": "OMAP-100-2004.pdf", "url": "test://zeszyt"}]
+
+    papers = run.arkusze_dla(key, ["X", "Y"], inventory)
+
+    assert set(papers) == {"X", "Y"}
+    assert papers["X"]["sciezka"] == "OMAP-100-2004.pdf"
