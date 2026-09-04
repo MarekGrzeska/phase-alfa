@@ -1,0 +1,116 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2022-05-25",
+ "year": 2022,
+ "task": "19",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Na rysunku przedstawiono siatkę graniastosłupa prawidłowego czworokątnego oraz zapisano niektóre wymiary tej siatki. 41 cm 48 cm Oblicz objętość tego graniastosłupa. Zapisz obliczenia. OMAP-100-2205 Strona 19 z 20",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "3a = 48 cm\n a = 16 cm\nh + a = 41 cm\nh = 41 - 16 = 25 cm\nV = a² · h\nV = 16² · 25 = 256 · 25 = 6400 cm³\n",
+   "intent": "Uczeń poprawnie wyznaczył bok podstawy i wysokość graniastosłupa, a następnie obliczył objętość z właściwego wzoru wraz z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„3a = 48 cm”, „a = 16 cm”, „h = 41 - 16 = 25 cm”, „V = 16² · 25 = 256 · 25 = 6400 cm³”",
+      "note": "Uczeń poprawnie wyznaczył krawędź podstawy i wysokość, zastosował właściwy wzór oraz podał prawidłowy wynik z jednostką."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„a = 16 cm”, „h = 41 - 16 = 25 cm”, „V = a² · h”",
+      "note": "Spełnione są warunki drugiego progu, ale przysługuje najwyższy spełniony próg."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„3a = 48 cm”, „a = 16 cm”, „h + a = 41 cm”, „h = 41 - 16 = 25 cm”",
+      "note": "Uczeń poprawnie ustalił długość krawędzi podstawy oraz wysokość graniastosłupa."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt. Zapis prowadzi poprawnie od „3a = 48 cm” do objętości „6400 cm³”; wynik końcowy ma właściwą jednostkę objętości."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "3a = 48\n a = 16\nh = 41 - 16 = 25\nV = 16² · 25 = 6400\n",
+   "intent": "Uczeń zastosował poprawną metodę i wykonał obliczenia, ale nie podał jednostki objętości.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "\"3a = 48\\n a = 16\\nh = 41 - 16 = 25\\nV = 16² · 25 = 6400\"",
+      "note": "Uczeń poprawnie wyznaczył krawędź podstawy i wysokość oraz obliczył objętość, ale w wyniku końcowym nie podał jednostki cm³."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "\"3a = 48\\n a = 16\\nh = 41 - 16 = 25\\nV = 16² · 25\"",
+      "note": "Zapis zawiera poprawne wyznaczenie a=16 i h=25 oraz podstawienie tych wartości do wzoru na objętość."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "\"3a = 48\\n a = 16\\nh = 41 - 16 = 25\"",
+      "note": "Uczeń poprawnie ustalił długość krawędzi podstawy i wysokość graniastosłupa."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "\"V = 16² · 25 = 6400\"",
+      "note": "Rozwiązanie nie jest błędne merytorycznie."
+     }
+    ],
+    "justification": "Odpowiedź spełnia warunek na 3 pkt: zawiera poprawne obliczenia prowadzące do objętości 6400. Jednak końcowy wynik zapisano bez jednostki objętości („6400”), co zgodnie z regułą przekrojową jest błędem rachunkowym i obniża ocenę o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "V = 48 · 41 = 1968 cm³\n",
+   "intent": "Uczeń pomnożył podane długości, nie wyznaczając wymiarów podstawy ani wysokości graniastosłupa.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„V = 48 · 41 = 1968 cm³”",
+      "note": "Zapis nie przedstawia poprawnego obliczenia objętości ani prawidłowego wyniku 6 400 cm³."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„V = 48 · 41 = 1968 cm³”",
+      "note": "Uczeń nie wyznaczył krawędzi podstawy 48:3 ani wysokości 41−a i nie zastosował wzoru V=a²·H."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„V = 48 · 41 = 1968 cm³”",
+      "note": "W odpowiedzi nie ma poprawnego wyznaczenia długości krawędzi podstawy ani wysokości graniastosłupa."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„V = 48 · 41 = 1968 cm³”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Uczeń pomnożył podane na siatce długości 48 cm i 41 cm, które nie są odpowiednio polem podstawy i wysokością graniastosłupa. Nie wykazał żadnego z wymaganych wcześniejszych etapów: a=16 cm ani H=25 cm."
+   }
+  }
+ ]
+}

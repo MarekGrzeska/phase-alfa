@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2024-05-15",
+ "year": 2024,
+ "task": "16",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Ela i Ania dostały w prezencie po jednym zestawie puzzli o takiej samej liczbie elementów. Ela ułożyła 2/5 swoich puzzli, a Ania 1/3 swoich. Dziewczynki ułożyły łącznie 440 elementów. Oblicz, z ilu elementów składa się jeden zestaw puzzli. Zapisz obliczenia. Strona 16 z 21 OMAP-100-2405",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Niech x oznacza liczbę elementów w jednym zestawie.\n\\frac{2}{5}x+\\frac{1}{3}x=440\n\\frac{6}{15}x+\\frac{5}{15}x=440\n\\frac{11}{15}x=440\nx=440\\cdot\\frac{15}{11}=600\nJeden zestaw składa się z 600 elementów.",
+   "intent": "Uczeń poprawnie ułożył równanie, sprowadził ułamki do wspólnego mianownika i obliczył wynik wraz z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„\\frac{2}{5}x+\\frac{1}{3}x=440 [...] \\frac{11}{15}x=440 [...] x=440\\cdot\\frac{15}{11}=600 [...] Jeden zestaw składa się z 600 elementów.”",
+      "note": "Uczeń zapisał poprawne równanie, wykonał prawidłowe obliczenia i wskazał właściwy wynik 600."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„\\frac{2}{5}x+\\frac{1}{3}x=440”",
+      "note": "Zapisano poprawne równanie z jedną niewiadomą prowadzące do obliczenia liczby elementów zestawu."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie dotyczy, ponieważ odpowiedź spełnia warunek wyższego progu."
+     }
+    ],
+    "justification": "Odpowiedź zawiera pełne, poprawne rozwiązanie: właściwe równanie, prawidłowe sprowadzenie ułamków do wspólnego mianownika oraz obliczenie „x=...=600”. Uczeń jednoznacznie wskazał, że 600 to liczba elementów jednego zestawu, a błędów rachunkowych nie ma."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "\\frac{2}{5}+\\frac{1}{3}=\\frac{11}{15}\n440:\\frac{11}{15}=600\n600",
+   "intent": "Uczeń zastosował poprawną metodę i uzyskał właściwą liczbę, ale nie zapisał jednostki ani pełnego wniosku.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "\\frac{2}{5}+\\frac{1}{3}=\\frac{11}{15}\n440:\\frac{11}{15}=600\n600",
+      "note": "Uczeń poprawnie obliczył łączną część zestawu i wyznaczył liczbę elementów równą 600."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "440:\\frac{11}{15}=600",
+      "note": "Zapis jest poprawnym wyrażeniem arytmetycznym prowadzącym do obliczenia liczby elementów w zestawie."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "440:\\frac{11}{15}=600",
+      "note": "Rozwiązanie nie jest błędne, ponieważ obliczenie i wynik są poprawne."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt: uczeń poprawnie ustalił, że dziewczynki ułożyły \\(\\frac{11}{15}\\) zestawu, a następnie obliczył \\(440:\\frac{11}{15}=600\\). Końcowy zapis „600” wskazuje poprawną liczbę elementów w jednym zestawie."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "\\frac{2}{5}+\\frac{1}{3}=\\frac{5}{8}\n440\\cdot\\frac{8}{5}=704\nJeden zestaw ma 704 elementy.",
+   "intent": "Uczeń próbował dodać ułamki, ale błędnie obliczył ich sumę, więc otrzymał zły wynik.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„\\frac{2}{5}+\\frac{1}{3}=\\frac{5}{8}”",
+      "note": "Suma ułamków jest obliczona błędnie, więc sposób i wynik „704” nie prowadzą do poprawnej liczby 600."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„\\frac{2}{5}+\\frac{1}{3}=\\frac{5}{8}”",
+      "note": "Nie zapisano poprawnego równania ani poprawnych wyrażeń arytmetycznych prowadzących do obliczenia liczby elementów zestawu."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„440\\cdot\\frac{8}{5}=704” oraz „Jeden zestaw ma 704 elementy.”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Uczeń błędnie obliczył sumę części puzzli, ponieważ \\(\\frac{2}{5}+\\frac{1}{3}\\) nie jest równe \\(\\frac{5}{8}\\). W konsekwencji dalsze obliczenie i odpowiedź „704” są niepoprawne, a zapis nie spełnia kryterium za 1 punkt."
+   }
+  }
+ ]
+}

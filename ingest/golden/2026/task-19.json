@@ -1,0 +1,122 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2026-05-12",
+ "year": 2026,
+ "task": "19",
+ "max_points": 3,
+ "content_source": "key",
+ "task_text": "Pani Anna ma ogródek w kształcie trapezu o podstawach 18 m i 12 m oraz wysokości 9 m. Jedno opakowanie nasion wystarcza na obsianie 25 m², a kosztuje 23,80 zł. Ile pani Anna musi zapłacić za opakowania z nasionami potrzebne do obsiania całego ogródka?",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "P = (18 + 12) : 2 · 9 = 135 m²\n135 : 25 = 5,4, więc trzeba kupić 6 opakowań.\n6 · 23,80 zł = 142,80 zł\nPani Anna musi zapłacić 142,80 zł.",
+   "intent": "Uczeń poprawnie obliczył pole trapezu, zaokrąglił liczbę opakowań w górę i obliczył całkowity koszt wraz z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„135 : 25 = 5,4, więc trzeba kupić 6 opakowań. 6 · 23,80 zł = 142,80 zł”",
+      "note": "Uczeń poprawnie obliczył pole, wyznaczył najmniejszą liczbę opakowań i poprawnie obliczył koszt 142,80 zł."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„135 : 25 = 5,4, więc trzeba kupić 6 opakowań.”",
+      "note": "Poprawnie wyznaczono najmniejszą liczbę całkowitą opakowań potrzebnych do obsiania całego ogródka."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„P = (18 + 12) : 2 · 9 = 135 m²”",
+      "note": "Poprawnie zastosowano wzór na pole trapezu i otrzymano 135 m²."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Pani Anna musi zapłacić 142,80 zł.”",
+      "note": "Rozwiązanie nie jest błędne ani niepełne."
+     }
+    ],
+    "justification": "Uczeń przedstawił poprawny sposób rozwiązania wszystkich etapów: obliczył pole trapezu, ustalił konieczność zakupu 6 opakowań i obliczył ich koszt. Nie występują błędy rachunkowe, dlatego przyznaje się najwyższy spełniony próg, czyli 3 punkty."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "P = (18 + 12) : 2 · 9 = 135 m²\n135 : 25 = 5,4, więc kupi 6 opakowań.\n6 · 23,80 = 140,80 zł",
+   "intent": "Uczeń zastosował poprawną metodę i ustalił właściwą liczbę opakowań, ale popełnił błąd w mnożeniu ceny.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„P = (18 + 12) : 2 · 9 = 135 m²”; „135 : 25 = 5,4, więc kupi 6 opakowań”; „6 · 23,80 = 140,80 zł”",
+      "note": "Uczeń przedstawił pełny poprawny sposób, ale popełnił błąd rachunkowy w obliczeniu kosztu."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„135 : 25 = 5,4, więc kupi 6 opakowań.”",
+      "note": "Poprawnie wyznaczono najmniejszą liczbę potrzebnych opakowań."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„P = (18 + 12) : 2 · 9 = 135 m²”",
+      "note": "Poprawnie obliczono pole trapezu."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Odpowiedź nie jest błędna w całości."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt, ponieważ zapis obejmuje poprawne obliczenie pola, liczby opakowań i kosztu. Jednak w działaniu „6 · 23,80 = 140,80 zł” wystąpił błąd rachunkowy; zgodnie z regułą przekrojową obniża to ocenę o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "(18 + 12) · 9 = 270\n270 : 25 = 10,8\n10,8 · 23,80 = 257,04 zł",
+   "intent": "Uczeń nie zastosował wzoru na pole trapezu, dlatego błędnie obliczył pole i liczbę opakowań oraz podał zły koszt.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„(18 + 12) · 9 = 270”",
+      "note": "Uczeń nie obliczył poprawnie pola trapezu ani kosztu minimalnej liczby opakowań."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„270 : 25 = 10,8” oraz „10,8 · 23,80 = 257,04 zł”",
+      "note": "Uczeń nie wyznaczył najmniejszej całkowitej liczby opakowań, ponieważ przyjął 10,8 opakowania."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„(18 + 12) · 9 = 270”",
+      "note": "To nie jest poprawny sposób obliczenia pola trapezu, gdyż pominięto dzielenie przez 2."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„10,8 · 23,80 = 257,04 zł”",
+      "note": "Rozwiązanie jest błędne; dodatkowo po błędnym polu uczeń nie obliczył minimalnej liczby opakowań."
+     }
+    ],
+    "justification": "Uczeń zastosował niepoprawny wzór na pole trapezu i otrzymał 270 zamiast 135. Wynik 270 nie jest wielokrotnością 25, ale uczeń nie zaokrąglił liczby opakowań w górę do liczby naturalnej, więc nie spełnia warunku przyznania 1 punktu z reguły szczególnej."
+   }
+  }
+ ]
+}

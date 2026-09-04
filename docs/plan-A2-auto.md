@@ -210,6 +210,16 @@ Miara z prefillu: $0,012 na zadanie otwarte bez obrazu. Z obrazem strony 2–3×
 | 4.09 | **wariant 100 w korpusie** | 159 zadań: 136 `approved`, 23 `corrected`; `reviewed_by = model` 100%; koszt $2,94, ~$0,018 na zadanie |
 | 4.09 | X4 `task describe` wariant 100 ($0,26) | 57 z 58 zasobów z opisem `auto`; 1 to fałszywy zasób detektora (zadanie bez rysunku) |
 | 4.09 | X3 `task frame` wariant 100 ($0,06) | 3 z 4 ramek „cała strona" wycięte, 1 odmowa uzasadniona. Pierwsza wersja prosiła o punkty PDF i dostawała piksele obrazu w skali 2 — teraz model oddaje piksele, kod przelicza |
+| 4.09 | luka danych: zeszyty 2020/2022/2023 bez litery wersji nie trafiały do klucza | naprawa w `arkusze_dla` (test na czerwono), przeładowanie 3 kluczy z zeszytami, ponowny `verify --apply` ($1,2): 47 `approved`, 12 `corrected`; +58 zasobów, opisy 115/116 |
+| 4.09 | uwagi modelu przy `match` do dziennika | rozjazdy wymagań podstawy (II.1 vs II.2, XXII.2 vs V.2) widoczne nad formularzem — kandydaci do próbki ludzkiej |
+| 4.09 | X5 golden set: `golden:generate` (luna) + `golden:grade` (terra) | 40 zadań otwartych × 3 odpowiedzi = 120 ocen, $0,85; 28 z treścią z zeszytu, 12 zrekonstruowanych z klucza (od 2025 r. treść jest na karcie rozwiązań, której mirror nie ma). Udział punktów: full 0,94 · partial 0,46 · wrong 0,04 |
+
+Zadania otwarte wariantu 100 w korpusie: **40**, nie 56 — 56 liczyło 11 arkuszy z terminami
+dodatkowymi, których mirror nie ma. Golden set liczy się do tego, co jest.
+
+Autor i oceniający to dziś dwa modele OpenAI (luna / terra). Prawdziwie druga rodzina
+wymaga `ANTHROPIC_API_KEY` w `.env`; `--model anthropic:claude-opus-5` działa bez zmian
+w kodzie.
 
 Wniosek z pierwszego dnia: dry-run na jednym roczniku przed `--apply` jest obowiązkowy.
 Błąd systematyczny widać po powtarzalnym powodzie w `reasons`; naprawia się go w parserze,

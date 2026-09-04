@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100",
+ "session": "2019-04-01",
+ "year": 2019,
+ "task": "16",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Na diagramie przedstawiono informacje, jaki procent meczów w ciągu całego sezonu drużyna piłkarska zakończyła wygraną, jaki - przegraną, a jaki - remisem. mecze wygrane 25% mecze zremisowane 45% mecze przegrane W ciągu całego sezonu drużyna wygrała 10 meczów. Ile meczów w sezonie ta drużyna przegrała? Zapisz obliczenia. Strona 14 z 20 OMAP-100-1904",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "100% − 25% − 45% = 30%\n25% — 10 meczów\n1% — 10 : 25 = 0,4 meczu\n30% — 30 · 0,4 = 12 meczów\n\nDrużyna przegrała 12 meczów.",
+   "intent": "Uczeń obliczył procent meczów przegranych, wyznaczył liczbę wszystkich meczów na podstawie 25% równego 10 oraz poprawnie obliczył 30% tej liczby.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„30% — 30 · 0,4 = 12 meczów” oraz „Drużyna przegrała 12 meczów.”",
+      "note": "Uczeń poprawnie obliczył liczbę przegranych meczów: 12."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„100% − 25% − 45% = 30%” oraz „1% — 10 : 25 = 0,4 meczu”",
+      "note": "Zapis przedstawia poprawny sposób wyznaczenia liczby przegranych meczów."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Drużyna przegrała 12 meczów.”",
+      "note": "Uczeń dokonał istotnego postępu i uzyskał poprawny wynik."
+     }
+    ],
+    "justification": "Uczeń wyznaczył, że mecze przegrane stanowiły 30% wszystkich meczów, a następnie poprawnie przeliczył te 30% na 12 meczów. Spełniony jest warunek progu 2 pkt, który jest najwyższym spełnionym progiem."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "100% − 25% − 45% = 30%\n10 : 25 · 100 = 40\n40 · 30% = 12\n\nDrużyna przegrała 12.",
+   "intent": "Uczeń zastosował poprawną metodę i uzyskał właściwą liczbę, ale nie podał jednostki „meczów” przy wyniku.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„40 · 30% = 12” oraz „Drużyna przegrała 12.”",
+      "note": "Uczeń poprawnie obliczył liczbę przegranych meczów równą 12."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„10 : 25 · 100 = 40”",
+      "note": "Uczeń poprawnie obliczył liczbę wszystkich rozegranych meczów równą 40."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„100% − 25% − 45% = 30%”",
+      "note": "Odpowiedź zawiera istotny postęp i prowadzi do poprawnego wyniku."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ uczeń zapisał poprawne obliczenie „40 · 30% = 12” i podał odpowiedź „Drużyna przegrała 12.”. Dodatkowo poprawnie wyznaczył odsetek przegranych meczów oraz liczbę wszystkich meczów."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "25% + 45% = 70%\n100% − 70% = 30%\n\nDrużyna przegrała 30 meczów.",
+   "intent": "Uczeń poprawnie wyznaczył procent meczów przegranych, ale potraktował go bezpośrednio jako liczbę meczów i nie wykorzystał informacji, że drużyna wygrała 10 meczów.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Drużyna przegrała 30 meczów.”",
+      "note": "Uczeń nie obliczył poprawnej liczby przegranych meczów, która wynosi 12."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„25% + 45% = 70%” oraz „100% − 70% = 30%”",
+      "note": "Uczeń poprawnie ustalił, że mecze przegrane stanowiły 30% wszystkich meczów, czyli zastosował poprawny sposób obliczenia liczby przegranych meczów."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„100% − 70% = 30%”",
+      "note": "W rozwiązaniu dokonano istotnego postępu."
+     }
+    ],
+    "justification": "Uczeń poprawnie wyznaczył procent meczów przegranych, ale błędnie utożsamił 30% z liczbą 30 meczów. Spełnia zatem warunek na 1 punkt za poprawny sposób obliczenia liczby przegranych meczów."
+   }
+  }
+ ]
+}

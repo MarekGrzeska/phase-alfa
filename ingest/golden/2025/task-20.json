@@ -1,0 +1,116 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2025-05-14",
+ "year": 2025,
+ "task": "20",
+ "max_points": 3,
+ "content_source": "key",
+ "task_text": "Kwadrat ABCD ma bok długości 15 cm. Punkt E leży na boku BC, przy czym BE:EC=2:3, a punkt F leży na boku CD, przy czym DF:FC=2:1. Oblicz pole czworokąta AECF.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "BC=CD=15 cm\nBE=\\frac25\\cdot15=6 cm\nDF=\\frac23\\cdot15=10 cm\nP_{ABCD}=15\\cdot15=225 cm²\nP_{ABE}=\\frac12\\cdot15\\cdot6=45 cm²\nP_{ADF}=\\frac12\\cdot15\\cdot10=75 cm²\nP_{AECF}=225-45-75=105 cm²",
+   "intent": "Uczeń poprawnie obliczył długości odcinków, pola obu trójkątów i odjął je od pola kwadratu, otrzymując prawidłowy wynik z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "\"P_{AECF}=225-45-75=105 cm²\"",
+      "note": "Uczeń poprawnie obliczył pole czworokąta jako różnicę pola kwadratu i pól trójkątów ABE oraz ADF, otrzymując wynik z właściwą jednostką."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "\"P_{ABCD}=15\\cdot15=225 cm²\"; \"P_{ABE}=\\frac12\\cdot15\\cdot6=45 cm²\"; \"P_{ADF}=\\frac12\\cdot15\\cdot10=75 cm²\"; \"P_{AECF}=225-45-75=105 cm²\"",
+      "note": "Zapis przedstawia poprawny sposób obliczenia pola czworokąta."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "\"P_{ABE}=\\frac12\\cdot15\\cdot6=45 cm²\"",
+      "note": "Uczeń poprawnie obliczył pole trójkąta ABE."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Odpowiedź nie jest błędna ani pusta."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt. Uczeń poprawnie wyznaczył długości „BE=\\frac25\\cdot15=6 cm” i „DF=\\frac23\\cdot15=10 cm”, pola trójkątów oraz odjął je od pola kwadratu; nie występuje błąd rachunkowy ani błąd jednostki."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "P_{ABCD}=15\\cdot15=225\nBE=\\frac25\\cdot15=6,\\quad DF=\\frac23\\cdot15=10\nP_{ABE}=\\frac12\\cdot15\\cdot6=45\nP_{ADF}=\\frac12\\cdot15\\cdot10=75\nP_{AECF}=225-45-75=115",
+   "intent": "Uczeń zastosował poprawną metodę i prawidłowo obliczył pola składowe, ale popełnił błąd rachunkowy przy odejmowaniu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "\"P_{AECF}=225-45-75=115\"",
+      "note": "Sposób jest poprawny, ale wynik liczbowy jest błędny, ponieważ 225−45−75=105, a nie 115."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "\"P_{AECF}=225-45-75=115\"",
+      "note": "Uczeń poprawnie wyznaczył pola trójkątów i zastosował poprawny sposób obliczenia pola czworokąta jako różnicy pola kwadratu oraz pól trójkątów ABE i ADF."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "\"P_{ABE}=\\frac12\\cdot15\\cdot6=45\"",
+      "note": "Poprawnie obliczono pole jednego z wymaganych trójkątów."
+     }
+    ],
+    "justification": "Najwyższym spełnionym progiem jest próg 2, ponieważ metoda rozwiązania i obliczenia pośrednie są poprawne. W końcowym działaniu uczeń popełnił błąd rachunkowy: „225-45-75=115”, więc zgodnie z regułą przekrojową ocenę obniża się o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "15\\cdot15=225\n225-2\\cdot15=195 cm²",
+   "intent": "Uczeń obliczył pole kwadratu, ale odjął niewłaściwą wartość i nie wyznaczył poprawnie pól trójkątów.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„15\\cdot15=225\n225-2\\cdot15=195 cm²”",
+      "note": "Nie przedstawiono poprawnego sposobu obliczenia pola czworokąta ani wyniku 105 cm²."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„225-2\\cdot15=195 cm²”",
+      "note": "Zapis nie jest poprawnym obliczeniem pola czworokąta ani jego części względem pola kwadratu."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„15\\cdot15=225\n225-2\\cdot15=195 cm²”",
+      "note": "Nie zapisano poprawnego pola żadnego z wymaganych trójkątów lub trapezów ani poprawnej zależności na pole czworokąta."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„225-2\\cdot15=195 cm²”",
+      "note": "Przedstawione rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Uczeń poprawnie obliczył pole kwadratu jako „15\\cdot15=225”, ale nie wykorzystał podanych stosunków do wyznaczenia długości odcinków ani pól odpowiednich figur. Zapis „225-2\\cdot15=195 cm²” nie stanowi poprawnej metody wyznaczenia pola AECF, więc przyznaje się 0 punktów."
+   }
+  }
+ ]
+}

@@ -1,0 +1,122 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2020-04-01",
+ "year": 2020,
+ "task": "19",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "W zakładzie krawieckim są szyte poduszki dla zwierząt domowych. Praca w tym zakładzie trwa pięć dni w tygodniu - od poniedziałku do piątku - po 7 godzin dziennie. W 2020 roku 1 marca wypadł w niedzielę i w tym miesiącu nie było żadnych dni wolnych oprócz sobót i niedziel. W ciągu każdej godziny pracy szyto średnio 3 poduszki. Ile poduszek uszyto w tym zakładzie w marcu 2020 roku? Zapisz obliczenia. Rozwiązanie zadania 19. zapisz w wyznaczonym miejscu ! na karcie rozwiązań zadań.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Marzec ma 22 dni robocze.\n22 · 7 = 154 h\n154 · 3 = 462\nUszyto 462 poduszki.",
+   "intent": "Uczeń poprawnie policzył liczbę dni roboczych, godzin pracy i poduszek oraz podał wynik z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„22 · 7 = 154 h\n154 · 3 = 462\nUszyto 462 poduszki.”",
+      "note": "Uczeń poprawnie obliczył liczbę godzin pracy w marcu i liczbę uszytych poduszek: 462."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„22 · 7 = 154 h”",
+      "note": "Zapis przedstawia poprawny sposób obliczenia liczby godzin przepracowanych w marcu."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Marzec ma 22 dni robocze.”",
+      "note": "Uczeń podaje poprawną liczbę dni roboczych w marcu 2020 roku."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Uszyto 462 poduszki.”",
+      "note": "Odpowiedź zawiera istotny postęp i pełne poprawne rozwiązanie."
+     }
+    ],
+    "justification": "Uczeń przyjął poprawną liczbę 22 dni roboczych, następnie obliczył 154 godziny pracy: „22 · 7 = 154 h”. Z zapisu „154 · 3 = 462” poprawnie wyznaczył liczbę uszytych poduszek, więc spełnia warunek na 3 punkty."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "Marzec ma 22 dni robocze.\n22 · 7 = 154\n154 · 3 = 453\nUszyto 453 poduszki.",
+   "intent": "Uczeń zastosował poprawną metodę i dobrze obliczył liczbę dni oraz godzin, ale popełnił błąd w ostatnim mnożeniu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„154 · 3 = 453”",
+      "note": "Nie obliczono poprawnie liczby poduszek w marcu, ponieważ wynik mnożenia jest błędny."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„22 · 7 = 154”",
+      "note": "Poprawnie obliczono liczbę godzin przepracowanych w marcu."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Marzec ma 22 dni robocze.”",
+      "note": "Poprawnie podano liczbę dni roboczych w marcu 2020 roku."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Marzec ma 22 dni robocze.”",
+      "note": "Uczeń dokonał istotnego postępu w rozwiązaniu."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ zapis „22 · 7 = 154” poprawnie wyznacza liczbę godzin pracy w marcu. Wynik końcowy jest niepoprawny wskutek błędu rachunkowego w zapisie „154 · 3 = 453”, więc próg 3 pkt nie jest spełniony."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "31 · 7 · 3 = 651\nUszyto 651 poduszek.",
+   "intent": "Uczeń pomnożył liczbę wszystkich dni marca przez godziny i wydajność, pomijając soboty i niedziele.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„31 · 7 · 3 = 651”",
+      "note": "Nie obliczono poprawnie liczby poduszek uszytych w marcu, ponieważ 31 potraktowano jako liczbę dni pracy."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„31 · 7 · 3 = 651”",
+      "note": "Zapis nie zawiera poprawnego sposobu obliczenia żadnego z warunków progu 2."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„31 · 7 · 3 = 651”",
+      "note": "Nie wyznaczono poprawnie liczby dni roboczych, liczby poduszek w dzień ani liczby godzin pracy w tygodniu."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„31 · 7 · 3 = 651”",
+      "note": "Rozwiązanie nie zawiera istotnego postępu prowadzącego do poprawnego rozwiązania."
+     }
+    ],
+    "justification": "Uczeń pomnożył liczbę wszystkich dni marca przez 7 godzin i przez 3 poduszki na godzinę, nie uwzględniając sobót i niedziel. Nie spełnia to żadnego warunku na 1, 2 ani 3 punkty."
+   }
+  }
+ ]
+}

@@ -1,0 +1,122 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2025-05-14",
+ "year": 2025,
+ "task": "17",
+ "max_points": 3,
+ "content_source": "key",
+ "task_text": "Basia, Marek i Andrzej zbierali plakaty. Andrzej ma o 28 plakatów więcej niż Basia, a Marek ma trzy razy mniej plakatów niż Basia. Andrzej i Marek mają razem dwa razy więcej plakatów niż Basia. Ile plakatów ma każde z dzieci?",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "b — liczba plakatów Basi\nAndrzej: b+28\nMarek: b/3\n\nb+28+b/3=2b\n28=2b-b-b/3\n28=2/3b\nb=42\n\nMarek: 42:3=14\nAndrzej: 42+28=70\n\nBasia ma 42 plakaty, Marek 14 plakatów, a Andrzej 70 plakatów.",
+   "intent": "Uczeń poprawnie zapisał zależności, ułożył równanie i obliczył liczbę plakatów każdego dziecka wraz z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„b+28+b/3=2b” oraz „b=42”, „Marek: 42:3=14”, „Andrzej: 42+28=70”",
+      "note": "Uczeń zapisał poprawne równanie, poprawnie je rozwiązał i wyznaczył prawidłowe liczby plakatów wszystkich dzieci."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„b+28+b/3=2b”",
+      "note": "To poprawne równanie z jedną niewiadomą opisujące warunek dotyczący łącznej liczby plakatów Marka i Andrzeja."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„b — liczba plakatów Basi”, „Andrzej: b+28”, „Marek: b/3”",
+      "note": "Uczeń poprawnie zapisał wyrażenia algebraiczne tej samej zmiennej dla wszystkich trojga dzieci."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie dotyczy, ponieważ odpowiedź spełnia warunek progu 3 punktów."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 punkty. Zapis prowadzi od poprawnych wyrażeń algebraicznych przez poprawne równanie do prawidłowych wyników: Basia 42, Marek 14, Andrzej 70; nie ma błędów rachunkowych."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "b — liczba plakatów Basi\nAndrzej: b+28\nMarek: b/3\n\nb+28+b/3=2b\n2/3b=28\nb=56\n\nMarek: 56:3\nAndrzej: 56+28=84",
+   "intent": "Uczeń poprawnie odczytał zależności i ułożył równanie, ale błędnie obliczył wartość b i nie uzyskał poprawnych wyników.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„b=56”",
+      "note": "Wynik liczby plakatów Basi jest błędny, więc nie ma pełnego poprawnego rozwiązania."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„b+28+b/3=2b”",
+      "note": "Uczeń zapisał poprawne równanie z jedną niewiadomą prowadzące do wyznaczenia liczby plakatów Basi."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Andrzej: b+28” oraz „Marek: b/3”",
+      "note": "Uczeń poprawnie opisał liczby plakatów Andrzeja i Marka za pomocą tej samej zmiennej b."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„b+28+b/3=2b”",
+      "note": "Odpowiedź zawiera poprawny sposób rozwiązania, więc nie jest rozwiązaniem błędnym w całości."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ zapisano poprawne równanie: „b+28+b/3=2b”. W obliczeniach wystąpił błąd rachunkowy: z „2/3b=28” błędnie otrzymano „b=56”, dlatego zgodnie z regułą przekrojową ocenę obniża się o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "Basia — 28 plakatów\nMarek — 28·3=84 plakaty\nAndrzej — 28+84=112 plakatów",
+   "intent": "Uczeń przyjął liczbę 28 jako liczbę plakatów Basi i zastosował niewłaściwą metodę, bez wykorzystania warunku o łącznej liczbie plakatów.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„Basia — 28 plakatów / Marek — 28·3=84 plakaty / Andrzej — 28+84=112 plakatów”",
+      "note": "Nie podano poprawnego pełnego rozwiązania ani poprawnego zestawu wyników 42, 14, 70."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Marek — 28·3=84 plakaty”",
+      "note": "Nie zapisano poprawnego równania z jedną niewiadomą ani poprawnych zależności graficznych."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„Basia — 28 plakatów / Marek — 28·3=84 plakaty / Andrzej — 28+84=112 plakatów”",
+      "note": "Zapis nie przedstawia poprawnych wyrażeń algebraicznych tej samej zmiennej opisujących wszystkie trzy liczby plakatów."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Basia — 28 plakatów / Marek — 28·3=84 plakaty / Andrzej — 28+84=112 plakatów”",
+      "note": "Podany zestaw liczb jest błędny i nie spełnia warunków zadania."
+     }
+    ],
+    "justification": "Uczeń podał błędne wartości i nie przedstawił równania, poprawnych wyrażeń jednej zmiennej, metody prób i błędów ani sposobu graficznego. W szczególności zapis „Marek — 28·3=84” jest sprzeczny z warunkiem, że Marek ma trzy razy mniej plakatów niż Basia."
+   }
+  }
+ ]
+}

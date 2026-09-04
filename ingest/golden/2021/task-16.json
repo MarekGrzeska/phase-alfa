@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2021-05-26",
+ "year": 2021,
+ "task": "16",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Paweł powiedział, że podzieli tabliczkę czekolady w taki sposób, że bratu przypadnie 1/2całej tabliczki, siostrze 5/12całej tabliczki, a jemu 1/6 całej tabliczki. Czy taki podział tabliczki czekolady jest możliwy? Uzasadnij swoją odpowiedź. Strona 14 z 18 OMAP-100-2105",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "\\(\\frac12+\\frac5{12}+\\frac16=\\frac6{12}+\\frac5{12}+\\frac2{12}=\\frac{13}{12}>1\\)\n\nTaki podział nie jest możliwy, bo suma części jest większa od całej tabliczki.",
+   "intent": "Uczeń sprowadził ułamki do wspólnego mianownika, poprawnie obliczył sumę i uzasadnił, że przekracza ona całą tabliczkę.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "\"\\frac12+\\frac5{12}+\\frac16=\\frac6{12}+\\frac5{12}+\\frac2{12}=\\frac{13}{12}>1\" oraz \"Taki podział nie jest możliwy, bo suma części jest większa od całej tabliczki.\"",
+      "note": "Uczeń poprawnie obliczył sumę części jako 13/12 i sformułował poprawny wniosek o niemożliwości podziału."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "\"\\frac12+\\frac5{12}+\\frac16=\\frac6{12}+\\frac5{12}+\\frac2{12}=\\frac{13}{12}>1\"",
+      "note": "Uczeń przedstawił poprawny sposób obliczenia łącznej wartości wszystkich wskazanych części."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie dotyczy, ponieważ odpowiedź spełnia warunek wyższego progu."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 punkty. Zapis zawiera poprawne sprowadzenie ułamków do wspólnego mianownika, otrzymanie sumy 13/12 oraz uzasadniony wniosek, że suma przekracza całą tabliczkę."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "\\(\\frac12+\\frac5{12}+\\frac16=\\frac6{12}+\\frac5{12}+\\frac2{12}=\\frac{12}{12}\\)\n\nPodział jest możliwy.",
+   "intent": "Uczeń zastosował poprawną metodę sprowadzania ułamków do wspólnego mianownika, ale popełnił błąd w dodawaniu i wyciągnął zły wniosek.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„\\(\\frac12+\\frac5{12}+\\frac16=\\frac6{12}+\\frac5{12}+\\frac2{12}=\\frac{12}{12}\\)” oraz „Podział jest możliwy.”",
+      "note": "Uczeń błędnie obliczył sumę, ponieważ \\(6/12+5/12+2/12=13/12\\), i sformułował niepoprawny wniosek."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„\\(\\frac12+\\frac5{12}+\\frac16=\\frac6{12}+\\frac5{12}+\\frac2{12}\\)”",
+      "note": "Przedstawiono poprawny sposób sprowadzenia wszystkich wskazanych części do wspólnego mianownika."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Podział jest możliwy.”",
+      "note": "Wniosek jest niezgodny z poprawną zależnością między częściami tabliczki."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 punkt, ponieważ uczeń poprawnie zapisał składniki jako ułamki o mianowniku 12. Następnie popełnił błąd rachunkowy: suma liczników wynosi 13, a nie 12, przez co wniosek „Podział jest możliwy.” jest błędny."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "\\(\\frac12+\\frac5{12}+\\frac16=1\\)\n\nTak, podział jest możliwy.",
+   "intent": "Uczeń podał błędny wynik bez poprawnego uzasadnienia rachunkowego.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„\\(\\frac12+\\frac5{12}+\\frac16=1\\)” oraz „Tak, podział jest możliwy.”",
+      "note": "Zapis nie zawiera poprawnego uzasadnienia niemożliwości podziału, ponieważ suma podanych ułamków nie wynosi 1."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„\\(\\frac12+\\frac5{12}+\\frac16=1\\)”",
+      "note": "Uczeń podjął próbę obliczenia łącznej wartości części, ale obliczenie jest niepoprawne."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Tak, podział jest możliwy.”",
+      "note": "Wniosek jest błędny, gdyż wskazane części razem stanowią \\(\\frac{13}{12}\\) tabliczki."
+     }
+    ],
+    "justification": "Suma części wskazanych w zadaniu wynosi \\(\\frac{6}{12}+\\frac{5}{12}+\\frac{2}{12}=\\frac{13}{12}\\), a nie 1. Uczeń błędnie obliczył sumę i sformułował błędny wniosek, więc otrzymuje 0 punktów."
+   }
+  }
+ ]
+}

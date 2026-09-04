@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100",
+ "session": "2019-04-01",
+ "year": 2019,
+ "task": "17",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Samochód osobowy przebył drogę 120 km w czasie 75 minut. Prędkość średnia busa na tej km samej trasie wyniosła 80 . O ile krótszy był czas przejazdu tej drogi samochodem h osobowym od czasu przejazdu busem? Zapisz obliczenia. OMAP-100-1904 Strona 15 z 20",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "75 min = 1,25 h\n120 km : 80 km/h = 1,5 h = 90 min\n90 min − 75 min = 15 min\nSamochód jechał o 15 minut krócej.",
+   "intent": "Uczeń poprawnie zamienił jednostki, obliczył czas przejazdu busem i różnicę czasów, podając wynik z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„90 min − 75 min = 15 min”",
+      "note": "Uczeń wyznaczył poprawną różnicę czasu równą 15 minut."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„120 km : 80 km/h = 1,5 h = 90 min”",
+      "note": "Uczeń poprawnie obliczył czas jazdy busa."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„90 min − 75 min = 15 min”",
+      "note": "Odpowiedź zawiera istotny postęp i pełne poprawne rozwiązanie."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ uczeń poprawnie obliczył czas przejazdu busa jako 90 minut, a następnie różnicę czasu: 15 minut. Zapis „75 min = 1,25 h” jest również poprawny i nie powoduje obniżenia punktacji."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "120 : 80 = 1,5 h = 90 min\n90 min − 75 min = 25 min\nSamochód jechał o 25 min krócej.",
+   "intent": "Uczeń zastosował poprawną metodę i obliczył czas przejazdu busem, ale popełnił błąd w odejmowaniu 90 − 75.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„90 min − 75 min = 25 min”",
+      "note": "Nie wyznaczono poprawnie różnicy czasu, ponieważ 90 min − 75 min = 15 min."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„120 : 80 = 1,5 h = 90 min”",
+      "note": "Poprawnie obliczono czas jazdy busa."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„120 : 80 = 1,5 h = 90 min”",
+      "note": "Uczeń dokonał istotnego postępu, więc nie spełnia warunku progu 0 punktów."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 punkt, ponieważ uczeń poprawnie wyznaczył czas przejazdu busa: 90 minut. Następnie popełnił błąd rachunkowy w odejmowaniu, zapisując „90 min − 75 min = 25 min”, dlatego nie spełnia warunku na 2 punkty."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "120 : 75 = 1,6\n80 − 1,6 = 78,4\nCzas był krótszy o 78,4 min.",
+   "intent": "Uczeń dzieli drogę przez czas wyrażony w minutach i odejmuje prędkość od otrzymanej liczby, więc stosuje niepoprawną metodę.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "Czas był krótszy o 78,4 min.",
+      "note": "Uczeń nie wyznaczył poprawnej różnicy czasu 15 minut ani 1/4 godziny."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "120 : 75 = 1,6\n80 − 1,6 = 78,4",
+      "note": "Zapis nie przedstawia poprawnego obliczenia czasu jazdy busa, różnicy przebytych dróg ani różnicy czasów."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "120 : 75 = 1,6\n80 − 1,6 = 78,4\nCzas był krótszy o 78,4 min.",
+      "note": "Rozwiązanie nie zawiera istotnego postępu prowadzącego do obliczenia wymaganej różnicy czasu."
+     }
+    ],
+    "justification": "Obliczenie „120 : 75 = 1,6” może oznaczać prędkość samochodu w km/min, ale nie zostało wykorzystane w poprawnym sposobie rozwiązania. Działanie „80 − 1,6 = 78,4” łączy niezgodne wielkości, a podana odpowiedź jest błędna."
+   }
+  }
+ ]
+}

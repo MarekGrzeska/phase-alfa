@@ -1,0 +1,110 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2021-05-26",
+ "year": 2021,
+ "task": "17",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Adam mieszka w miejscowości Bocianowo, Żabno a jego kolega Bartek - w miejscowości • Żabno. Adam umówił się z Bartkiem w Żabnie 1 km na godzinę 18:00. Wyjechał z Bocianowa na skuterze o godzinie 17:20. Średnia prędkość jazdy Adama była równa 25 km/h. Na kwadratowej siatce Adam przedstawił schemat trasy, którą jechał. O której godzinie Adam dotarł na spotkanie • Bajorko z Bartkiem? Zapisz obliczenia. • • Bocianowo Stawisko OMAP-100-2105 Strona 15 z 18",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Stawisko–Bajorko: 3²+4²=25, więc 5 km\nCała trasa: 3+5+7=15 km\nCzas jazdy: 15:25 h = 36 min\n17:20+36 min = 17:56\nAdam dotarł o 17:56.",
+   "intent": "Uczeń poprawnie obliczył długość odcinka ukośnego, całą trasę, czas jazdy i godzinę przyjazdu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„Stawisko–Bajorko: 3²+4²=25, więc 5 km [...] Czas jazdy: 15:25 h = 36 min [...] 17:20+36 min = 17:56”",
+      "note": "Uczeń poprawnie wyznaczył długość trasy, czas przejazdu i godzinę przybycia."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„Cała trasa: 3+5+7=15 km” oraz „Czas jazdy: 15:25 h = 36 min”",
+      "note": "Zastosowano poprawny związek drogi, prędkości i czasu oraz uwzględniono trzy odcinki trasy."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Stawisko–Bajorko: 3²+4²=25, więc 5 km”",
+      "note": "Poprawnie zastosowano twierdzenie Pitagorasa do wyznaczenia odcinka Stawisko–Bajorko."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt. Zapis „15:25 h” poprawnie oznacza obliczenie czasu jako ilorazu drogi i prędkości, a wynik 36 min oraz godzina 17:56 są prawidłowe."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "3+5+7=15 km\n15:25=0,6 h=30 min\n17:20+30 min=17:50",
+   "intent": "Uczeń zastosował poprawną metodę i obliczył długość trasy, ale błędnie zamienił 0,6 godziny na 30 minut zamiast 36.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„15:25=0,6 h=30 min” oraz „17:20+30 min=17:50”",
+      "note": "Czas 0,6 godziny błędnie zamieniono na 30 minut, więc wynik 17:50 nie jest prawidłowy."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„3+5+7=15 km” oraz „15:25=0,6 h”",
+      "note": "Uczeń poprawnie ustalił drogę z trzech odcinków i zastosował poprawny związek czasu, drogi oraz prędkości."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„3+5+7=15 km”",
+      "note": "W zapisie uwzględniono poprawną długość odcinka Stawisko–Bajorko równą 5 km."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt: uczeń poprawnie wyznaczył drogę 15 km i rozpoczął poprawne obliczanie czasu jako ilorazu drogi i prędkości. Popełnił błąd rachunkowy przy zamianie 0,6 godziny na minuty: powinno być 36 minut, a nie 30 minut."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "25 km/h · 40 min = 16 km\n17:20+40 min=18:00",
+   "intent": "Uczeń przyjął błędny czas jazdy i nie obliczył długości trasy zgodnie ze schematem.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„25 km/h · 40 min = 16 km\n17:20+40 min=18:00”",
+      "note": "Uczeń nie wyznaczył poprawnie godziny przybycia 17:56 ani nie podał prawidłowych obliczeń czasu przejazdu."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„25 km/h · 40 min = 16 km”",
+      "note": "W zapisie nie ma poprawnego obliczenia całej drogi z trzech odcinków ani poprawnego wyznaczenia czasu przejazdu tej drogi."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„25 km/h · 40 min = 16 km”",
+      "note": "Nie ma wyznaczenia odcinka Stawisko–Bajorko ani poprawnego obliczenia drogi przebytej w czasie 2/3 godziny."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„25 km/h · 40 min = 16 km\n17:20+40 min=18:00”",
+      "note": "Rozwiązanie jest błędne, ponieważ iloczyn prędkości i 40 minut podano jako 16 km, a czas przybycia ustalono na 18:00."
+     }
+    ],
+    "justification": "Uczeń nie uwzględnił schematu trasy i nie obliczył długości jej odcinków. Ponadto zapis „25 km/h · 40 min = 16 km” nie jest poprawnym obliczeniem drogi w czasie 40 minut, a wynik końcowy 18:00 jest nieprawidłowy."
+   }
+  }
+ ]
+}

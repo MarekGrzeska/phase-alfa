@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2024-05-15",
+ "year": 2024,
+ "task": "17",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Prostokąt ABCD podzielono na trzy trójkąty: AED, ACE, ABC (zobacz rysunek). Na rysunku podano również długości dwóch boków trójkąta AED oraz zaznaczono dwa kąty trójkąta ACE, o takiej samej mierze α. 15 cm D E C α 20 cm α A B Oblicz pole trapezu ABCE. Zapisz obliczenia. OMAP-100-2405 Strona 17 z 21",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "W trójkącie AED:\nAE² = AD² + DE²\nAE² = 20² + 15² = 400 + 225 = 625\nAE = 25 cm\n\nW trójkącie ACE: ∠EAC = ∠ACE, więc\nEC = AE = 25 cm\n\nAB = DC = DE + EC = 15 + 25 = 40 cm\n\nP trapezu ABCE = (AB + EC) · AD : 2\nP = (40 + 25) · 20 : 2 = 650 cm²",
+   "intent": "Uczeń poprawnie zastosował twierdzenie Pitagorasa, własność trójkąta równoramiennego oraz wzór na pole trapezu i podał wynik z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "P trapezu ABCE = (AB + EC) · AD : 2\nP = (40 + 25) · 20 : 2 = 650 cm²",
+      "note": "Uczeń podał poprawny sposób obliczenia pola trapezu, wykonał prawidłowe obliczenia i otrzymał wynik 650 cm²."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "AE² = 20² + 15² = 400 + 225 = 625\nAE = 25 cm\n\nEC = AE = 25 cm\n\nAB = DC = DE + EC = 15 + 25 = 40 cm",
+      "note": "Zapis obejmuje twierdzenie Pitagorasa, równość AE i EC wynikającą z trójkąta równoramiennego oraz poprawne wyznaczenie AB."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "AE² = AD² + DE²\nAE² = 20² + 15² = 400 + 225 = 625",
+      "note": "Uczeń poprawnie zastosował twierdzenie Pitagorasa do wyznaczenia długości AE."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt. Wszystkie konieczne długości zostały poprawnie wyznaczone, a pole trapezu obliczono jako „650 cm²”, z właściwą jednostką."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "AE² = 20² + 15² = 625\nAE = 25 cm\n\n∠EAC = ∠ACE, więc EC = 25 cm\nAB = 15 + 25 = 40 cm\n\nP = (40 + 25) · 20 : 2\nP = 65 · 20 : 2 = 1300 cm²",
+   "intent": "Uczeń zastosował poprawną metodę i obliczył długości podstaw, ale popełnił błąd rachunkowy przy dzieleniu przez 2 w polu trapezu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "P = 65 · 20 : 2 = 1300 cm²",
+      "note": "Sposób obliczenia pola trapezu jest poprawny, ale wynik liczbowy jest błędny, ponieważ 65 · 20 : 2 = 650."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "AE² = 20² + 15² = 625\nAE = 25 cm\n\n∠EAC = ∠ACE, więc EC = 25 cm\nAB = 15 + 25 = 40 cm",
+      "note": "Uczeń poprawnie zastosował twierdzenie Pitagorasa, wykorzystał własność trójkąta równoramiennego i obliczył długość AB."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "AE² = 20² + 15² = 625",
+      "note": "Zapis przedstawia poprawne zastosowanie twierdzenia Pitagorasa do wyznaczenia długości AE."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ zapis zawiera wszystkie wymagane wcześniejsze etapy rozwiązania. W obliczeniu końcowym wystąpił błąd rachunkowy: „65 · 20 : 2 = 1300 cm²”, dlatego zgodnie z regułą przekrojową ocenę obniża się o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "P prostokąta = 15 · 20 = 300 cm²\nP trapezu ABCE = 300 cm²",
+   "intent": "Uczeń pomylił pole prostokąta z polem trapezu i nie wykorzystał danych o kątach ani podziale prostokąta.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„P trapezu ABCE = 300 cm²”",
+      "note": "Podany wynik nie jest równy 650 cm², a zapis nie przedstawia poprawnego sposobu obliczenia pola trapezu."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„P prostokąta = 15 · 20 = 300 cm²”",
+      "note": "Uczeń nie zastosował twierdzenia Pitagorasa, nie wskazał równości AE i EC ani nie zapisał poprawnej zależności potrzebnej do obliczenia pola."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„P trapezu ABCE = 300 cm²”",
+      "note": "Nie zapisano żadnego z wymaganych poprawnych elementów rozwiązania, takich jak zależność AE = EC, twierdzenie Pitagorasa lub poprawny wzór na pole trapezu."
+     }
+    ],
+    "justification": "Zapis „P prostokąta = 15 · 20 = 300 cm²” nie dotyczy pola całego prostokąta ABCD, ponieważ długość jego boku AB nie wynosi 15 cm. Odpowiedź „P trapezu ABCE = 300 cm²” jest błędna i nie zawiera poprawnego etapu rozwiązania, dlatego przyznaje się 0 punktów."
+   }
+  }
+ ]
+}

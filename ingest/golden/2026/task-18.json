@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2026-05-12",
+ "year": 2026,
+ "task": "18",
+ "max_points": 2,
+ "content_source": "key",
+ "task_text": "Dany jest sześcian ABCDEFGH o krawędzi długości a. Punkt S leży na krawędzi DH, przy czym |DS|=1/2a. Oblicz, ile razy objętość ostrosłupa ACDS jest mniejsza od objętości sześcianu ABCDEFGH.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "V_sześcianu=a³\nP_ACD=1/2a²\nh=DS=1/2a\nV_ACDS=1/3·1/2a²·1/2a=1/12a³\nV_ACDS=1/12V_sześcianu\nObjętość ostrosłupa jest 12 razy mniejsza od objętości sześcianu.",
+   "intent": "Uczeń poprawnie obliczył pole podstawy i wysokość ostrosłupa, zastosował wzór na objętość i podał prawidłowy stosunek.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„V_ACDS=1/3·1/2a²·1/2a=1/12a³”, „V_ACDS=1/12V_sześcianu”, „Objętość ostrosłupa jest 12 razy mniejsza od objętości sześcianu.”",
+      "note": "Uczeń poprawnie obliczył objętość ostrosłupa i prawidłowo ustalił stosunek objętości równy 1:12."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„V_sześcianu=a³” oraz „V_ACDS=1/3·1/2a²·1/2a=1/12a³”",
+      "note": "Uczeń zapisał poprawne wzory na objętość sześcianu i ostrosłupa w zależności od a."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Odpowiedź nie jest błędna ani niepełna."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt. Zapis „P_ACD=1/2a²” i wysokość „h=DS=1/2a” prowadzą do poprawnego obliczenia V_ACDS=1/12a³, a następnie do poprawnej odpowiedzi, że objętość ostrosłupa jest 12 razy mniejsza."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "P_ACD=1/2a²\nDS=1/2a\nV_ACDS=1/3·1/2a²·1/2a=1/6a³\nV_sześcianu=a³\nOstrosłup jest 6 razy mniejszy.",
+   "intent": "Uczeń wybrał poprawną metodę i dane, ale popełnił błąd rachunkowy przy mnożeniu ułamków, więc otrzymał zły wynik.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„V_ACDS=1/3·1/2a²·1/2a=1/6a³” oraz „Ostrosłup jest 6 razy mniejszy.”",
+      "note": "Uczeń zastosował poprawny sposób, ale błędnie obliczył objętość i podał niepoprawny iloraz objętości."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„V_ACDS=1/3·1/2a²·1/2a”",
+      "note": "Jest to poprawne wyrażenie opisujące objętość ostrosłupa w zależności od a."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„V_ACDS=1/3·1/2a²·1/2a=1/6a³”",
+      "note": "W obliczeniu wystąpił błąd rachunkowy, ponieważ poprawny wynik tego iloczynu to 1/12a³."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 pkt, ponieważ uczeń zapisał poprawny sposób obliczenia objętości ostrosłupa. Następnie popełnił błąd rachunkowy i konsekwentnie uzyskał błędny wynik „6 razy”, więc zgodnie z regułą przekrojową ocenę obniża się o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "Trójkąt ACD ma połowę pola podstawy sześcianu, a DS jest połową krawędzi, więc\nV_ACDS=1/2·1/2V_sześcianu=1/4V_sześcianu\nOstrosłup jest 4 razy mniejszy.",
+   "intent": "Uczeń pominął czynnik 1/3 ze wzoru na objętość ostrosłupa i dlatego zastosował błędną metodę.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„V_ACDS=1/2·1/2V_sześcianu=1/4V_sześcianu”",
+      "note": "Nie uwzględniono czynnika 1/3 we wzorze na objętość ostrosłupa, więc wynik „4 razy” jest niepoprawny."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„V_ACDS=1/2·1/2V_sześcianu=1/4V_sześcianu”",
+      "note": "Zapis nie jest poprawnym wyrażeniem objętości ostrosłupa, ponieważ brakuje w nim czynnika 1/3."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Ostrosłup jest 4 razy mniejszy.”",
+      "note": "Podany wynik końcowy jest błędny."
+     }
+    ],
+    "justification": "Uczeń poprawnie zauważył, że pole trójkąta ACD stanowi połowę pola podstawy sześcianu, a „DS jest połową krawędzi”. Jednak w obliczeniu objętości ostrosłupa pominął czynnik 1/3, dlatego nie spełnia warunku na 1 ani 2 punkty."
+   }
+  }
+ ]
+}

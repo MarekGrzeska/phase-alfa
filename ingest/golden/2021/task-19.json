@@ -1,0 +1,110 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2021-05-26",
+ "year": 2021,
+ "task": "19",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Dany jest prostokąt ABCD o wymiarach 12 cm i 16 cm. Odcinek AC jest przekątną tego prostokąta. Odcinek DS jest wysokością trójkąta ACD (patrz rysunek). D C S B A Oblicz długość odcinka DS. Zapisz obliczenia. OMAP-100-2105 Strona 17 z 18",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "AC² = 12² + 16² = 144 + 256 = 400\nAC = 20 cm\nP△ACD = 12 · 16 : 2 = 96 cm²\nP△ACD = AC · DS : 2\n96 = 20 · DS : 2\nDS = 9,6 cm",
+   "intent": "Uczeń obliczył przekątną, porównał pola trójkąta i poprawnie wyznaczył długość wysokości DS z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„P△ACD = 12 · 16 : 2 = 96 cm²”, „P△ACD = AC · DS : 2”, „96 = 20 · DS : 2”, „DS = 9,6 cm”",
+      "note": "Uczeń poprawnie porównał pola trójkąta ACD i prawidłowo wyznaczył długość DS."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„AC = 20 cm”, „P△ACD = 12 · 16 : 2 = 96 cm²”, „96 = 20 · DS : 2”",
+      "note": "Zapis porównuje pole trójkąta ACD obliczone z przyprostokątnych z polem wyrażonym przez AC i DS, przy poprawnie wyznaczonym AC."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„AC² = 12² + 16² = 144 + 256 = 400”, „AC = 20 cm”",
+      "note": "Uczeń poprawnie zastosował twierdzenie Pitagorasa do wyznaczenia przekątnej AC."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt. Obliczenia są poprawne, a wynik końcowy „DS = 9,6 cm” ma właściwą jednostkę."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "AC = √(12² + 16²) = 20 cm\nP△ACD = 12 · 16 : 2 = 96 cm²\nDS = 96 : 20 = 4,8 cm",
+   "intent": "Uczeń zastosował poprawną metodę i obliczył przekątną oraz pole, ale przy wyznaczaniu wysokości pominął czynnik 2 wynikający ze wzoru na pole trójkąta.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„DS = 96 : 20 = 4,8 cm”",
+      "note": "Wynik 4,8 cm jest nieprawidłowy, ponieważ przy porównaniu pól powinno wystąpić wyrażenie (20·DS):2."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„P△ACD = 12 · 16 : 2 = 96 cm²” oraz „DS = 96 : 20 = 4,8 cm”",
+      "note": "Nie zapisano porównania pola trójkąta ACD z wyrażeniem zawierającym długości AC i DS."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„AC = √(12² + 16²) = 20 cm”",
+      "note": "Uczeń poprawnie zastosował twierdzenie Pitagorasa do wyznaczenia długości przekątnej AC."
+     }
+    ],
+    "justification": "Uczeń spełnia warunek na 1 punkt, ponieważ poprawnie wyznaczył długość przekątnej AC; dodatkowo poprawnie obliczył pole trójkąta ACD: „P△ACD = 12 · 16 : 2 = 96 cm²”. Nie spełnia warunku na 2 ani 3 punkty, gdyż zapis „DS = 96 : 20” pomija dzielenie przez 2 w wzorze na pole trójkąta."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "DS = √(16² − 12²)\nDS = √112 ≈ 10,6 cm",
+   "intent": "Uczeń zastosował niewłaściwy wzór, traktując DS jako bok trójkąta prostokątnego o przyprostokątnych 12 cm i 16 cm.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„DS = √(16² − 12²)” oraz „DS = √112 ≈ 10,6 cm”",
+      "note": "Zapis nie przedstawia poprawnego sposobu wyznaczenia wysokości DS i podaje nieprawidłowy wynik."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„DS = √(16² − 12²)”",
+      "note": "Uczeń nie porównuje pól wymaganych trójkątów ani nie wyznacza poprawnie przekątnej AC."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„DS = √(16² − 12²)”",
+      "note": "W odpowiedzi nie ma poprawnego wyznaczenia przekątnej AC ani poprawnego wyznaczenia pola trójkąta ACD lub CDE."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„DS = √112 ≈ 10,6 cm”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Uczeń zastosował twierdzenie Pitagorasa do odcinka DS w sposób nieuzasadniony przez konfigurację na rysunku. Nie zapisał poprawnego sposobu obliczenia przekątnej AC ani pola odpowiedniego trójkąta, a wynik końcowy „10,6 cm” jest nieprawidłowy."
+   }
+  }
+ ]
+}

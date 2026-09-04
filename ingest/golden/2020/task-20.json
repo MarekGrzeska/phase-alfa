@@ -1,0 +1,122 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2020-04-01",
+ "year": 2020,
+ "task": "20",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Boisko szkolne ma kształt prostokąta o wymiarach 46 m i 30 m. Postanowiono posiać na nim trawę. Do obsiania 40 m^2 powierzchni jest potrzebny jeden kilogram nasion trawy. Nasiona trawy są sprzedawane tylko w 10-kilogramowych workach, po 163 zł za jeden worek. Oblicz koszt zakupu nasion trawy potrzebnych do obsiania tego boiska. Zapisz obliczenia. Rozwiązanie zadania 20. zapisz w wyznaczonym miejscu ! na karcie rozwiązań zadań.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "P = 46 · 30 = 1380 m²\n1380 : 40 = 34,5 kg\nPotrzeba 4 worków, bo worki są po 10 kg.\n4 · 163 zł = 652 zł\nKoszt zakupu nasion wynosi 652 zł.",
+   "intent": "Uczeń poprawnie obliczył pole boiska, ilość potrzebnych nasion, zaokrąglił liczbę worków w górę i obliczył koszt.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„Potrzeba 4 worków, bo worki są po 10 kg. 4 · 163 zł = 652 zł”",
+      "note": "Uczeń poprawnie wyznaczył potrzebną liczbę worków na podstawie 34,5 kg nasion i obliczył koszt 652 zł."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„1380 : 40 = 34,5 kg\nPotrzeba 4 worków, bo worki są po 10 kg.”",
+      "note": "Zapis wskazuje na potrzebę zakupu 4 worków po uwzględnieniu, że 34,5 kg nie mieści się w trzech 10-kilogramowych workach."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„P = 46 · 30 = 1380 m²\n1380 : 40 = 34,5 kg”",
+      "note": "Uczeń poprawnie obliczył liczbę kilogramów nasion potrzebnych do obsiania boiska."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Koszt zakupu nasion wynosi 652 zł.”",
+      "note": "Rozwiązanie zawiera istotny postęp i pełne poprawne obliczenia."
+     }
+    ],
+    "justification": "Uczeń poprawnie obliczył pole boiska i zapotrzebowanie na nasiona: 34,5 kg. Następnie prawidłowo ustalił konieczność zakupu 4 worków po 10 kg oraz obliczył koszt: 4 · 163 zł = 652 zł. Odpowiedź spełnia warunek progu 3 pkt."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "P = 46 · 30 = 1380 m²\n1380 : 40 = 34,5 kg\nPotrzeba 4 worków.\n4 · 163 = 642 zł",
+   "intent": "Uczeń zastosował poprawną metodę i ustalił właściwą liczbę worków, ale popełnił błąd w mnożeniu ceny.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„4 · 163 = 642 zł”",
+      "note": "Podany koszt jest niepoprawny, ponieważ cztery worki po 163 zł kosztują 652 zł."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Potrzeba 4 worków.”",
+      "note": "Uczeń nie zapisał sposobu obliczenia ani oszacowania liczby worków z uwzględnieniem pojemności 10 kg."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„P = 46 · 30 = 1380 m²” oraz „1380 : 40 = 34,5 kg”",
+      "note": "Poprawnie obliczono liczbę kilogramów nasion potrzebnych do obsiania boiska."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„1380 : 40 = 34,5 kg”",
+      "note": "W rozwiązaniu dokonano istotnego postępu."
+     }
+    ],
+    "justification": "Najwyższym spełnionym progiem jest 1 pkt, ponieważ uczeń poprawnie wyznaczył potrzebną masę nasion: 34,5 kg. Zapis „Potrzeba 4 worków.” nie zawiera uzasadnionego sposobu wyznaczenia liczby opakowań, a ponadto koszt „642 zł” jest błędny."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "46 + 30 = 76\n76 : 40 = 1,9\n1,9 · 163 = 309,7 zł",
+   "intent": "Uczeń dodał długości boków zamiast obliczyć pole prostokąta, więc dalsze obliczenia są niepoprawne.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„46 + 30 = 76”, „1,9 · 163 = 309,7 zł”",
+      "note": "Nie obliczono poprawnie kosztu 652 zł ani nie zastosowano poprawnego sposobu jego wyznaczenia."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„76 : 40 = 1,9”",
+      "note": "Zapis nie przedstawia poprawnego obliczenia ani oszacowania liczby potrzebnych opakowań."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„46 + 30 = 76”",
+      "note": "Nie obliczono poprawnie liczby kilogramów potrzebnych nasion ani powierzchni możliwej do obsiania z 3 lub 4 opakowań."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„46 + 30 = 76”, „76 : 40 = 1,9”",
+      "note": "Rozwiązanie nie zawiera istotnego postępu prowadzącego do poprawnego rozwiązania zadania."
+     }
+    ],
+    "justification": "Uczeń zamiast pola prostokąta obliczył sumę jego boków: „46 + 30 = 76”. Dalsze działania są oparte na tej niepoprawnej wartości, a otrzymany koszt „309,7 zł” nie wynika z liczby pełnych 10-kilogramowych worków."
+   }
+  }
+ ]
+}

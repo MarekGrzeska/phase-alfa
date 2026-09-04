@@ -1,0 +1,122 @@
+{
+ "exam_form": "OMAP-100",
+ "session": "2019-04-01",
+ "year": 2019,
+ "task": "21",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Paweł wyciął z kartonu trójkąt prostokątny ABC o przyprostokątnych 12 cm i 16 cm (rysunek I). Następnie połączył środki dłuższej przyprostokątnej i przeciwprostokątnej linią przerywaną równoległą do krótszej przyprostokątnej, a potem rozciął trójkąt ABC wzdłuż tej linii na dwie figury. Z tych figur złożył trapez PRST (rysunek II). C _(6c)m T S 1 A B P R 12 cm Rysunek I Rysunek II Oblicz różnicę obwodów trójkąta ABC i trapezu PRST. Zapisz obliczenia. OMAP-100-1904 Strona 19 z 20",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "BC²=12²+16²=144+256=400\nBC=20 cm\nObwód trójkąta: 12+16+20=48 cm\nPo rozcięciu obwody figur: \n(6+8+10)+(12+8+6+10)=24+36=60 cm\nPrzy składaniu wspólny bok długości 8 cm staje się bokiem wewnętrznym:\nObwód trapezu=60-2·8=44 cm\n48-44=4 cm",
+   "intent": "Uczeń poprawnie obliczył przeciwprostokątną, obwód trójkąta i obwód trapezu po odjęciu dwóch wewnętrznych boków długości 8 cm; otrzymał różnicę 4 cm.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "48-44=4 cm",
+      "note": "Uczeń obliczył różnicę obwodów równą 4 cm."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "Obwód trójkąta: 12+16+20=48 cm [...] Obwód trapezu=60-2·8=44 cm",
+      "note": "Uczeń poprawnie wyznaczył obwody obu figur, w tym obwód trapezu równy 44."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "BC²=12²+16²=144+256=400\nBC=20 cm",
+      "note": "Uczeń poprawnie zastosował twierdzenie Pitagorasa do obliczenia przeciwprostokątnej."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "48-44=4 cm",
+      "note": "Zapis nie jest błędny, ponieważ prowadzi do poprawnego wyniku."
+     }
+    ],
+    "justification": "Uczeń poprawnie obliczył długość przeciwprostokątnej, obwód trójkąta oraz obwód trapezu. Następnie wyznaczył różnicę obwodów: „48-44=4 cm”, więc spełnia warunek na 3 punkty."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "BC=20 cm\nObwód ABC=12+16+20=48 cm\nObwód trapezu=12+20+6+6=46 cm\n48-46=2 cm",
+   "intent": "Uczeń zastosował poprawną metodę i wyznaczył przeciwprostokątną, ale popełnił błąd rachunkowy przy obliczaniu obwodu trapezu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„48-46=2 cm”",
+      "note": "Uczeń podał różnicę 2 cm, a nie 4 cm."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Obwód trapezu=12+20+6+6=46 cm”",
+      "note": "Nie przedstawiono poprawnego obwodu trapezu ani poprawnego sposobu obliczenia różnicy obwodów."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„BC=20 cm”",
+      "note": "Podano długość przeciwprostokątnej, ale bez przedstawienia sposobu jej obliczenia."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Obwód trapezu=12+20+6+6=46 cm”",
+      "note": "Rozwiązanie zawiera błędne obliczenie obwodu trapezu i błędny wynik końcowy."
+     }
+    ],
+    "justification": "Obwód trójkąta ABC został obliczony poprawnie jako „12+16+20=48 cm”, jednak obwód trapezu zapisano błędnie. Sam zapis „BC=20 cm” nie jest przedstawieniem sposobu obliczenia przeciwprostokątnej, dlatego nie spełnia kryterium na 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "48-36=12 cm",
+   "intent": "Uczeń odjął przypadkowo obwód jednej z figur od obwodu trójkąta i nie uzasadnił, jak wyznaczył obwód trapezu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "48-36=12 cm",
+      "note": "Uczeń nie obliczył poprawnej różnicy obwodów, która wynosi 4."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "48-36=12 cm",
+      "note": "Zapis nie przedstawia poprawnego obliczenia obwodu trapezu ani poprawnego sposobu wyznaczenia różnicy obwodów."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "48-36=12 cm",
+      "note": "W odpowiedzi nie przedstawiono sposobu obliczenia długości przeciwprostokątnej trójkąta ABC."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "48-36=12 cm",
+      "note": "Podana różnica jest błędna."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 0 pkt, ponieważ zapis prowadzi do błędnego wyniku 12. Obwód trapezu nie wynosi 36, a poprawna różnica obwodów wynosi 4."
+   }
+  }
+ ]
+}

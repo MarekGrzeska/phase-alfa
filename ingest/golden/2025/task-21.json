@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2025-05-14",
+ "year": 2025,
+ "task": "21",
+ "max_points": 3,
+ "content_source": "key",
+ "task_text": "Dany jest ostrosłup prawidłowy czworokątny. Pole jednej ściany bocznej wynosi 108 cm², a wysokość tej ściany bocznej ma 12 cm. Oblicz sumę długości wszystkich krawędzi ostrosłupa.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "P=\\frac12\\cdot a\\cdot12=108\n6a=108\n a=18\\text{ cm}\n\nc^2=12^2+\\left(\\frac{18}{2}\\right)^2\nc^2=144+81=225\nc=15\\text{ cm}\n\n4a+4c=4\\cdot18+4\\cdot15=72+60=132\\text{ cm}",
+   "intent": "Uczeń poprawnie obliczył długość krawędzi podstawy i krawędzi bocznej z twierdzenia Pitagorasa, a następnie zsumował wszystkie osiem krawędzi.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "\"4a+4c=4\\cdot18+4\\cdot15=72+60=132\\text{ cm}\"",
+      "note": "Uczeń poprawnie obliczył sumę długości wszystkich ośmiu krawędzi i otrzymał wynik 132 cm."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "\"6a=108,\\ a=18\\text{ cm}\" oraz \"c^2=12^2+\\left(\\frac{18}{2}\\right)^2\"",
+      "note": "Poprawnie wyznaczono długość krawędzi podstawy oraz zastosowano twierdzenie Pitagorasa do krawędzi bocznej."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "\"P=\\frac12\\cdot a\\cdot12=108\"",
+      "note": "Zapis poprawnie wykorzystuje wzór na pole trójkąta dla ściany bocznej."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt. Uczeń poprawnie wyznaczył \\(a=18\\) cm i \\(c=15\\) cm, a następnie bez błędów rachunkowych obliczył \\(4a+4c=132\\) cm."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "P=\\frac12\\cdot a\\cdot12=108\n a=18\n\nc^2=12^2+9^2=225\nc=15\n\n4\\cdot18+4\\cdot15=72+60=132",
+   "intent": "Uczeń zastosował poprawną metodę i uzyskał prawidłowy wynik, ale nie podał jednostki długości.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "\"P=\\frac12\\cdot a\\cdot12=108\\n a=18\\n\\nc^2=12^2+9^2=225\\nc=15\\n\\n4\\cdot18+4\\cdot15=72+60=132\"",
+      "note": "Uczeń poprawnie wyznaczył długości obu rodzajów krawędzi i obliczył ich sumę równą 132."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "\"P=\\frac12\\cdot a\\cdot12=108\\n a=18\" oraz \"c^2=12^2+9^2=225\\nc=15\"",
+      "note": "Poprawnie obliczono krawędź podstawy oraz zastosowano twierdzenie Pitagorasa do krawędzi bocznej."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "\"P=\\frac12\\cdot a\\cdot12=108\"",
+      "note": "Zapis poprawnie wykorzystuje wzór na pole trójkąta z danymi 108 i 12."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt. Zapis prowadzi poprawnie od pola ściany bocznej do \"a=18\", następnie do \"c=15\", a suma \"4\\cdot18+4\\cdot15=72+60=132\" jest prawidłowa; jednostki nie ocenia się."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "Pole podstawy wynosi 108 cm², więc\n a=\\sqrt{108}\\approx10{,}4\\text{ cm}\n\nSuma krawędzi:\n4\\cdot10{,}4=41{,}6\\text{ cm}",
+   "intent": "Uczeń błędnie uznał pole jednej ściany bocznej za pole podstawy i nie uwzględnił krawędzi bocznych ostrosłupa.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„a=\\sqrt{108}\\approx10{,}4\\text{ cm}” oraz „4\\cdot10{,}4=41{,}6\\text{ cm}”",
+      "note": "Nie ma poprawnego sposobu obliczenia wszystkich krawędzi ani wyniku 132."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Pole podstawy wynosi 108 cm², więc a=\\sqrt{108}”",
+      "note": "Uczeń nie wyznaczył poprawnie krawędzi podstawy z pola ściany bocznej ani krawędzi bocznej z twierdzenia Pitagorasa."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„Pole podstawy wynosi 108 cm², więc a=\\sqrt{108}”",
+      "note": "Zapis błędnie utożsamia pole ściany bocznej z polem podstawy i nie stosuje wzoru na pole trójkąta z wysokością 12."
+     }
+    ],
+    "justification": "Uczeń błędnie przyjął, że 108 cm² jest polem podstawy, choć jest to pole jednej ściany bocznej. Nie przedstawił poprawnego wyznaczenia długości krawędzi podstawy ani zastosowania twierdzenia Pitagorasa do krawędzi bocznej, dlatego otrzymuje 0 punktów."
+   }
+  }
+ ]
+}

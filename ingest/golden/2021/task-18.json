@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2021-05-26",
+ "year": 2021,
+ "task": "18",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Ania chciała kupić 10 jednakowych puszek karmy dla psa, ale zabrakło jej 11 złotych. Kupiła 6 takich puszek karmy i zostało jej 3,40 złotych. Ile kosztuje jedna puszka karmy? Zapisz obliczenia. Strona 16 z 18 OMAP-100-2105",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "x – cena jednej puszki\n10x - 11 = 6x + 3,40\n4x = 14,40\nx = 3,60\nJedna puszka karmy kosztuje 3,60 zł.",
+   "intent": "Uczeń poprawnie ułożył równanie, obliczył cenę jednej puszki i podał wynik z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„x – cena jednej puszki\n10x - 11 = 6x + 3,40\n4x = 14,40\nx = 3,60\nJedna puszka karmy kosztuje 3,60 zł.”",
+      "note": "Uczeń zapisał poprawne równanie z jedną niewiadomą, wykonał prawidłowe obliczenia i podał poprawny wynik."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„10x - 11 = 6x + 3,40”",
+      "note": "Zapisano poprawne równanie z jedną niewiadomą prowadzące do obliczenia ceny puszki."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie dotyczy, ponieważ odpowiedź spełnia warunki progu 2 punktów."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt. Równanie „10x - 11 = 6x + 3,40” poprawnie opisuje warunki zadania, a dalsze przekształcenia prowadzą do wyniku „x = 3,60”."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "10x - 11 = 6x + 3,40\n4x = 14,40\nx = 3,40 zł",
+   "intent": "Uczeń zastosował poprawną metodę i prawidłowo ułożył równanie, ale popełnił błąd w ostatnim dzieleniu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„10x - 11 = 6x + 3,40\n4x = 14,40\nx = 3,40 zł”",
+      "note": "Poprawne równanie zapisano, ale wynik jest nieprawidłowy, ponieważ z równania 4x = 14,40 wynika x = 3,60."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„10x - 11 = 6x + 3,40”",
+      "note": "Jest to poprawne równanie z jedną niewiadomą prowadzące do obliczenia ceny jednej puszki."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„10x - 11 = 6x + 3,40”",
+      "note": "Odpowiedź zawiera poprawny zapis równania spełniający warunek progu 1 punktu."
+     }
+    ],
+    "justification": "Uczeń poprawnie ułożył równanie opisujące warunki zadania. Popełnił jednak błąd rachunkowy w ostatnim kroku: „x = 3,40 zł” zamiast 3,60 zł, więc nie spełnia warunków progu 2 punktów."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "10 - 6 = 4\n11 zł - 3,40 zł = 7,60 zł\n7,60 : 4 = 1,90 zł\nJedna puszka kosztuje 1,90 zł.",
+   "intent": "Uczeń odjął liczby puszek i różnicę pieniędzy, ale nie uwzględnił, że brakująca kwota zwiększa koszt zakupu dziesięciu puszek.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„11 zł - 3,40 zł = 7,60 zł\n7,60 : 4 = 1,90 zł”",
+      "note": "Zapisane wyrażenia arytmetyczne nie prowadzą poprawnie do ceny puszki, a podany wynik jest błędny."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„11 zł - 3,40 zł = 7,60 zł”",
+      "note": "Nie zapisano poprawnego równania ani poprawnych wyrażeń arytmetycznych prowadzących do obliczenia ceny jednej puszki."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Jedna puszka kosztuje 1,90 zł.”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Uczeń poprawnie ustalił różnicę liczby puszek: „10 - 6 = 4”, lecz błędnie połączył kwoty 11 zł i 3,40 zł przez odejmowanie. Cena jednej puszki powinna wynikać z działania „(11 + 3,40) : 4”, a nie z zapisanego obliczenia; poprawny wynik to 3,60 zł."
+   }
+  }
+ ]
+}

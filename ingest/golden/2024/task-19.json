@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2024-05-15",
+ "year": 2024,
+ "task": "19",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Z trzech jednakowych klocków w kształcie sześcianu i jednego klocka w kształcie ostrosłupa prawidłowego czworokątnego zbudowano dwie wieże (zobacz rysunek). Krawędź sześcianu ma długość 10 cm. Krawędź podstawy ostrosłupa prawidłowego czworokątnego ma długość 9 cm, a jego objętość jest równa 324 cm^3. II wieża I wieża Oblicz różnicę wysokości obu wież. Zapisz obliczenia. Strona 20 z 21 OMAP-100-2405",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "V = \\frac{1}{3} \\cdot 9^2 \\cdot h\n324 = 27h\nh = 12 cm\n\nI wieża: 10 + 12 = 22 cm\nII wieża: 2 \\cdot 10 = 20 cm\n22 - 20 = 2 cm\n\nRóżnica wysokości wież wynosi 2 cm.",
+   "intent": "Uczeń poprawnie obliczył wysokość ostrosłupa, wysokości obu wież i ich różnicę, podając wynik z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„324 = 27h”, „h = 12 cm”, „I wieża: 10 + 12 = 22 cm”, „II wieża: 2 · 10 = 20 cm”, „22 - 20 = 2 cm”",
+      "note": "Uczeń poprawnie obliczył wysokość ostrosłupa, wysokości obu wież i ich różnicę równą 2 cm."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„V = 1/3 · 9^2 · h”, „324 = 27h”",
+      "note": "Zapisano poprawny wzór na objętość ostrosłupa z uwzględnieniem objętości oraz długości krawędzi podstawy."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Różnica wysokości wież wynosi 2 cm.”",
+      "note": "Rozwiązanie nie jest błędne i zawiera pełne poprawne obliczenia."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ uczeń poprawnie wyznaczył wysokość ostrosłupa jako 12 cm i obliczył wysokości wież: 22 cm oraz 20 cm. Różnica „22 - 20 = 2 cm” jest prawidłowa, a w zapisie nie ma błędów rachunkowych."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "V = \\frac{1}{3} \\cdot 9^2 \\cdot h\n324 = 27h\nh = 12 cm\n\nI wieża: 10 + 12 = 22 cm\nII wieża: 2 \\cdot 10 = 20 cm\n22 - 20 = 3 cm",
+   "intent": "Uczeń zastosował poprawną metodę i prawidłowo obliczył wysokości wież, ale popełnił błąd w odejmowaniu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„V = \\frac{1}{3} \\cdot 9^2 \\cdot h”, „h = 12 cm”, „I wieża: 10 + 12 = 22 cm”, „II wieża: 2 \\cdot 10 = 20 cm”",
+      "note": "Uczeń przedstawia poprawny sposób obliczenia różnicy wysokości wież, ale końcowe odejmowanie zawiera błąd rachunkowy: „22 - 20 = 3 cm”."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„V = \\frac{1}{3} \\cdot 9^2 \\cdot h”",
+      "note": "Zapis poprawnie wykorzystuje wzór na objętość ostrosłupa oraz wszystkie wymagane dane liczbowe."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„22 - 20 = 3 cm”",
+      "note": "Odpowiedź nie jest rozwiązaniem błędnym w całości, ponieważ zawiera poprawny sposób obliczenia wysokości ostrosłupa."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ metoda obliczenia wysokości ostrosłupa i wysokości obu wież jest poprawna. Jednak w zapisie „22 - 20 = 3 cm” popełniono błąd rachunkowy, więc zgodnie z regułą przekrojową ocenę obniża się o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "II wieża jest wyższa, bo ma dwa sześciany.\n20 - 10 = 10 cm",
+   "intent": "Uczeń nie uwzględnił ostrosłupa w pierwszej wieży i wyznaczył różnicę bez poprawnego uzasadnienia.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„II wieża jest wyższa, bo ma dwa sześciany. 20 - 10 = 10 cm”",
+      "note": "Uczeń nie obliczył wysokości ostrosłupa ani poprawnej różnicy wysokości wież równej 2 cm."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„II wieża jest wyższa, bo ma dwa sześciany. 20 - 10 = 10 cm”",
+      "note": "W zapisie nie ma równania ani wyrażenia wykorzystującego objętość 324 cm³ i krawędź podstawy 9 cm do obliczenia wysokości ostrosłupa."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„20 - 10 = 10 cm”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 0 pkt. Uczeń porównuje jedynie wysokości sześcianów i pomija wysokość ostrosłupa, więc nie przedstawia wymaganego sposobu rozwiązania."
+   }
+  }
+ ]
+}
