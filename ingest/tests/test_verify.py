@@ -221,3 +221,52 @@ def test_reopen_drops_model_authorship(con, task_id):
                   {"edited": {}, "deleted": {}, "described": {}})
     assert _state(con, task_id) == {"review_status": "pending",
                                     "reviewed_by": "human", "review_model": None}
+
+
+# ── przebieg z podstawionym modelem ────────────────────────────────────────
+
+class _Raw:
+    def __init__(self):
+        self.usage_metadata = {"input_tokens": 100, "output_tokens": 20}
+        self.response_metadata = {"finish_reason": "stop"}
+
+
+class _FakeStructured:
+    """`with_structured_output(..., include_raw=True)`: kolejne odpowiedzi albo wyjątki."""
+
+    def __init__(self, replies):
+        self._replies = list(replies)
+
+    def invoke(self, _messages):
+        answer = self._replies.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return {"raw": _Raw(), "parsed": answer, "parsing_error": None}
+
+
+class _FakeChat:
+    def __init__(self, replies):
+        self.replies = replies
+
+    def with_structured_output(self, *_args, **_kwargs):
+        return _FakeStructured(self.replies)
+
+
+def test_run_applies_each_verdict_before_asking_for_the_next(con, task_id, monkeypatch):
+    """Zapis po zadaniu, nie po przebiegu: awaria na drugim zadaniu nie ma
+    prawa skasować rozstrzygnięcia pierwszego, które już jest opłacone."""
+    with con.cursor() as cur:
+        cur.execute("INSERT INTO task (marking_scheme_id, number, position, max_points, "
+                    "kind, page) SELECT marking_scheme_id, '22', 22, 1, 'closed', 4 "
+                    "FROM task WHERE id = %s", (task_id,))
+    replies = [verify.Verdict(verdict="match", reasons=[], record=None),
+               RuntimeError("API padło")]
+    monkeypatch.setattr(verify.llm, "chat_model", lambda *a, **k: _FakeChat(replies))
+    monkeypatch.setattr(verify, "messages_for", lambda task: [])
+
+    spend, outcome = verify.run(con, 2025, "100", MODEL, limit=10, apply=True)
+
+    assert [r["state"] for r in outcome.rows] == ["approved", "failed"]
+    assert _state(con, task_id)["review_status"] == "approved"
+    assert spend.calls == 1 and len(spend.failures) == 1
+    assert "API padło" in spend.failures[0][1]

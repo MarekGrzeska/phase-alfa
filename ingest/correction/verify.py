@@ -433,7 +433,12 @@ def _refusal(result: dict) -> str:
             f"(finish_reason: {metadata.get('finish_reason', 'nieznany')})")
 
 
-def _ask_one_by_one(structured, tasks, spend) -> dict[int, Verdict]:
+def _ask_one_by_one(structured, tasks, spend, on_verdict=None) -> dict[int, Verdict]:
+    """Po jednym zadaniu, z zapisem od razu przez `on_verdict`.
+
+    Odpowiedź jest opłacona, gdy wróci: awaria na setnym zadaniu nie ma prawa
+    skasować dziewięćdziesięciu dziewięciu rozstrzygnięć czekających w pamięci.
+    """
     out: dict[int, Verdict] = {}
     for task in tasks:
         try:
@@ -451,7 +456,8 @@ def _ask_one_by_one(structured, tasks, spend) -> dict[int, Verdict]:
             spend.failures.append((str(task["id"]), _refusal(result)))
             continue
         out[task["id"]] = parsed
-        print(f"  zadanie {task['number']:>4} ({task['year']}): {parsed.verdict}"
+        state = on_verdict(task, parsed) if on_verdict else parsed.verdict
+        print(f"  zadanie {task['number']:>4} ({task['year']}): {state}"
               + (f" — {parsed.reasons[0]}" if parsed.reasons else ""))
     return out
 
@@ -505,27 +511,32 @@ def run(con, year=None, variant=None, model=llm.DEFAULT_MODEL, limit=20,
         return spend, outcome
 
     started_at = datetime.now(timezone.utc)
+
+    def settle(task: dict, verdict: Verdict) -> str:
+        state = (apply_verdict(con, task["id"], verdict, model, started_at)
+                 if apply else f"dry:{verdict.verdict}")
+        outcome.add(task, verdict, state)
+        return state
+
     if batch:
+        # Wsad wraca w całości, więc tu zapis po zadaniu nic nie zmienia.
         verdicts = _ask_batch(tasks, model, spend)
+        for task in tasks:
+            if task["id"] in verdicts:
+                settle(task, verdicts[task["id"]])
     else:
         structured = llm.chat_model(
             model, max_tokens=MAX_OUTPUT_TOKENS
         ).with_structured_output(Verdict, include_raw=True)
-        verdicts = _ask_one_by_one(structured, tasks, spend)
+        verdicts = _ask_one_by_one(structured, tasks, spend, on_verdict=settle)
 
     failed = dict(spend.failures)
     for task in tasks:
-        verdict = verdicts.get(task["id"])
-        if verdict is None:
+        if task["id"] not in verdicts:
             outcome.add(task, None, "failed", failed.get(str(task["id"])))
-            continue
-        if not apply:
-            outcome.add(task, verdict, f"dry:{verdict.verdict}")
-            continue
-        # Zapis po jednym zadaniu i od razu: odpowiedź jest opłacona, gdy
-        # wróci, więc awaria na dwunastym nie ma prawa skasować jedenastu.
-        state = apply_verdict(con, task["id"], verdict, model, started_at)
-        outcome.add(task, verdict, state)
+    # Raport w kolejności arkusza, nie w kolejności „najpierw udane, potem nie".
+    order = {t["id"]: i for i, t in enumerate(tasks)}
+    outcome.rows.sort(key=lambda r: order.get(r["task_id"], 0))
     return spend, outcome
 
 
