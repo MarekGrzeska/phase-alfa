@@ -158,3 +158,23 @@ def test_a_scattered_cluster_goes_to_manual_framing_whole():
 
 def test_no_detection_stays_no_detection():
     assert K.frames_for_assets([]) == []
+
+
+def test_closed_task_criteria_stop_before_the_answers_block():
+    """Układ 2020+: po „Zasadach oceniania" zadania zamkniętego stoi blok
+    „Rozwiązanie – wersja X/Y" z odpowiedziami. Bez granicy wchodził w całości
+    do warunku za 0 pkt — w 1346 z 1346 zadań zamkniętych, cicho."""
+    body = ("Zasady oceniania\n"
+            "1 pkt – odpowiedź poprawna.\n"
+            "0 pkt – odpowiedź niepoprawna albo brak odpowiedzi.\n"
+            "Rozwiązanie – wersja X\n"
+            "Rozwiązanie – wersja Y\n"
+            "BD\n"
+            "AC\n")
+    task = K._parsuj_zadanie("1", 1, body, 1, K.SLOWNIK["e8-2020"])
+
+    assert task.typ == "zamkniete"
+    assert task.odpowiedzi == {"X": [(None, "BD")], "Y": [(None, "AC")]}
+    conditions = [w["opis"] for k in task.kryteria for w in k["warunki"]]
+    assert conditions == ["odpowiedź poprawna.",
+                          "odpowiedź niepoprawna albo brak odpowiedzi."]
