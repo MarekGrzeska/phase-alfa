@@ -1,0 +1,98 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2022-05-25",
+ "year": 2022,
+ "task": "17",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Kierowca przejechał ze stałą prędkością trasę o długości 22,5 km od godziny 7:50 do godziny 8:05. Oblicz prędkość, z jaką kierowca przejechał tę trasę. Wynik wyraź w km/h. Zapisz obliczenia. OMAP-100-2205 Strona 17 z 20",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "8:05 − 7:50 = 15 min = 0,25 h\nv = 22,5 : 0,25 = 90 km/h\n\n",
+   "intent": "Uczeń poprawnie obliczył czas w godzinach i zastosował wzór na prędkość.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„8:05 − 7:50 = 15 min = 0,25 h\nv = 22,5 : 0,25 = 90 km/h”",
+      "note": "Uczeń poprawnie obliczył czas, zamienił go na godziny oraz poprawnie zastosował wzór v=s/t, otrzymując 90 km/h."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„15 min = 0,25 h”",
+      "note": "Uczeń poprawnie wyraził 15 minut jako część godziny."
+     }
+    ],
+    "justification": "Odpowiedź zawiera pełny poprawny tok obliczeń: czas przejazdu wynosi 15 minut, czyli 0,25 h, a prędkość wynosi 22,5 : 0,25 = 90 km/h. Nie występują błędy rachunkowe ani błędy jednostek."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "8:05 − 7:50 = 15 min = 0,25 h\nv = 22,5 : 0,25 = 9 km/h\n",
+   "intent": "Uczeń poprawnie obliczył czas i wybrał metodę, ale popełnił błąd rachunkowy przy dzieleniu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„v = 22,5 : 0,25 = 9 km/h”",
+      "note": "Zastosowano poprawny związek prędkości z drogą i czasem, ale obliczenie oraz wynik końcowy są błędne."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„8:05 − 7:50 = 15 min = 0,25 h”",
+      "note": "Poprawnie obliczono czas przejazdu i wyrażono go jako część godziny."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„v = 22,5 : 0,25 = 9 km/h”",
+      "note": "Odpowiedź zawiera poprawny etap rozwiązania, więc spełnia warunek progu 1 pkt przed zastosowaniem reguły przekrojowej."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 pkt, ponieważ uczeń poprawnie ustalił czas: „15 min = 0,25 h”. W zapisie „22,5 : 0,25 = 9 km/h” popełniono błąd rachunkowy, gdyż iloraz wynosi 90, a nie 9; zgodnie z regułą przekrojową ocenę obniża się o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "22,5 : 15 = 1,5 km/h\n",
+   "intent": "Uczeń podzielił długość trasy przez liczbę minut i podał wynik bez prawidłowego przeliczenia jednostek oraz bez poprawnego uzasadnienia.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„22,5 : 15 = 1,5 km/h”",
+      "note": "Zapis nie prowadzi do poprawnego wyniku 90 km/h."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„22,5 : 15”",
+      "note": "Uczeń zastosował poprawny związek prędkości z drogą 22,5 km i czasem 15 min."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„22,5 : 15 = 1,5 km/h”",
+      "note": "Przed zastosowaniem reguły przekrojowej zapis spełnia warunek progu 1 pkt."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 pkt, ponieważ zapis „22,5 : 15” przedstawia poprawny sposób obliczenia prędkości dla drogi 22,5 km i czasu 15 min. Uczeń popełnił jednak błąd zamiany jednostek: iloraz ten ma jednostkę km/min, a nie km/h; taki błąd rachunkowy obniża ocenę o 1 punkt."
+   }
+  }
+ ]
+}

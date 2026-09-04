@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2025-05-14",
+ "year": 2025,
+ "task": "19",
+ "max_points": 2,
+ "content_source": "key",
+ "task_text": "Na rysunku wykonanym w skali 1 : 20 przedstawiono małą kwadratową tablicę, której bok ma długość 3 cm, oraz dużą prostokątną tablicę o wymiarach 240 cm × 90 cm. Ile razy pole dużej tablicy jest większe od pola małej tablicy?",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Bok małej tablicy:\n3 cm · 20 = 60 cm\nPmałej = 60 · 60 = 3600 cm²\nPdużej = 240 · 90 = 21600 cm²\n21600 : 3600 = 6\n\nPole dużej tablicy jest 6 razy większe od pola małej tablicy.",
+   "intent": "Uczeń poprawnie przeliczył skalę, obliczył oba pola i ich iloraz, otrzymując prawidłowy wynik z jednostkami.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„Pmałej = 60 · 60 = 3600 cm²”, „Pdużej = 240 · 90 = 21600 cm²”, „21600 : 3600 = 6”",
+      "note": "Uczeń poprawnie obliczył pola obu tablic i ich iloraz, otrzymując wynik 6."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„3 cm · 20 = 60 cm” oraz „Pdużej = 240 · 90 = 21600 cm²”",
+      "note": "Uczeń poprawnie obliczył rzeczywistą długość boku małej tablicy i pole dużej tablicy."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie dotyczy, ponieważ odpowiedź spełnia warunek wyższego progu."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt. Zapis zawiera poprawne przeliczenie skali, poprawne obliczenia pól oraz poprawne obliczenie ilorazu „21600 : 3600 = 6”, a końcowa odpowiedź jest zgodna z wynikiem."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "Pmałej = (3 · 20)² = 3600 cm²\nPdużej = 240 · 90 = 21600 cm²\n21600 : 3600 = 5\n\nDuża tablica jest 5 razy większa.",
+   "intent": "Uczeń zastosował poprawną metodę i prawidłowo obliczył pola, ale popełnił błąd rachunkowy przy dzieleniu oraz nie podał precyzyjnie, że chodzi o porównanie pól.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„21600 : 3600 = 5”",
+      "note": "Sposób jest poprawny, ale wynik ilorazu jest błędny, więc warunek 2 punktów nie jest spełniony."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Pmałej = (3 · 20)² = 3600 cm²” oraz „Pdużej = 240 · 90 = 21600 cm²”",
+      "note": "Uczeń poprawnie obliczył pola małej tablicy w rzeczywistości i dużej tablicy w rzeczywistości."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Duża tablica jest 5 razy większa.”",
+      "note": "Końcowa odpowiedź jest błędna, ale rozwiązanie zawiera poprawny etap kwalifikujący do 1 punktu."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 punkt, ponieważ oba pola obliczono poprawnie. W zapisie „21600 : 3600 = 5” występuje błąd rachunkowy; obniżenie o 1 punkt nie zmienia wyniku, ponieważ próg 2 punktów i tak nie został osiągnięty."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "240 : 3 = 80\n90 : 3 = 30\n80 + 30 = 110\nDuża tablica jest 110 razy większa.",
+   "intent": "Uczeń porównał wymiary bez uwzględnienia skali i pola, a następnie dodał otrzymane ilorazy zamiast pomnożyć stosunki boków.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„240 : 3 = 80\n90 : 3 = 30\n80 + 30 = 110\nDuża tablica jest 110 razy większa.”",
+      "note": "Uczeń nie ustalił poprawnie długości boku małej tablicy w rzeczywistości ani nie obliczył poprawnie ilorazu pól."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„240 : 3 = 80\n90 : 3 = 30”",
+      "note": "Zapisy nie przedstawiają żadnego z wymaganych poprawnych sposobów obliczeń ani poprawnych zależności boków."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„80 + 30 = 110\nDuża tablica jest 110 razy większa.”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 0 pkt. Uczeń dzieli wymiary dużej tablicy przez długość boku kwadratu z rysunku („240 : 3”, „90 : 3”), pomijając skalę, a następnie dodaje otrzymane wartości zamiast wyznaczyć stosunek pól."
+   }
+  }
+ ]
+}

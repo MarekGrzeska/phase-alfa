@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2020-04-01",
+ "year": 2020,
+ "task": "17",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Na rysunku przedstawiono układ miejsc w przedziale ośmioosobowym wagonu kolejowego i zaznaczono kierunek jazdy pociągu. 41 43 47 45 okno drzwi 42 48 44 46 kierunek jazdy pociągu Edyta z Agnieszką planują zakup biletów na wspólną podróż. Wszystkie miejsca w przedziale są wolne. Edyta chce siedzieć przy oknie, natomiast Agnieszka chce siedzieć przodem do kierunku jazdy. Podaj wszystkie możliwości wyboru miejsc spełniające jednocześnie powyższe warunki. Zapisz rozwiązanie. Rozwiązanie zadania 17. zapisz w wyznaczonym miejscu ! na karcie rozwiązań zadań.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Miejsca przy oknie: 41, 43, 47, 45.\nMiejsca przodem do kierunku jazdy: 42, 48, 44, 46.\n\nMożliwości (Edyta, Agnieszka):\n(41,42), (41,48), (41,44), (41,46),\n(43,42), (43,48), (43,44), (43,46),\n(47,42), (47,48), (47,44), (47,46),\n(45,42), (45,48), (45,44), (45,46).",
+   "intent": "Uczeń poprawnie odczytał z rysunku miejsca przy oknie i miejsca ustawione przodem do kierunku jazdy, a następnie wypisał wszystkie 16 par.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Możliwości (Edyta, Agnieszka): (41,42), … (45,42), (45,48), (45,44), (45,46).”",
+      "note": "Nie podano wszystkich poprawnych par, ponieważ brakuje par z Edytą na miejscu 46 i Agnieszką na miejscach 42, 48 lub 44."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„(45,42), (45,48), (45,44), (45,46).”",
+      "note": "Podano wszystkie możliwości wyboru miejsc przez dziewczęta w przypadku, gdy Edyta wybierze miejsce 45."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Miejsca przy oknie: 41, 43, 47, 45.”",
+      "note": "Odpowiedź zawiera istotny postęp, więc nie spełnia warunku progu 0 punktów."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 punkt, ponieważ uczeń wypisał komplet czterech par dla przypadku, w którym Edyta siedzi na miejscu 45. Nie jest spełniony próg 2 punktów: wśród wypisanych możliwości nie ma par „(46,42)”, „(46,48)” i „(46,44)”."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "Edyta: 41, 43, 47, 45.\nAgnieszka: 42, 48, 44, 46.\n\n(41,42), (41,48), (41,44), (41,46),\n(43,42), (43,48), (43,44), (43,46),\n(47,42), (47,48), (47,44), (47,46).",
+   "intent": "Uczeń przyjął dobrą metodę i wypisał większość poprawnych par, ale pominął możliwości, w których Edyta siedzi na miejscu 45.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„(41,42), (41,48), (41,44), (41,46), (...) (47,42), (47,48), (47,44), (47,46).”",
+      "note": "Nie podano wszystkich poprawnych par, ponieważ Edyta wskazała miejsca 41, 43 i 47 zamiast miejsc przy oknie 45 lub 46."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„Edyta: 41, 43, 47, 45. Agnieszka: 42, 48, 44, 46.”",
+      "note": "Nie podano ani kompletnego przypadku dla Edyty na miejscu 45 lub 46, ani poprawnych możliwości wyboru miejsc przez obie dziewczęta."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Edyta: 41, 43, 47, 45.”",
+      "note": "Zapis nie spełnia warunku Edyty dotyczącego siedzenia przy oknie."
+     }
+    ],
+    "justification": "Edyta może wybrać tylko miejsce 45 albo 46, tymczasem uczeń jako jej miejsca wskazał „41, 43, 47, 45”. Żadna z wypisanych par nie jest poprawną możliwością spełniającą jednocześnie oba warunki zadania, więc rozwiązanie nie zawiera istotnego postępu."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "Edyta może usiąść na miejscu 41, a Agnieszka na miejscu 43.\nRazem są 2 możliwości.",
+   "intent": "Uczeń podał pojedynczą parę bez odczytania wszystkich możliwości z rysunku i bez uzasadnienia.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Edyta może usiąść na miejscu 41, a Agnieszka na miejscu 43.”",
+      "note": "Nie podano wszystkich siedmiu poprawnych możliwości, a wskazana para nie spełnia warunków zadania."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„Edyta może usiąść na miejscu 41, a Agnieszka na miejscu 43.”",
+      "note": "Nie podano żadnego z wymaganych pełnych zestawów możliwości dla jednego wyboru Edyty ani poprawnych zbiorów miejsc obu dziewcząt."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Edyta może usiąść na miejscu 41, a Agnieszka na miejscu 43. Razem są 2 możliwości.”",
+      "note": "Wskazana możliwość jest niepoprawna, a liczba możliwości nie została poparta poprawnym wskazaniem miejsc."
+     }
+    ],
+    "justification": "Uczeń wskazał tylko parę „41” i „43”, która nie spełnia warunków: Edyta nie siedzi przy oknie, a Agnieszka nie zajmuje miejsca przodem do kierunku jazdy. Zapis „Razem są 2 możliwości” nie wskazuje drugiej możliwości i jest błędny, więc rozwiązanie nie stanowi istotnego postępu."
+   }
+  }
+ ]
+}

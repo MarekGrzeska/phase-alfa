@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2023-05-24",
+ "year": 2023,
+ "task": "16",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Cena biletu do teatru jest o 64 zł większa od ceny biletu do kina. Za 4 bilety do teatru i 5 biletów do kina zapłacono łącznie 400 zł. Oblicz cenę jednego biletu do teatru. Zapisz obliczenia. Strona 16 z 20 OMAP-100-2305",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "x – cena biletu do kina\nx + 64 – cena biletu do teatru\n4(x+64)+5x=400\n4x+256+5x=400\n9x=144\nx=16\n16+64=80\nCena biletu do teatru wynosi 80 zł.",
+   "intent": "Uczeń poprawnie oznaczył ceny, ułożył równanie, rozwiązał je i podał cenę biletu do teatru z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„4(x+64)+5x=400 [...] 9x=144 [...] x=16 [...] 16+64=80 [...] Cena biletu do teatru wynosi 80 zł.”",
+      "note": "Uczeń zapisał poprawne równanie dla ceny biletu do kina, wykonał prawidłowe obliczenia i podał cenę biletu do teatru równą 80 zł."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„x – cena biletu do kina [...] 4(x+64)+5x=400”",
+      "note": "Zapisano poprawne równanie z jedną niewiadomą prowadzące do obliczenia ceny biletu do kina."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie dotyczy, ponieważ odpowiedź spełnia warunek progu 2 pkt."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt. Nie występuje błąd rachunkowy: z równania „4(x+64)+5x=400” otrzymano poprawnie „9x=144”, następnie „x=16” i cenę biletu do teatru „80 zł”."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "x – cena biletu do kina\n4(x+64)+5x=400\n9x+256=400\n9x=144\nx=14\nCena biletu do teatru: 14+64=78 zł.",
+   "intent": "Uczeń poprawnie ułożył równanie i przekształcił je, ale popełnił błąd w dzieleniu 144 przez 9, więc otrzymał zły wynik.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„x=14” oraz „Cena biletu do teatru: 14+64=78 zł.”",
+      "note": "Poprawnie zapisano metodę, ale obliczenia i wynik końcowy są błędne."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„x – cena biletu do kina; 4(x+64)+5x=400”",
+      "note": "To poprawne równanie z jedną niewiadomą prowadzące do obliczenia ceny biletu do kina."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„x=14” oraz „Cena biletu do teatru: 14+64=78 zł.”",
+      "note": "W rozwiązaniu występuje błąd rachunkowy: z „9x=144” powinno wynikać „x=16”."
+     }
+    ],
+    "justification": "Uczeń spełnia warunek progu 1 pkt, ponieważ zapisał poprawne równanie „4(x+64)+5x=400”. Następnie popełnił błąd rachunkowy w przejściu od „9x=144” do „x=14” i konsekwentnie doprowadził rozwiązanie do końca, więc zgodnie z regułą przekrojową ocenę obniża się o 1 punkt. Ostatecznie uczeń otrzymuje 0 pkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "400 : 9 = 44,44\n44,44 + 64 = 108,44 zł",
+   "intent": "Uczeń podzielił całą kwotę przez liczbę biletów, a następnie dodał różnicę, ale nie uwzględnił różnych liczb biletów do teatru i kina.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„400 : 9 = 44,44 / 44,44 + 64 = 108,44 zł”",
+      "note": "Zapis nie uwzględnia różnicy 64 zł przy ustalaniu kosztu dziewięciu biletów i nie prowadzi do wyniku 80 zł."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„400 : 9 = 44,44 / 44,44 + 64 = 108,44 zł”",
+      "note": "Nie zapisano poprawnego równania ani poprawnego wyrażenia arytmetycznego prowadzącego do obliczenia ceny biletu do teatru lub kina."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„44,44 + 64 = 108,44 zł”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Uczeń podzielił 400 zł przez 9, choć bilety nie mają jednakowej ceny. Następnie dodał 64 zł, otrzymując błędną cenę 108,44 zł; zapis nie spełnia żadnego warunku na 1 ani 2 punkty."
+   }
+  }
+ ]
+}

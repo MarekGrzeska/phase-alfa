@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2025-05-14",
+ "year": 2025,
+ "task": "18",
+ "max_points": 2,
+ "content_source": "key",
+ "task_text": "W trapezie ABCD, w którym AB ∥ CD, punkt E leży na odcinku AB, a czworokąt AECD jest równoległobokiem. Dane są kąty ∠CBE = 48° i ∠BCE = 57°. Oblicz miary kątów trapezu ABCD: ∠DAB, ∠BCD i ∠CDA.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "∠CEB = 180° − 48° − 57° = 75°\n∠AEC = 180° − 75° = 105°\nW równoległoboku: ∠CDA = ∠AEC = 105°\n∠DAE = ∠ECD = 75°\n∠DAB = 75°\n∠BCD = 57° + 75° = 132°\n\n∠DAB = 75°, ∠BCD = 132°, ∠CDA = 105°.",
+   "intent": "Uczeń poprawnie obliczył kąt w trójkącie, wykorzystał własności równoległoboku i kąty przyległe oraz podał wszystkie trzy kąty trapezu z jednostkami.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„∠DAE = ∠ECD = 75°”",
+      "note": "Nie podano uzasadnienia, z którego wynika, że ∠ECD ma miarę 75° (np. równości ∠CEB i ∠ECD z równoległości AB i CD), więc nie przedstawiono pełnego poprawnego sposobu wyznaczenia wszystkich trzech kątów."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„∠DAB = 75°, ∠BCD = 132°, ∠CDA = 105°.”",
+      "note": "Uczeń ustalił poprawne miary co najmniej dwóch kątów trapezu."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„∠CDA = ∠AEC = 105°”",
+      "note": "Odpowiedź nie jest błędna ani pusta."
+     }
+    ],
+    "justification": "Uczeń poprawnie obliczył „∠CEB = 180° − 48° − 57° = 75°” oraz wyznaczył „∠AEC = 180° − 75° = 105°”, a następnie poprawnie podał miarę kąta CDA. Brakuje jednak zapisu uzasadniającego przejście do „∠ECD = 75°”, dlatego nie ma kompletnego poprawnego sposobu obliczenia wszystkich trzech kątów."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "∠CEB = 180° − 48° − 57° = 75°\n∠AEC = 180° − 75° = 105°\n∠CDA = 105°\n∠DAB = 75°\n∠BCD = 57° + 75° = 122°\n\n∠DAB = 75°, ∠CDA = 105°, ∠BCD = 122°.",
+   "intent": "Uczeń zastosował poprawną metodę i dobrze wyznaczył dwa kąty, ale popełnił błąd rachunkowy przy dodawaniu 57° i 75°.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„∠BCD = 57° + 75° = 122°”",
+      "note": "Nie spełniono progu 2 pkt, ponieważ trzecia miara kąta trapezu została zapisana błędnie."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„∠CDA = 105°” oraz „∠DAB = 75°”",
+      "note": "Uczeń ustalił poprawnie miary dwóch kątów trapezu: ∠CDA i ∠DAB."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„∠BCD = 57° + 75° = 122°”",
+      "note": "Wystąpił błąd rachunkowy, gdyż 57° + 75° = 132°, a nie 122°."
+     }
+    ],
+    "justification": "Przed zastosowaniem reguły przekrojowej odpowiedź spełnia próg 1 pkt, ponieważ zawiera poprawne wartości dwóch kątów trapezu. Zapis „57° + 75° = 122°” jest błędem rachunkowym przy poprawnym sposobie obliczenia kąta ∠BCD, więc ocenę obniża się o 1 punkt. Ostatecznie uczeń otrzymuje 0 pkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "∠DAB = 48°\n∠BCD = 57°\n∠CDA = 75°",
+   "intent": "Uczeń podał kąty bez uzasadnienia i pomylił dane kąty z kątami trapezu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„∠DAB = 48°; ∠BCD = 57°; ∠CDA = 75°”",
+      "note": "Uczeń nie zapisał poprawnych wartości trzech kątów ani sposobu ich obliczenia."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„∠DAB = 48°; ∠BCD = 57°; ∠CDA = 75°”",
+      "note": "Żadna z podanych miar kątów trapezu nie jest poprawna, a odpowiedź nie zawiera obliczeń."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„∠DAB = 48°; ∠BCD = 57°; ∠CDA = 75°”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Podane miary nie są zgodne z poprawnymi wartościami: ∠DAB = 75°, ∠BCD = 132° i ∠CDA = 105°. Dodatkowo uczeń podał wyłącznie wynik końcowy, bez sposobu rozwiązania."
+   }
+  }
+ ]
+}

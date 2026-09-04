@@ -19,6 +19,7 @@ task prefill -- --year 2025 --limit 20    # podpowiedzi LLM, próbka S6 (płatne
 task describe -- --year 2025 --batch      # opisy rysunków, S7 (płatne)
 task verify -- --year 2025 --variant 100          # drugi czytelnik: raport na sucho (płatne)
 task verify -- --year 2025 --variant 100 --apply  # …i rozstrzyga w bazie (plan A2-auto)
+task frame -- --variant 100 --apply               # ramki „cała strona” → ramka z siatki przez model (X3)
 task corpus:report                  # kompletność korpusu — domknięcie A2 (G2.7)
 task parser:snapshot -- --baseline ../data/reports/parser-przed.json
 task test:python                    # ruff + pytest
@@ -375,6 +376,24 @@ poprawia albo kasuje istniejące. `task corpus:report` rozbija korpus na człowi
 Pierwszy przebieg na sucho (2025/100, $0,46) wykrył błąd systematyczny **parsera**, nie
 modelu: blok „Rozwiązanie – wersja X/Y" wchodził do warunku za 0 pkt w każdym zadaniu
 zamkniętym 2020+. Naprawione w parserze, nie 1346 razy modelem — reguła z G2.3.2.
+
+### Golden set generowany — `task golden:generate` i `task golden:grade` (plan A2-auto, X5)
+
+```bash
+task golden:generate -- --variant 100          # model A: 3 odpowiedzi ucznia na zadanie otwarte
+task golden:grade                              # model B: ocena wg klucza, próg po progu
+task golden:grade -- --year 2025 --force       # ocena od nowa
+```
+
+Pliki `ingest/golden/<rok>/task-<numer>.json` są częścią kontraktu między warstwami.
+Każda odpowiedź niesie `author`, każda ocena `grader` — w postaci `model:<adres>` albo
+`human`. **Autor ≠ oceniający ≠ model testowany w A3**, inaczej benchmark mierzy zgodność
+modelu z samym sobą. Autor dostaje treść zadania i opis rysunku, **klucza nie dostaje**;
+gdy zeszyt odsyła do karty rozwiązań, której mirror nie ma (od 2025 r.), autor
+rekonstruuje treść z rozwiązania przykładowego i plik ma `content_source: "key"`.
+
+Próbkę ocenia człowiek: dopisuje w tym samym pliku drugą ocenę z `grader: "human"`.
+Rozrzut między nią a oceną modelu raportuje A3 przy każdej liczbie zgodności.
 
 ## Raport kompletności korpusu (G2.7)
 

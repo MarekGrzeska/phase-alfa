@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2023-05-24",
+ "year": 2023,
+ "task": "17",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Pociąg przebył ze stałą prędkością drogę 700 metrów w czasie 50 sekund. Przy zachowaniu tej samej, stałej prędkości ten sam pociąg drogę równą jego długości przebył w czasie 15 sekund. Oblicz długość tego pociągu. Zapisz obliczenia. OMAP-100-2305 Strona 17 z 20",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "v = 700 : 50 = 14 m/s\nDługość pociągu:\ns = 14 · 15 = 210 m\n\nDługość pociągu wynosi 210 m.",
+   "intent": "Uczeń obliczył prędkość pociągu, a następnie pomnożył ją przez czas przejazdu długości pociągu i podał poprawny wynik z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„v = 700 : 50 = 14 m/s” oraz „s = 14 · 15 = 210 m”",
+      "note": "Uczeń poprawnie obliczył prędkość, następnie długość pociągu jako drogę przebytą w 15 s, i podał prawidłowy wynik z jednostką."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„v = 700 : 50 = 14 m/s” oraz „s = 14 · 15 = 210 m”",
+      "note": "Zapis zawiera poprawne obliczenie prędkości i drogi przebytej w czasie 15 s."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Długość pociągu wynosi 210 m.”",
+      "note": "Odpowiedź nie jest błędna ani nie stanowi wyłącznie wyniku końcowego, ponieważ przedstawiono obliczenia."
+     }
+    ],
+    "justification": "Uczeń zastosował poprawny związek prędkości, drogi i czasu: z 700 m w 50 s otrzymał 14 m/s. Następnie poprawnie obliczył drogę w czasie 15 s jako 210 m, czyli długość pociągu, z właściwą jednostką."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "700 : 50 = 14 m/s\n14 · 15 = 215\n\nDługość pociągu wynosi 215 m.",
+   "intent": "Uczeń zastosował poprawną metodę i dobrze obliczył prędkość, ale popełnił błąd rachunkowy przy mnożeniu 14 · 15.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„14 · 15 = 215”",
+      "note": "Sposób jest poprawny, ale obliczenie i wynik końcowy są błędne, ponieważ 14 · 15 = 210."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„700 : 50 = 14 m/s” oraz „14 · 15 = 215”",
+      "note": "Uczeń poprawnie wyznaczył prędkość i zastosował ją do obliczenia drogi w czasie 15 sekund."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„700 : 50 = 14 m/s”",
+      "note": "Rozwiązanie nie jest całkowicie błędne, ponieważ zawiera poprawne sposoby obliczeń."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 pkt, gdyż zapisano poprawne metody obliczenia prędkości i drogi w czasie 15 s. Wystąpił jednak błąd rachunkowy w zapisie „14 · 15 = 215”, konsekwentnie przeniesiony do wyniku „215 m”, więc zgodnie z regułą przekrojową ocenę obniża się o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "700 : 15 = 46,6\nDługość pociągu wynosi około 46,6 m.",
+   "intent": "Uczeń podzielił drogę 700 metrów przez czas 15 sekund, zamiast najpierw wyznaczyć stałą prędkość, więc zastosował błędną metodę.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„700 : 15 = 46,6”",
+      "note": "Zapis nie przedstawia poprawnego sposobu obliczenia długości pociągu ani prawidłowego wyniku."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„700 : 15 = 46,6”",
+      "note": "Uczeń nie zapisał poprawnego obliczenia prędkości i drogi w 15 s ani zależności wprost proporcjonalnej."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Długość pociągu wynosi około 46,6 m.”",
+      "note": "Podany wynik jest błędny, a zapisane działanie nie spełnia warunków wyższych progów."
+     }
+    ],
+    "justification": "Odpowiedź nie zawiera poprawnej metody: przy stałej prędkości długość pociągu należy wyznaczyć jako 700/50 · 15, co daje 210 m. Zapis „700 : 15 = 46,6” jest niepoprawny rachunkowo i nie opisuje wymaganej zależności, dlatego uczeń otrzymuje 0 punktów."
+   }
+  }
+ ]
+}

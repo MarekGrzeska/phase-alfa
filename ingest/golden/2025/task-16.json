@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2025-05-14",
+ "year": 2025,
+ "task": "16",
+ "max_points": 2,
+ "content_source": "key",
+ "task_text": "Suma trzech składników wynosi 7/15. Dwa pierwsze składniki tej sumy to 1/5 i 1/6. Oblicz trzeci składnik sumy i przedstaw go w postaci ułamka nieskracalnego.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "x = 7/15 − (1/5 + 1/6)\n= 14/30 − (6/30 + 5/30)\n= 14/30 − 11/30\n= 3/30 = 1/10\n\nTrzeci składnik: 1/10.",
+   "intent": "Uczeń poprawnie odjął od sumy dwa podane składniki, sprowadził ułamki do wspólnego mianownika i skrócił wynik.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "x = 7/15 − (1/5 + 1/6)\n= 14/30 − (6/30 + 5/30)\n= 14/30 − 11/30\n= 3/30 = 1/10",
+      "note": "Uczeń poprawnie obliczył trzeci składnik i wykazał, że jest on równy ułamkowi o liczniku 1."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "x = 7/15 − (1/5 + 1/6)",
+      "note": "Zapisano poprawne wyrażenie arytmetyczne prowadzące do obliczenia trzeciego składnika."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie dotyczy, ponieważ odpowiedź spełnia warunek wyższego progu."
+     }
+    ],
+    "justification": "Uczeń zastosował poprawną metodę odejmowania sumy dwóch znanych składników od całej sumy. Wszystkie przekształcenia rachunkowe są poprawne, a wynik „1/10” jest ułamkiem nieskracalnym i ma licznik równy 1."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "1/5 + 1/6 + x = 7/15\n11/30 + x = 14/30\nx = 3/30",
+   "intent": "Uczeń poprawnie ułożył i rozwiązał równanie, ale nie wykonał ostatniego skrócenia ułamka do postaci nieskracalnej.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„1/5 + 1/6 + x = 7/15\n11/30 + x = 14/30\nx = 3/30”",
+      "note": "Uczeń poprawnie rozwiązał równanie, ale nie przedstawił wyniku w wymaganej postaci ułamka nieskracalnego o liczniku 1, czyli 1/10."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„1/5 + 1/6 + x = 7/15”",
+      "note": "Zapisano poprawne równanie z jedną niewiadomą prowadzące do obliczenia trzeciego składnika sumy."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„x = 3/30”",
+      "note": "Rozwiązanie nie jest błędne; spełnia warunek progu 1 pkt."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 pkt, ponieważ uczeń zapisał i poprawnie przekształcił równanie. Nie można przyznać 2 pkt, gdyż końcowy zapis „x = 3/30” nie został skrócony do wymaganego ułamka nieskracalnego „1/10”."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "1/5 + 1/6 = 11/30\n7/15 + 11/30 = 25/30 = 5/6\nx = 5/6",
+   "intent": "Uczeń dodał podane składniki do całej sumy zamiast odjąć je od sumy, więc otrzymał błędny wynik.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„1/5 + 1/6 = 11/30\n7/15 + 11/30 = 25/30 = 5/6\nx = 5/6”",
+      "note": "Uczeń nie uzasadnił poprawnie obliczenia trzeciego składnika i nie otrzymał wyniku 1/10."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„7/15 + 11/30 = 25/30 = 5/6”",
+      "note": "Zapisano dodawanie sumy całkowitej i dwóch pierwszych składników, a nie wyrażenie lub równanie prowadzące do obliczenia trzeciego składnika."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„x = 5/6”",
+      "note": "Podany wynik jest błędny, a przedstawione obliczenia nie prowadzą poprawnie do wyznaczenia trzeciego składnika."
+     }
+    ],
+    "justification": "Poprawnie obliczono jedynie sumę dwóch pierwszych składników: „1/5 + 1/6 = 11/30”. Następnie uczeń zamiast odjąć tę sumę od „7/15”, dodał ją, dlatego zapis nie spełnia warunku progu 1 pkt ani 2 pkt."
+   }
+  }
+ ]
+}

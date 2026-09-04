@@ -1,0 +1,116 @@
+{
+ "exam_form": "OMAP-100",
+ "session": "2019-04-01",
+ "year": 2019,
+ "task": "19",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Z okazji dnia sportu w godzinach od 9:00 do 12:00 przeprowadzono połowę z wszystkich konkurencji zaplanowanych na cały dzień, a między 12:00 a 14:00 - jeszcze 1/3 z pozostałych. O godzinie 14:00 z powodu deszczu zakończono zawody. W tym dniu nie przeprowadzono 12 zaplanowanych konkurencji. Ile konkurencji planowano przeprowadzić podczas całego dnia sportu? Zapisz obliczenia. OMAP-100-1904 Strona 17 z 20",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "x — liczba wszystkich konkurencji\nI etap: \\(\\frac12x\\)\nII etap: \\(\\frac13\\cdot\\frac12x=\\frac16x\\)\nNie przeprowadzono:\n\\[x-\\frac12x-\\frac16x=\\frac13x\\]\n\\[\\frac13x=12\\]\n\\[x=36\\]\nPlanowano przeprowadzić 36 konkurencji.",
+   "intent": "Uczeń poprawnie obliczył część konkurencji przeprowadzonych i na tej podstawie wyznaczył całą liczbę konkurencji.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„\\[\\frac13x=12\\] \\[x=36\\] Planowano przeprowadzić 36 konkurencji.”",
+      "note": "Uczeń poprawnie obliczył liczbę wszystkich zaplanowanych konkurencji równą 36."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„Nie przeprowadzono: \\[x-\\frac12x-\\frac16x=\\frac13x\\] \\[\\frac13x=12\\]”",
+      "note": "Uczeń ustalił, że 12 nieprzeprowadzonych konkurencji stanowi \\(\\frac13\\) wszystkich konkurencji, oraz zapisał równanie."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„II etap: \\(\\frac13\\cdot\\frac12x=\\frac16x\\)”",
+      "note": "Uczeń poprawnie opisał liczbę konkurencji przeprowadzonych między 12:00 a 14:00 jako \\(\\frac16x\\)."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 punkty, ponieważ uczeń otrzymał poprawny wynik \\(x=36\\) i podał odpowiedź. Zapis obliczeń jest spójny: po przeprowadzeniu \\(\\frac12x\\) oraz \\(\\frac16x\\) konkurencji pozostaje \\(\\frac13x\\), czyli 12 konkurencji."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "x — wszystkie konkurencje\n\\[\\frac12x+\\frac13\\cdot\\frac12x=\\frac23x\\]\n\\[x-\\frac23x=12\\]\n\\[\\frac13x=12\\]\n\\[x=12\\cdot3=32\\]\nPlanowano 32 konkurencje.",
+   "intent": "Uczeń zastosował poprawną metodę i prawidłowo zapisał równanie, ale popełnił błąd rachunkowy przy mnożeniu 12 przez 3.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„x=12·3=32” oraz „Planowano 32 konkurencje.”",
+      "note": "Uczeń nie obliczył poprawnie liczby zaplanowanych konkurencji, ponieważ z zapisu 12·3 podał wynik 32 zamiast 36."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„x-2/3x=12”",
+      "note": "Jest to równanie pozwalające wyznaczyć liczbę wszystkich zaplanowanych konkurencji."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„1/3·1/2x”",
+      "note": "Uczeń opisał algebraicznie liczbę konkurencji przeprowadzonych między 12:00 a 14:00."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Planowano 32 konkurencje.”",
+      "note": "Rozwiązanie nie jest całkowicie błędne, ponieważ zawiera poprawne równanie prowadzące do wyznaczenia liczby konkurencji."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, gdyż uczeń zapisał poprawne równanie „x-2/3x=12”. Nie spełnia progu 3 pkt, ponieważ końcowy wynik liczbowy i odpowiedź są błędne: powinno być 36, a nie 32."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "\\[12\\cdot2=24\\]\nPlanowano 24 konkurencje.",
+   "intent": "Uczeń pomnożył liczbę nieprzeprowadzonych konkurencji przez 2, nie uwzględniając obu etapów zawodów ani tego, że 12 stanowi jedną trzecią całości.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„12·2=24. Planowano 24 konkurencje.”",
+      "note": "Uczeń nie obliczył poprawnej liczby 36 konkurencji."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„12·2=24”",
+      "note": "Zapis nie ustala, że 12 stanowi 1/3 wszystkich konkurencji, nie zawiera właściwego równania ani obliczenia połowy równej 18."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„12·2=24”",
+      "note": "Zapis nie przedstawia żadnego z wymaganych częściowych ustaleń dotyczących konkurencji przeprowadzonych w godzinach 12:00–14:00 ani połowy wszystkich konkurencji."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„12·2=24. Planowano 24 konkurencje.”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Uczeń podał błędną liczbę zaplanowanych konkurencji: 24 zamiast 36. W zapisie nie ma też elementu spełniającego warunki progu za 1 lub 2 punkty."
+   }
+  }
+ ]
+}

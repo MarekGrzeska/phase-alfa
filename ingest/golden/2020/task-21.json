@@ -1,0 +1,110 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2020-04-01",
+ "year": 2020,
+ "task": "21",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "H Podstawą ostrosłupa o wysokości jest kwadrat. Na rysunku przedstawiono siatkę i podano długości niektórych krawędzi tego ostrosłupa. H 13 cm 5 cm Oblicz objętość tego ostrosłupa. Zapisz obliczenia. Rozwiązanie zadania 21. zapisz w wyznaczonym miejscu ! na karcie rozwiązań zadań. OMAP-100-2004 Strona 17 z 17",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Przekątna podstawy:\n\\(d=5\\sqrt2\\), więc odległość środka podstawy od wierzchołka:\n\\(r=\\frac{5\\sqrt2}{2}\\).\n\n\\(H^2+r^2=13^2\\)\n\\(H^2+\\left(\\frac{5\\sqrt2}{2}\\right)^2=169\\)\n\\(H^2=169-\\frac{25}{2}=\\frac{313}{2}\\)\n\\(H=\\frac{\\sqrt{626}}{2}\\).\n\n\\(V=\\frac13\\cdot 5^2\\cdot H\\)\n\\(V=\\frac13\\cdot25\\cdot\\frac{\\sqrt{626}}2=\\frac{25\\sqrt{626}}6\\ \\text{cm}^3\\)\n\n\\(V\\approx104{,}2\\ \\text{cm}^3\\)",
+   "intent": "Uczeń poprawnie wyznaczył wysokość ostrosłupa z trójkąta utworzonego przez krawędź boczną, połowę przekątnej podstawy i wysokość, a następnie obliczył objętość z właściwą jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„V=\\frac{25\\sqrt{626}}6\\ \\text{cm}^3” oraz „V\\approx104{,}2\\ \\text{cm}^3”",
+      "note": "Uczeń nie obliczył objętości równej 100 cm³."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„H^2+r^2=13^2”, gdzie „r=\\frac{5\\sqrt2}{2}”",
+      "note": "Sposób obliczenia wysokości jest błędny, więc nie prowadzi do poprawnego sposobu obliczenia objętości ostrosłupa."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„V=\\frac13\\cdot 5^2\\cdot H”",
+      "note": "Uczeń błędnie wyznaczył wysokość, ale rozwiązał zadanie do końca, stosując poprawny wzór na objętość i poprawnie obliczając pole podstawy."
+     }
+    ],
+    "justification": "Uczeń przyjął błędny odcinek „r” w twierdzeniu Pitagorasa, dlatego otrzymał niepoprawną wysokość. Zgodnie z regułą przekrojową za błędny sposób wyznaczenia wysokości przy poprawnych pozostałych sposobach i doprowadzeniu rozwiązania do końca otrzymuje 1 punkt."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "\\(H^2+\\left(\\frac{5\\sqrt2}{2}\\right)^2=13^2\\)\n\\(H^2=169-\\frac{25}{2}=\\frac{313}{2}\n\\)\n\\(H=\\frac{\\sqrt{626}}2\\)\n\n\\(V=\\frac13\\cdot25\\cdot\\frac{\\sqrt{626}}2\n=\\frac{25\\sqrt{626}}3\\ \\text{cm}^3\\)",
+   "intent": "Uczeń zastosował dobrą metodę i poprawnie wyznaczył wysokość, ale po podstawieniu do wzoru na objętość zgubił czynnik 2 w mianowniku.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "\"V=\\frac13\\cdot25\\cdot\\frac{\\sqrt{626}}2=\\frac{25\\sqrt{626}}3\\ \\text{cm}^3\"",
+      "note": "Uczeń nie obliczył objętości równej 100 cm³."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "\"H=\\frac{\\sqrt{626}}2\"",
+      "note": "Obliczenie objętości opiera się na błędnie wyznaczonej wysokości ostrosłupa."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "\"H^2+\\left(\\frac{5\\sqrt2}{2}\\right)^2=13^2\"",
+      "note": "Uczeń zastosował błędny sposób wyznaczenia wysokości, ale rozwiązał zadanie do końca, stosując poprawny wzór na objętość."
+     }
+    ],
+    "justification": "Uczeń błędnie przyjął w twierdzeniu Pitagorasa odcinek \\(\\frac{5\\sqrt2}{2}\\) zamiast właściwego odcinka długości 5 cm, więc nie wyznaczył poprawnej wysokości. Zgodnie z regułą przekrojową za błędny sposób wyznaczenia wysokości i dokończenie rozwiązania poprawnym sposobem obliczenia objętości otrzymuje 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "Podstawa ma pole:\n\\(P_p=5^2=25\\ \\text{cm}^2\\)\n\nWysokość ostrosłupa wynosi 13 cm, więc\n\\(V=\\frac13\\cdot25\\cdot13=\\frac{325}{3}\\ \\text{cm}^3\\).",
+   "intent": "Uczeń przyjął długość krawędzi bocznej jako wysokość ostrosłupa, bez uwzględnienia jej położenia względem środka kwadratowej podstawy.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„V=\\frac13\\cdot25\\cdot13=\\frac{325}{3}\\ \\text{cm}^3”",
+      "note": "Uczeń nie otrzymał poprawnej objętości 100 cm³."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Wysokość ostrosłupa wynosi 13 cm”",
+      "note": "Do wzoru na objętość podstawiono błędną wysokość ostrosłupa, więc nie przedstawiono poprawnego sposobu obliczenia objętości."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Wysokość ostrosłupa wynosi 13 cm, więc V=\\frac13\\cdot25\\cdot13”",
+      "note": "Uczeń błędnie wyznaczył wysokość, ale rozwiązał zadanie do końca, stosując poprawny wzór na objętość i poprawnie obliczone pole podstawy."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„P_p=5^2=25\\ \\text{cm}^2”",
+      "note": "Uczeń dokonał istotnego postępu w rozwiązaniu."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 punkt, zgodnie z regułą przekrojową dotyczącą błędnego wyznaczenia wysokości przy poprawnych pozostałych sposobach. Zapis „Wysokość ostrosłupa wynosi 13 cm” jest błędny, ponieważ 13 cm jest długością krawędzi bocznej, a nie wysokością ostrosłupa."
+   }
+  }
+ ]
+}

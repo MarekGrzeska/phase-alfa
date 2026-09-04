@@ -270,3 +270,17 @@ def test_run_applies_each_verdict_before_asking_for_the_next(con, task_id, monke
     assert _state(con, task_id)["review_status"] == "approved"
     assert spend.calls == 1 and len(spend.failures) == 1
     assert "API padło" in spend.failures[0][1]
+
+
+def test_match_with_reasons_leaves_notes_for_the_human(con, task_id):
+    """Rozjazd wymagania podstawy nie jest poprawką, ale ma zostać w dzienniku
+    i nad formularzem — raport tekstowy to za mało, żeby ktoś do tego wrócił."""
+    verdict = verify.Verdict(verdict="match",
+                             reasons=["klucz wskazuje II.2, rekord ma II.1"], record=None)
+    assert verify.apply_verdict(con, task_id, verdict, MODEL, _started()) == "approved"
+    events = _events(con)
+    assert events[0]["fields_changed"]["notes"] == ["klucz wskazuje II.2, rekord ma II.1"]
+    with con.cursor() as cur:
+        notes = db.model_notes(cur, task_id)
+    assert notes["action"] == "approve"
+    assert notes["reasons"] == ["klucz wskazuje II.2, rekord ma II.1"]

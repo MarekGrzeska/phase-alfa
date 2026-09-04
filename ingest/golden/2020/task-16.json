@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2020-04-01",
+ "year": 2020,
+ "task": "16",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "W trójkącie o kątach wewnętrznych α, β, γ miara kąta α jest równa różnicy miar dwóch pozostałych kątów. Uzasadnij, że ten trójkąt jest prostokątny. Rozwiązanie zadania 16. zapisz w wyznaczonym miejscu ! na karcie rozwiązań zadań.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Suma kątów w trójkącie wynosi 180°.\nJeśli β > γ, to α = β − γ.\nα + β + γ = 180°\nβ − γ + β + γ = 180°\n2β = 180°\nβ = 90°.\n\nJeśli γ > β, to α = γ − β i wtedy:\nγ − β + β + γ = 180°\n2γ = 180°\nγ = 90°.\n\nW obu przypadkach jeden z kątów ma 90°, więc trójkąt jest prostokątny.",
+   "intent": "Uczeń rozważył oba możliwe przypadki różnicy kątów i poprawnie wykazał, że jeden z nich ma miarę 90°.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„β = 90°.” oraz „γ = 90°.”",
+      "note": "Uczeń wykazał, że w zależności od relacji między β i γ jeden z kątów ma miarę 90°."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„α + β + γ = 180°” oraz „α = β − γ”",
+      "note": "Uczeń zapisał zależność między kątami i wykorzystał sumę kątów w trójkącie."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„W obu przypadkach jeden z kątów ma 90°, więc trójkąt jest prostokątny.”",
+      "note": "Rozwiązanie zawiera istotny postęp i pełne uzasadnienie."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ uczeń poprawnie rozpatrzył oba możliwe przypadki różnicy miar kątów i otrzymał odpowiednio „β = 90°” albo „γ = 90°”. Reguła o posługiwaniu się wyłącznie konkretnymi wartościami nie ma zastosowania, gdyż rozwiązanie jest oparte na zależnościach algebraicznych między α, β i γ."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "Przyjmijmy, że β > γ. Wtedy α = β − γ.\nα + β + γ = 180°\nβ − γ + β + γ = 180°\n2β = 180°\nβ = 90°.\nZatem trójkąt jest prostokątny.",
+   "intent": "Uczeń zastosował poprawną metodę i obliczył kąt prosty, ale nie uzasadnił przypadku, gdy γ jest większy od β.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„2β = 180°\nβ = 90°.\nZatem trójkąt jest prostokątny.”",
+      "note": "Uczeń wykazał, że kąt β ma miarę 90°."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Wtedy α = β − γ.\nα + β + γ = 180°”",
+      "note": "Zapisano zależność między kątami oraz sumę miar kątów w trójkącie."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„β = 90°.”",
+      "note": "Rozwiązanie zawiera istotny postęp i pełne uzasadnienie."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ z poprawnych równań uczeń otrzymał „β = 90°” i wyciągnął właściwy wniosek. Reguła dotycząca użycia wyłącznie konkretnych wartości kątów nie ma zastosowania, gdyż uczeń prowadzi uzasadnienie algebraiczne z użyciem α, β i γ."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "α + β + γ = 180°.\nSkoro α jest różnicą dwóch kątów, to α = 90°.\nTrójkąt jest prostokątny.",
+   "intent": "Uczeń zna sumę kątów w trójkącie, ale bezpodstawnie uznał, że różnica dwóch kątów zawsze wynosi 90°.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Skoro α jest różnicą dwóch kątów, to α = 90°.”",
+      "note": "Uczeń nie wykazał poprawnie, że β lub γ ma miarę 90°."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„α + β + γ = 180°.”",
+      "note": "Zapisano sumę kątów, ale nie zapisano zależności α = β − γ ani α = γ − β (ani równoważnego równania z dwiema niewiadomymi)."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Skoro α jest różnicą dwóch kątów, to α = 90°.”",
+      "note": "Stwierdzenie, że α = 90°, nie wynika z podanej zależności i nie stanowi istotnego postępu."
+     }
+    ],
+    "justification": "Uczeń podał jedynie własność sumy kątów w trójkącie. Nie uwzględnił jej w poprawnym równaniu z warunkiem, że α jest różnicą miar pozostałych kątów, a wniosek „α = 90°” jest nieuzasadniony."
+   }
+  }
+ ]
+}

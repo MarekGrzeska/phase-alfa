@@ -1,0 +1,122 @@
+{
+ "exam_form": "OMAP-100",
+ "session": "2019-04-01",
+ "year": 2019,
+ "task": "20",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Prostokątną działkę o powierzchni 3750 m^2 podzielono na trzy prostokątne działki o jednakowych wymiarach, w sposób przedstawiony na rysunku. Jakie wymiary miała działka przed podziałem? Zapisz obliczenia. Strona 18 z 20 OMAP-100-1904",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Niech krótszy bok małej działki ma długość x.\nDłuższy bok małej działki ma długość 2x, bo dwie działki po prawej mają razem taką samą wysokość jak działka po lewej.\n\n3750 = (x+2x) · 2x\n3750 = 6x²\nx² = 625\nx = 25\n\nWymiary dużej działki:\n2x = 50 m,\nx+2x = 75 m.\n\nDziałka miała wymiary 50 m × 75 m.",
+   "intent": "Uczeń poprawnie wykorzystał zależność boków wynikającą z układu trzech jednakowych prostokątów, obliczył bok małej działki i podał wymiary całej działki z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„Wymiary dużej działki: 2x = 50 m, x+2x = 75 m. Działka miała wymiary 50 m × 75 m.”",
+      "note": "Uczeń obliczył oba wymiary działki przed podziałem: 50 m i 75 m."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„3750 = (x+2x) · 2x [...] x = 25” oraz „2x = 50 m, x+2x = 75 m.”",
+      "note": "Zapis przedstawia poprawny sposób obliczenia wymiarów prostokąta."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Dłuższy bok małej działki ma długość 2x”",
+      "note": "Uczeń ustalił stosunek boków małej działki równy 2:1."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„Działka miała wymiary 50 m × 75 m.”",
+      "note": "Odpowiedź nie jest błędna ani pusta."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 punkty, ponieważ uczeń poprawnie wyznaczył oba wymiary działki przed podziałem. Obliczenia są spójne: z równania „3750 = 6x²” otrzymano „x = 25”, a następnie wymiary 50 m i 75 m."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "Niech krótszy bok małej działki będzie x, a dłuższy 2x.\n\n3750 = (x+2x) · 2x\n3750 = 6x²\nx² = 625\nx = 25\n\nDłuższy bok dużej działki: 2 · 25 = 50\nKrótszy bok: 25 + 50 = 75\n\nWymiary: 50 × 75",
+   "intent": "Uczeń zastosował poprawną metodę i uzyskał właściwe liczby, ale nie zapisał jednostek przy wymiarach.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„Dłuższy bok dużej działki: 2 · 25 = 50 ... Wymiary: 50 × 75”",
+      "note": "Uczeń obliczył oba wymiary działki przed podziałem: 50 i 75."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„3750 = (x+2x) · 2x ... x = 25”",
+      "note": "Zapis przedstawia poprawny sposób obliczenia wymiarów prostokąta."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Niech krótszy bok małej działki będzie x, a dłuższy 2x.”",
+      "note": "Uczeń ustalił stosunek boków małej działki równy 2:1."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Odpowiedź nie jest błędna ani pusta."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt, ponieważ uczeń podał i wyliczył oba wymiary działki przed podziałem: 50 oraz 75. W obliczeniach poprawnie wykorzystał zależność boków małej działki „x” i „2x” oraz pole 3750."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "3750 : 3 = 1250\n√1250 ≈ 35,4\nDziałka miała wymiary około 35,4 m × 35,4 m.",
+   "intent": "Uczeń podzielił pole przez liczbę działek i przyjął, że duża działka jest kwadratem, mimo że układ prostokątów wskazuje inny stosunek boków.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„Działka miała wymiary około 35,4 m × 35,4 m.”",
+      "note": "Uczeń nie obliczył poprawnych wymiarów działki przed podziałem: 50 m i 75 m."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„3750 : 3 = 1250; √1250 ≈ 35,4”",
+      "note": "Zapis nie przedstawia poprawnego sposobu obliczenia żadnego wymiaru prostokąta."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„Działka miała wymiary około 35,4 m × 35,4 m.”",
+      "note": "Uczeń nie ustalił stosunku 2:1 wymiarów małej działki ani stosunku 3:2 wymiarów dużej działki."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Działka miała wymiary około 35,4 m × 35,4 m.”",
+      "note": "Podane wymiary są błędne."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 0 pkt, ponieważ zapis nie zawiera poprawnego wyznaczenia wymiaru ani wymaganego stosunku boków. Reguła o przyznaniu 1 punktu za same poprawne wymiary bez obliczeń nie ma zastosowania, gdyż uczeń podał wymiary błędne."
+   }
+  }
+ ]
+}

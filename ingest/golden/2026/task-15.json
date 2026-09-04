@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2026-05-12",
+ "year": 2026,
+ "task": "15",
+ "max_points": 2,
+ "content_source": "key",
+ "task_text": "Ela przygotowała 160 kartek w czterech kolorach: białym, czerwonym, niebieskim i zielonym. Białych kartek było 37. Niebieskich było 1,5 razy więcej niż czerwonych, a zielonych było o 10 mniej niż czerwonych. Ile niebieskich kartek przygotowała Ela?",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "czerwone — x\nniebieskie — 1,5x\nzielone — x−10\n\nx+1,5x+x−10+37=160\n3,5x=133\nx=38\n\n1,5·38=57\n\nEla przygotowała 57 kartek niebieskich.",
+   "intent": "Uczeń poprawnie zapisał zależności, ułożył i rozwiązał równanie oraz obliczył liczbę kartek niebieskich z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„x+1,5x+x−10+37=160\n3,5x=133\nx=38\n\n1,5·38=57”",
+      "note": "Uczeń zapisał poprawne równanie, poprawnie je rozwiązał i obliczył prawidłową liczbę kartek niebieskich."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„x+1,5x+x−10+37=160”",
+      "note": "Jest to poprawne równanie z jedną niewiadomą, gdzie „czerwone — x”."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie zachodzi, ponieważ rozwiązanie spełnia warunki wyższego progu."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt. Zapis „czerwone — x”, „niebieskie — 1,5x”, „zielone — x−10” prawidłowo opisuje zależności, a obliczenia prowadzą do wyniku „57”; nie ma błędów rachunkowych."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "czerwone — x\nniebieskie — 1,5x\nzielone — x−10\n\nx+1,5x+x−10+37=160\n3,5x=133\nx=38\n\n1,5·38=56\n",
+   "intent": "Uczeń poprawnie zapisał zależności i rozwiązał równanie, ale popełnił błąd rachunkowy przy mnożeniu 1,5·38.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„1,5·38=56”",
+      "note": "Nie ma prawidłowego wyniku liczby kartek niebieskich (powinno być 57), więc warunek 2 pkt nie jest spełniony."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„x+1,5x+x−10+37=160”",
+      "note": "Uczeń zapisał poprawne równanie z jedną niewiadomą, gdzie x oznacza liczbę kartek czerwonych."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„3,5x=133”, „x=38”",
+      "note": "Rozwiązanie zawiera poprawny etap prowadzący do wyznaczenia liczby kartek czerwonych."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 1 pkt, ponieważ zapisano poprawne równanie i poprawnie wyznaczono x=38. W końcowym obliczeniu wystąpił błąd rachunkowy: „1,5·38=56”, dlatego zgodnie z regułą przekrojową ocenę obniża się o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "57",
+   "intent": "Uczeń podał sam wynik bez żadnych obliczeń ani uzasadnienia.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„57”",
+      "note": "Podano wyłącznie wynik, bez poprawnego sposobu obliczenia ani metody prób i błędów spełniającej warunki progu."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„57”",
+      "note": "Nie zapisano równania, wyrażenia arytmetycznego ani sprawdzenia zestawu liczb."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„57”",
+      "note": "Sam poprawny wynik końcowy nie wystarcza do przyznania punktu w zadaniach 15–20."
+     }
+    ],
+    "justification": "Odpowiedź ucznia to wyłącznie „57”. Zgodnie z regułą przekrojową za podanie tylko poprawnego końcowego wyniku w tym zadaniu przyznaje się 0 punktów."
+   }
+  }
+ ]
+}

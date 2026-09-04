@@ -283,6 +283,25 @@ tasks:
     dir: ingest
     cmds: ['{{.PY}} -m correction.verify {{.CLI_ARGS}}']
 
+  # Plan A2-auto, X5: golden set — autor (model A) i oceniający (model B) osobno.
+  #   task golden:generate -- --variant 100           # JSON w ingest/golden/<rok>/
+  #   task golden:grade                               # ocena wg klucza, do tych samych plików
+  golden:generate:
+    desc: Golden set — model A pisze odpowiedzi ucznia do zadań otwartych (płatne)
+    dir: ingest
+    cmds: ['{{.PY}} -m golden.generate {{.CLI_ARGS}}']
+
+  golden:grade:
+    desc: Golden set — model B ocenia odpowiedzi wg klucza (płatne)
+    dir: ingest
+    cmds: ['{{.PY}} -m golden.grade {{.CLI_ARGS}}']
+
+  # Plan A2-auto, X3: ramka rysunku z siatki przez model, dla zasobów „cała strona".
+  frame:
+    desc: Ramki rysunków z siatki przez LLM — zamiast ręcznego „Wytnij"; bez --apply tylko raport
+    dir: ingest
+    cmds: ['{{.PY}} -m correction.frame {{.CLI_ARGS}}']
+
   describe:
     desc: Opisy rysunków (alt-text) dla wycinków — pomiar S7
     dir: ingest

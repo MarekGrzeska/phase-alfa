@@ -711,8 +711,10 @@ def decide(cur, task_id: int, action: str, started_at, changes: dict,
            edited_before: bool = False, actor: str = "human",
            model: str | None = None) -> str:
     changed_now = bool(changes.get("edited") or changes.get("deleted"))
-    # Opis nie rozstrzyga o statusie zadania, ale ma zostać w dzienniku.
-    recorded = changed_now or bool(changes.get("described"))
+    # Opis nie rozstrzyga o statusie zadania, ale ma zostać w dzienniku. Tak samo
+    # `notes` modelu przy `match` (np. rozjazd wymagania podstawy) — to nie
+    # poprawka, ale ślad dla człowieka, którego raport tekstowy by zgubił.
+    recorded = changed_now or bool(changes.get("described") or changes.get("notes"))
 
     if action == "reopen":
         status, event = "pending", "reopen"
@@ -770,16 +772,18 @@ def record_unsure(cur, task_id: int, model: str, reasons: list[str],
 
 
 def model_notes(cur, task_id: int) -> dict | None:
-    """Ostatnie `unsure` modelu dla zadania — do pokazania nad formularzem."""
+    """Ostatni wpis modelu z powodami — `unsure` albo uwagi przy rozstrzygnięciu."""
     cur.execute(
-        """SELECT model, fields_changed, finished_at FROM correction_event
-           WHERE task_id = %s AND action = 'unsure'
+        """SELECT action, model, fields_changed, finished_at FROM correction_event
+           WHERE task_id = %s AND actor = 'model'
+             AND (action = 'unsure' OR fields_changed ? 'notes')
            ORDER BY id DESC LIMIT 1""",
         (task_id,),
     )
     row = cur.fetchone()
     if row is None:
         return None
-    return {"model": row["model"],
-            "reasons": (row["fields_changed"] or {}).get("reasons", []),
+    payload = row["fields_changed"] or {}
+    return {"model": row["model"], "action": row["action"],
+            "reasons": payload.get("reasons") or payload.get("notes") or [],
             "when": row["finished_at"].strftime("%Y-%m-%d %H:%M")}

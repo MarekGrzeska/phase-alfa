@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2022-05-25",
+ "year": 2022,
+ "task": "16",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Do wykonania naszyjnika Hania przygotowała 4 korale srebrne, 8 korali czerwonych i kilka korali zielonych. Następnie ze wszystkich przygotowanych korali zrobiła naszyjnik. Zielone korale stanowią 20% wszystkich korali w zrobionym naszyjniku. Oblicz, ile zielonych korali jest w naszyjniku. Zapisz obliczenia. Strona 16 z 20 OMAP-100-2205",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "4+8=12\n12 korali to 80% wszystkich.\n12 : 80 · 100 = 15 — wszystkich korali\n15−12=3\nW naszyjniku są 3 zielone korale.",
+   "intent": "Uczeń poprawnie obliczył liczbę korali srebrnych i czerwonych, wyznaczył liczbę wszystkich korali i odjął korale niezielone.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„12 korali to 80% wszystkich. 12 : 80 · 100 = 15 — wszystkich korali; 15−12=3”",
+      "note": "Uczeń poprawnie ustalił, że 12 korali to 80% wszystkich, obliczył liczbę wszystkich korali i liczbę korali zielonych."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„12 korali to 80% wszystkich.”",
+      "note": "Jest poprawne ustalenie, że korale srebrne i czerwone stanowią 80% wszystkich korali."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie dotyczy, ponieważ odpowiedź spełnia warunki progu 2 punktów."
+     }
+    ],
+    "justification": "Zapis „4+8=12” poprawnie wyznacza liczbę korali srebrnych i czerwonych. Następnie uczeń poprawnie oblicza liczbę wszystkich korali jako 15 i wyznacza „15−12=3”, podając właściwą odpowiedź: „W naszyjniku są 3 zielone korale.”"
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "4+8=12\n12 : 80 · 100 = 15\n15−12=4\n",
+   "intent": "Uczeń zastosował poprawną metodę i poprawnie obliczył liczbę wszystkich korali, ale popełnił błąd rachunkowy przy odejmowaniu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„12 : 80 · 100 = 15\n15−12=4”",
+      "note": "Uczeń poprawnie obliczył liczbę wszystkich korali, ale popełnił błąd rachunkowy w odejmowaniu, więc nie ma prawidłowo obliczonej liczby korali zielonych."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„4+8=12\n12 : 80 · 100 = 15”",
+      "note": "Uczeń ustalił, że 12 korali to 80% wszystkich korali, i zapisał poprawne obliczenie liczby wszystkich korali."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„4+8=12\n12 : 80 · 100 = 15”",
+      "note": "Zapis zawiera poprawny sposób rozwiązania, więc nie jest rozwiązaniem całkowicie błędnym."
+     }
+    ],
+    "justification": "Uczeń poprawnie wykorzystał fakt, że 12 korali srebrnych i czerwonych stanowi 80% wszystkich korali, oraz otrzymał 15 wszystkich korali. W zapisie „15−12=4” popełnił błąd rachunkowy; poprawny wynik to 3, dlatego przyznaje się 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "4+8=12\n20% z 12 = 2,4\nZielonych korali jest 2,4.",
+   "intent": "Uczeń obliczył 20% z liczby korali srebrnych i czerwonych, zamiast potraktować je jako 80% wszystkich korali; otrzymał też niecałkowitą liczbę korali.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„4+8=12\n20% z 12 = 2,4\nZielonych korali jest 2,4.”",
+      "note": "Nie ma poprawnego równania, wyrażeń ani sprawdzenia uwzględniających, że zielone korale są częścią wszystkich korali."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„4+8=12\n20% z 12 = 2,4”",
+      "note": "Uczeń nie ustalił, że 12 korali stanowi 80% wszystkich korali, ani nie zapisał poprawnego równania."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„20% z 12 = 2,4\nZielonych korali jest 2,4.”",
+      "note": "Obliczono 20% liczby korali niezielonych zamiast liczby wszystkich korali, więc rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 0 pkt. Zapis „20% z 12 = 2,4” nie prowadzi do obliczenia liczby zielonych korali, ponieważ 12 to liczba korali srebrnych i czerwonych, a nie wszystkich korali w naszyjniku."
+   }
+  }
+ ]
+}

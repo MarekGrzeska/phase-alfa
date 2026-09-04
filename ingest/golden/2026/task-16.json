@@ -1,0 +1,110 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2026-05-12",
+ "year": 2026,
+ "task": "16",
+ "max_points": 3,
+ "content_source": "key",
+ "task_text": "Samochód jechał ze stałą prędkością. Z Polanki do Jodłowa jest 48 km, a z Polanki do Dębiny 123 km. Samochód przejechał z Polanki do Jodłowa w 40 minut. Czy przejazd z Jodłowa do Dębiny trwał dłużej niż 1 godzinę? Uzasadnij.",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Jodłowo–Dębina: 123−48=75 km\n40 min = 2/3 h\nv=48:2/3=72 km/h\nt=75:72 h=25/24 h=1 h 2,5 min=62,5 min\n62,5 min > 60 min\nTak, przejazd trwał dłużej niż 1 godzinę.",
+   "intent": "Uczeń poprawnie obliczył długość drogi, prędkość i czas przejazdu oraz porównał go z jedną godziną.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„v=48:2/3=72 km/h” oraz „t=75:72 h=25/24 h=1 h 2,5 min=62,5 min” i „Tak, przejazd trwał dłużej niż 1 godzinę.”",
+      "note": "Uczeń poprawnie obliczył prędkość 72 km/h, czas przejazdu 75 km jako 62,5 min oraz sformułował właściwy wniosek."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„Jodłowo–Dębina: 123−48=75 km”, „40 min = 2/3 h”, „v=48:2/3=72 km/h”",
+      "note": "Zapisano poprawne sposoby wyznaczenia drogi z Jodłowa do Dębiny i prędkości."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„v=48:2/3=72 km/h”",
+      "note": "Zapis przedstawia poprawny sposób obliczenia prędkości po zamianie czasu na godziny."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 punkty. Wszystkie obliczenia są poprawne: odległość wynosi „123−48=75 km”, prędkość „72 km/h”, a czas „62,5 min”, co jest większe niż 60 minut; nie ma podstaw do zastosowania obniżenia za błąd rachunkowy."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "Jodłowo–Dębina: 123−48=75 km\nv=48 km : 2/3 h=72 km/h\nt=75:72=1,04 h\n1,04 h = 1 h 4 min\nCzyli przejazd trwał dłużej niż godzinę.",
+   "intent": "Uczeń zastosował poprawną metodę i poprawnie wyznaczył prędkość, ale błędnie przeliczył 1,04 godziny na minuty.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„Jodłowo–Dębina: 123−48=75 km; v=48 km : 2/3 h=72 km/h; t=75:72=1,04 h [...] Czyli przejazd trwał dłużej niż godzinę.”",
+      "note": "Uczeń poprawnie wyznaczył drogę, prędkość i czas przejazdu oraz sformułował właściwy wniosek."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„Jodłowo–Dębina: 123−48=75 km” oraz „v=48 km : 2/3 h=72 km/h”",
+      "note": "Zapisano poprawne sposoby obliczenia drogi między miejscowościami i prędkości."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„v=48 km : 2/3 h”",
+      "note": "Podano poprawny sposób obliczenia prędkości."
+     }
+    ],
+    "justification": "Rozwiązanie spełnia warunki progu 3 pkt co do metody i wniosku. Jednak w zapisie „1,04 h = 1 h 4 min” popełniono błąd przeliczenia jednostek, ponieważ 1,04 h to 1 h 2 min 24 s; zgodnie z regułą przekrojową ocenę obniża się o 1 punkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "123−48=75 km\n75>60, więc samochód jechał dłużej niż 1 godzinę.",
+   "intent": "Uczeń odjął odległości, ale porównał kilometry z minutami i nie obliczył czasu przejazdu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„123−48=75 km\n75>60, więc samochód jechał dłużej niż 1 godzinę.”",
+      "note": "Brakuje poprawnego obliczenia prędkości, drogi w godzinę albo czasu przejazdu oraz poprawnego uzasadnienia wniosku."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„123−48=75 km”",
+      "note": "Uczeń poprawnie obliczył drogę z Jodłowa do Dębiny, ale nie przedstawił drugiego wymaganego poprawnego sposobu obliczeń."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„123−48=75 km”",
+      "note": "To jest poprawny sposób obliczenia drogi z Jodłowa do Dębiny."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "„123−48=75 km”",
+      "note": "Odpowiedź zawiera poprawny element rozwiązania spełniający warunek na 1 punkt."
+     }
+    ],
+    "justification": "Uczeń poprawnie wyznaczył długość trasy z Jodłowa do Dębiny: „123−48=75 km”. Zapis „75>60” porównuje wartości wyrażone w różnych jednostkach i nie stanowi poprawnego uzasadnienia, że przejazd trwał dłużej niż godzinę."
+   }
+  }
+ ]
+}

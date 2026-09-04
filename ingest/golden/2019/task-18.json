@@ -1,0 +1,104 @@
+{
+ "exam_form": "OMAP-100",
+ "session": "2019-04-01",
+ "year": 2019,
+ "task": "18",
+ "max_points": 2,
+ "content_source": "paper",
+ "task_text": "Adam zamówił bukiet złożony tylko z goździków i róż, w którym goździków było 2 razy więcej niż róż. Jedna róża kosztowała 4 zł, a cena jednego goździka wynosiła 3 zł. Czy wszystkie kwiaty w tym bukiecie mogły kosztować 35 zł? Uzasadnij odpowiedź. Strona 16 z 20 OMAP-100-1904",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Niech liczba róż będzie r.\nGoździków: 2r.\nKoszt bukietu:\n4r+3·2r=4r+6r=10r\n35:10=3,5\nLiczba róż musi być całkowita, więc nie może wynosić 3,5.\nNie, wszystkie kwiaty nie mogły kosztować 35 zł.",
+   "intent": "Uczeń poprawnie oznaczył liczbę róż, obliczył koszt całego bukietu i uzasadnił, że 35 zł nie jest możliwe.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„35:10=3,5\nLiczba róż musi być całkowita, więc nie może wynosić 3,5.\nNie, wszystkie kwiaty nie mogły kosztować 35 zł.”",
+      "note": "Uczeń poprawnie uzasadnił, że koszt 35 zł wymagałby niecałkowitej liczby róż."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„4r+3·2r=4r+6r=10r”",
+      "note": "Zapisano poprawne wyrażenie algebraiczne opisujące koszt bukietu."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "",
+      "note": "Nie dotyczy, ponieważ odpowiedź spełnia warunek wyższego progu."
+     }
+    ],
+    "justification": "Uczeń poprawnie przyjął, że róż jest r, a goździków 2r, i wyznaczył koszt bukietu jako „10r”. Z zapisu „35:10=3,5” oraz stwierdzenia o całkowitości liczby róż wynika poprawnie, że taki bukiet nie mógł kosztować 35 zł."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "Róż było r, a goździków 2r.\n4r+3·2r=10r\n10r=35\nr=3,5\nNie można mieć 3,5 róży, więc bukiet mógł kosztować 35 zł.",
+   "intent": "Uczeń zastosował poprawną metodę i otrzymał niecałkowitą liczbę róż, ale wyciągnął błędny wniosek, że bukiet mógł kosztować 35 zł.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Nie można mieć 3,5 róży, więc bukiet mógł kosztować 35 zł.”",
+      "note": "Uczeń poprawnie wskazał, że liczba róż nie może wynosić 3,5, ale wyciągnął z tego błędny wniosek, że bukiet mógł kosztować 35 zł."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Róż było r, a goździków 2r. 4r+3·2r=10r”",
+      "note": "Zapisano poprawne wyrażenie algebraiczne z jedną zmienną opisujące koszt bukietu."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Nie można mieć 3,5 róży, więc bukiet mógł kosztować 35 zł.”",
+      "note": "Końcowa odpowiedź jest błędna."
+     }
+    ],
+    "justification": "Nie został spełniony warunek na 2 punkty, ponieważ końcowy wniosek przeczy ustaleniu, że liczba róż wyniosłaby 3,5. Spełniony jest natomiast warunek na 1 punkt: uczeń poprawnie zapisał koszt bukietu jako „4r+3·2r=10r”."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "4+3=7\n35:7=5\n5 róż i 10 goździków.\nTak, mogły kosztować 35 zł.",
+   "intent": "Uczeń dodał ceny pojedynczej róży i goździka, a następnie podzielił przez tę sumę, nie uwzględniając, że goździków było dwa razy więcej niż róż.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„Tak, mogły kosztować 35 zł.”",
+      "note": "Uczeń nie podał poprawnego uzasadnienia, że bukiet nie może kosztować 35 zł."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„4+3=7 / 35:7=5 / 5 róż i 10 goździków.”",
+      "note": "Nie ma poprawnego równania ani wyrażenia opisującego koszt bukietu, a obliczenie pomija koszt drugiego goździka przypadającego na każdą różę."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„Tak, mogły kosztować 35 zł.”",
+      "note": "Odpowiedź jest błędna, ponieważ 5 róż i 10 goździków kosztuje 5·4 + 10·3 = 50 zł, a nie 35 zł."
+     }
+    ],
+    "justification": "Nie spełniono warunku na 2 pkt, ponieważ wniosek ucznia jest niepoprawny. Nie spełniono też żadnego warunku na 1 pkt; zapis „4+3=7” nie opisuje kosztu zestawu 1 róża i 2 goździki."
+   }
+  }
+ ]
+}

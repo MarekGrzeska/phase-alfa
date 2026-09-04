@@ -1,0 +1,116 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2023-05-24",
+ "year": 2023,
+ "task": "18",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "W czworokącie ABCD o polu 48 cm^2 przekątna AC ma długość 8 cm i dzieli ten czworokąt na dwa trójkąty: ABC i ACD (zobacz rysunek). Wysokość trójkąta ACD poprowadzona z wierzchołka D do prostej AC jest równa 2 cm. C D B A Oblicz wysokość trójkąta ABC poprowadzoną z wierzchołka B do prostej AC. Zapisz obliczenia. Strona 18 z 20 OMAP-100-2305",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "P_{ACD}=\\frac{1}{2}\\cdot 8\\cdot 2=8\\text{ cm}^2\nP_{ABC}=48-8=40\\text{ cm}^2\n40=\\frac{1}{2}\\cdot 8\\cdot h\nh=10\\text{ cm}",
+   "intent": "Uczeń obliczył pole trójkąta ACD, odjął je od pola czworokąta i poprawnie wyznaczył wysokość trójkąta ABC.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„P_{ACD}=\\frac{1}{2}\\cdot 8\\cdot 2=8\\text{ cm}^2\\nP_{ABC}=48-8=40\\text{ cm}^2\\n40=\\frac{1}{2}\\cdot 8\\cdot h\\nh=10\\text{ cm}”",
+      "note": "Uczeń poprawnie obliczył pole trójkąta ACD, wyznaczył pole ABC jako różnicę pól, zastosował wzór na pole trójkąta ABC i otrzymał wynik 10 cm."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„P_{ABC}=48-8=40\\text{ cm}^2\\n40=\\frac{1}{2}\\cdot 8\\cdot h”",
+      "note": "Zapis realizuje metodę różnicy pól oraz wykorzystuje wzór na pole trójkąta ABC z podstawą długości 8."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„P_{ACD}=\\frac{1}{2}\\cdot 8\\cdot 2=8\\text{ cm}^2”",
+      "note": "Poprawnie zastosowano wzór na pole trójkąta ACD."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 pkt: rozwiązanie jest kompletne, a obliczenia są prawidłowe. Nie występuje błąd rachunkowy ani inna reguła przekrojowa obniżająca ocenę."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "P_{ACD}=\\frac{1}{2}\\cdot8\\cdot2=8\\text{ cm}^2\nP_{ABC}=48-8=40\\text{ cm}^2\nh=40:8=5\\text{ cm}",
+   "intent": "Uczeń poprawnie obliczył oba pola i zastosował dane, ale przy wyznaczaniu wysokości pominął mnożenie przez 2 we wzorze na pole trójkąta.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "\"h=40:8=5\\text{ cm}\"",
+      "note": "Wynik wysokości nie jest prawidłowy, ponieważ powinien wynosić 10 cm."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "\"P_{ABC}=48-8=40\\text{ cm}^2\" oraz \"h=40:8=5\\text{ cm}\"",
+      "note": "Zapisano różnicę pól, ale nie zastosowano wzoru na pole trójkąta ABC w postaci \\(P_{ABC}=\\frac12\\cdot8\\cdot h\\)."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "\"P_{ACD}=\\frac{1}{2}\\cdot8\\cdot2=8\\text{ cm}^2\"",
+      "note": "Poprawnie zastosowano wzór na pole trójkąta ACD."
+     },
+     {
+      "points": 0,
+      "met": false,
+      "quote": "\"P_{ACD}=\\frac{1}{2}\\cdot8\\cdot2=8\\text{ cm}^2\"",
+      "note": "Odpowiedź zawiera poprawny etap rozwiązania."
+     }
+    ],
+    "justification": "Uczeń poprawnie obliczył pole trójkąta ACD oraz wyznaczył pole trójkąta ABC jako różnicę pól. Następnie zapisał „h=40:8=5 cm”, co nie jest zastosowaniem właściwego wzoru na pole trójkąta ABC, gdyż pominięto czynnik \\(\\frac12\\); dlatego spełniony jest tylko próg 1 pkt."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "48:8=6\\text{ cm}",
+   "intent": "Uczeń podał wynik bez uzasadnienia i podzielił pole czworokąta przez długość przekątnej, zamiast rozłożyć czworokąt na dwa trójkąty.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "48:8=6\\text{ cm}",
+      "note": "Zapis nie przedstawia poprawnego sposobu obliczenia wysokości ani wyniku 10 cm."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "48:8=6\\text{ cm}",
+      "note": "Nie zapisano sumy ani różnicy pól trójkątów, ani wzorów na ich pola z właściwymi danymi."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "48:8=6\\text{ cm}",
+      "note": "Nie zastosowano poprawnie wzoru na pole trójkąta ACD ani trójkąta ABC."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "48:8=6\\text{ cm}",
+      "note": "Rozwiązanie jest błędne, ponieważ iloraz pola czworokąta i długości przekątnej nie wyznacza szukanej wysokości."
+     }
+    ],
+    "justification": "Uczeń zapisał jedynie działanie „48:8=6\\text{ cm}”, bez poprawnego wykorzystania pola trójkąta ACD i pola trójkąta ABC. Otrzymany wynik 6 cm jest nieprawidłowy, więc nie został spełniony żaden warunek progu 1, 2 ani 3."
+   }
+  }
+ ]
+}

@@ -343,7 +343,10 @@ def apply_verdict(con, task_id: int, verdict: Verdict, model: str,
             if task is None:
                 raise db.ValidationError([f"nie ma zadania {task_id}"])
             if verdict.verdict == "match":
-                changes = {"edited": {}, "deleted": {}, "described": {}}
+                # Uwagi przy `match` (rozjazd wymagania, literówka CKE) idą do
+                # dziennika: to jedyne miejsce, gdzie człowiek je potem znajdzie.
+                changes = {"edited": {}, "deleted": {}, "described": {},
+                           **({"notes": verdict.reasons} if verdict.reasons else {})}
                 created = False
             else:
                 created = create_missing(cur, task_id, verdict.record)

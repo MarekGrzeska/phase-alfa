@@ -111,7 +111,8 @@
       {# `task verify` nie rozstrzygnął — powody z dziennika, żeby człowiek
          nie robił diagnozy drugi raz. #}
       <div class="hints">
-        <strong class="small">Model {{ task.model_notes.model }} nie rozstrzygnął tego zadania
+        <strong class="small">Model {{ task.model_notes.model }}
+          {% if task.model_notes.action == 'unsure' %}nie rozstrzygnął tego zadania{% else %}rozstrzygnął, ale zostawił uwagi{% endif %}
           ({{ task.model_notes.when }}):</strong>
         <ul class="small">
           {% for r in task.model_notes.reasons %}<li>{{ r }}</li>{% endfor %}

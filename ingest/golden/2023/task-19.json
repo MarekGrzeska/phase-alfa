@@ -1,0 +1,110 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2023-05-24",
+ "year": 2023,
+ "task": "19",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Z pięciu prostopadłościennych klocków o jednakowych wymiarach ułożono figurę. Kształt i wybrane wymiary tej figury przedstawiono na rysunku. 23 cm 20,5 cm 5 cm Oblicz objętość jednego klocka. Zapisz obliczenia. OMAP-100-2305 Strona 19 z 20",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Niech a i b oznaczają długości klocka.\n2a+b=23\n\na+2b=20,5\n\nb=23-2a\n\na+2(23-2a)=20,5\n-3a=-25,5\n a=8,5\nb=6\n\nV=8,5\\cdot6\\cdot5=255 cm³",
+   "intent": "Uczeń poprawnie odczytał z rysunku zależności między wymiarami, obliczył oba boki podstawy i wyznaczył objętość klocka z jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 1,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "\"V=8,5\\cdot6\\cdot5=255 cm³\"",
+      "note": "Wynik objętości nie jest poprawny, ponieważ długości krawędzi zostały ustalone błędnie."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "\"a+2b=20,5\"",
+      "note": "Ten zapis nie jest poprawną zależnością między długościami krawędzi, więc uczeń nie podał poprawnego sposobu obliczenia obu krawędzi."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "\"b=23-2a\" oraz \"V=8,5\\cdot6\\cdot5=255 cm³\"",
+      "note": "Uczeń podał poprawny wzór na objętość z uwzględnieniem poprawnej zależności równoważnej zapisowi 2a+b=23."
+     }
+    ],
+    "justification": "Uczeń zapisał poprawną zależność „2a+b=23”, a następnie równoważnie „b=23-2a”, oraz zastosował wzór na objętość klocka o trzech krawędziach a, b i 5. Druga zależność „a+2b=20,5” jest błędna, dlatego nie można przyznać 2 ani 3 punktów."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "2a+b=23\n a+2b=20,5\n\nZ układu wychodzi a=8,5, b=6.\n\nV=8,5\\cdot6\\cdot5=250 cm³",
+   "intent": "Uczeń zastosował poprawną metodę i wyznaczył prawidłowe wymiary klocka, ale popełnił błąd rachunkowy przy mnożeniu.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "V=8,5\\cdot6\\cdot5=250 cm³",
+      "note": "Wynik nie jest poprawny, a długości krawędzi użyte w obliczeniu nie wynikają z prawidłowych zależności."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "2a+b=23\na+2b=20,5",
+      "note": "Druga zapisana zależność nie odpowiada warunkom zadania; poprawne zależności prowadzą do krawędzi 2,5 cm i 18 cm."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "Z układu wychodzi a=8,5, b=6.",
+      "note": "Uczeń nie ustalił poprawnych długości dwóch krawędzi ani nie zapisał poprawnej zależności między nimi."
+     }
+    ],
+    "justification": "Zapis „a+2b=20,5” jest nieprawidłowy dla przedstawionej figury, więc układ równań nie stanowi poprawnego sposobu rozwiązania. Ponadto nawet dla zapisanego układu podane wartości „a=8,5, b=6” nie są jego rozwiązaniem, a wynik „250 cm³” jest błędny."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "V=23\\cdot20,5\\cdot5=2357,5 cm³\n\n2357,5:5=471,5 cm³",
+   "intent": "Uczeń potraktował podane wymiary jak wymiary całej prostopadłościennej bryły i podzielił jej objętość przez pięć, pomijając kształt ułożenia klocków.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "„V=23\\cdot20,5\\cdot5=2357,5 cm³”",
+      "note": "Zapis oblicza objętość z wymiarów całej figury, a nie jednego klocka, więc wynik nie jest poprawny."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "„V=23\\cdot20,5\\cdot5=2357,5 cm³”",
+      "note": "Uczeń nie wyznaczył poprawnie długości dwóch krawędzi klocka ani nie zapisał poprawnego sposobu obliczenia jego objętości."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "„2357,5:5=471,5 cm³”",
+      "note": "W odpowiedzi nie ma poprawnej zależności między krawędziami klocka, równania prowadzącego do ich wyznaczenia ani poprawnego wzoru na objętość klocka z uwzględnieniem tych zależności."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "„V=23\\cdot20,5\\cdot5=2357,5 cm³”",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Uczeń przyjął liczby „23”, „20,5” i „5” bezpośrednio jako wymiary jednego klocka, choć 23 cm i 20,5 cm dotyczą ułożonej figury. Nie wyznaczył wymaganych wymiarów klocka 2,5 cm i 18 cm ani nie otrzymał poprawnej objętości 225 cm³."
+   }
+  }
+ ]
+}

@@ -108,12 +108,17 @@ def arkusze_dla(r: dict, wersje, spis) -> dict:
             znalezione[litera] = {"sciezka": a["sciezka_lokalna"], "url": a["url"]}
 
     # Gdy zeszyt jest jeden, należy do jedynej wersji — cokolwiek stoi w jego nazwie.
+    # Zeszyt BEZ litery (roczniki 2020–2023: `OMAP-100-2004.pdf`) obsługuje każdą
+    # wersję klucza: zadania otwarte są w obu takie same, a bez tej reguły trzy
+    # roczniki wariantu bazowego zostawały bez treści i bez zasobów.
     out = {}
     for w in wersje:
         if w in znalezione:
             out[w] = znalezione[w]
         elif len(znalezione) == 1 and len(wersje) == 1:
             out[w] = next(iter(znalezione.values()))
+        elif None in znalezione:
+            out[w] = znalezione[None]
     return out
 
 

@@ -1,0 +1,110 @@
+{
+ "exam_form": "OMAP-100-X",
+ "session": "2024-05-15",
+ "year": 2024,
+ "task": "18",
+ "max_points": 3,
+ "content_source": "paper",
+ "task_text": "Pan Jan sprzedał w swoim sklepie 120 kg truskawek. Połowę masy tych truskawek sprzedał w dużych opakowaniach, 10% masy truskawek - w średnich, a pozostałe truskawki w małych opakowaniach. W tabeli podano informacje dotyczące sprzedaży truskawek w sklepie pana Jana. SKLEP U JANA Rodzaj Masa truskawek Cena opakowania opakowania w opakowaniu z truskawkami duże 1 kg 18 zł średnie 0,5 kg 10 zł małe 0,25 kg 6 zł Oblicz, jaką kwotę otrzymał pan Jan ze sprzedaży wszystkich truskawek. Zapisz obliczenia. Strona 18 z 21 OMAP-100-2405",
+ "answers": [
+  {
+   "kind": "full",
+   "text": "Duże: 120 : 2 = 60 kg\n60 : 1 = 60 op.\n60 · 18 zł = 1080 zł\n\nŚrednie: 120 · 10% = 12 kg\n12 : 0,5 = 24 op.\n24 · 10 zł = 240 zł\n\nMałe: 120 − 60 − 12 = 48 kg\n48 : 0,25 = 192 op.\n192 · 6 zł = 1152 zł\n\n1080 + 240 + 1152 = 2472 zł",
+   "intent": "Uczeń poprawnie obliczył masy, liczbę opakowań i kwoty dla każdego rodzaju, a następnie zsumował je z poprawnym wynikiem i jednostką.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 3,
+    "criteria": [
+     {
+      "points": 3,
+      "met": true,
+      "quote": "„60 · 18 zł = 1080 zł”, „24 · 10 zł = 240 zł”, „192 · 6 zł = 1152 zł”, „1080 + 240 + 1152 = 2472 zł”",
+      "note": "Uczeń zapisał poprawne obliczenia kwot ze sprzedaży wszystkich trzech rodzajów opakowań i poprawny wynik końcowy."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "„60 · 18 zł = 1080 zł” oraz „24 · 10 zł = 240 zł”",
+      "note": "Uczeń poprawnie wyznaczył kwoty ze sprzedaży co najmniej dwóch rodzajów opakowań."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "„Duże: 120 : 2 = 60 kg” oraz „Średnie: 120 · 10% = 12 kg”",
+      "note": "Uczeń poprawnie obliczył masy truskawek sprzedanych co najmniej w dwóch rodzajach opakowań."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 3 punkty. Wszystkie masy, liczby opakowań, kwoty cząstkowe oraz suma „2472 zł” są poprawne; nie występuje błąd rachunkowy."
+   }
+  },
+  {
+   "kind": "partial",
+   "text": "Duże: 120 : 2 = 60 kg, więc 60 · 18 = 1080 zł\nŚrednie: 120 · 10% = 12 kg, 12 : 0,5 = 24, 24 · 10 = 240 zł\nMałe: 120 − 60 − 12 = 48 kg, 48 : 0,25 = 182, 182 · 6 = 1092 zł\n1080 + 240 + 1092 = 2412 zł",
+   "intent": "Uczeń zastosował poprawną metodę i dobrze policzył dwa pierwsze rodzaje opakowań, ale popełnił błąd rachunkowy przy dzieleniu 48 przez 0,25, przez co otrzymał zły wynik końcowy.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 2,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "Małe: 120 − 60 − 12 = 48 kg, 48 : 0,25 = 182, 182 · 6 = 1092 zł",
+      "note": "Obliczenie liczby małych opakowań jest błędne, więc nie ma prawidłowych obliczeń i wyniku końcowego 2472 zł."
+     },
+     {
+      "points": 2,
+      "met": true,
+      "quote": "Duże: 120 : 2 = 60 kg, więc 60 · 18 = 1080 zł\nŚrednie: 120 · 10% = 12 kg, 12 : 0,5 = 24, 24 · 10 = 240 zł",
+      "note": "Zapisano poprawne obliczenia kwot ze sprzedaży truskawek w co najmniej dwóch rodzajach opakowań: dużych i średnich."
+     },
+     {
+      "points": 1,
+      "met": true,
+      "quote": "Duże: 120 : 2 = 60 kg, więc 60 · 18 = 1080 zł",
+      "note": "Zapisano poprawne wyrażenie prowadzące do obliczenia kwoty ze sprzedaży truskawek w dużych opakowaniach."
+     }
+    ],
+    "justification": "Najwyższy spełniony próg to 2 pkt, ponieważ poprawnie obliczono kwoty dla dużych i średnich opakowań. W zapisie „48 : 0,25 = 182” wystąpił błąd rachunkowy; poprawna liczba małych opakowań to 192, a zatem końcowa kwota 2412 zł jest błędna."
+   }
+  },
+  {
+   "kind": "wrong",
+   "text": "120 · 18 zł = 2160 zł\n2160 + 10% = 2376 zł\nPan Jan otrzymał 2376 zł.",
+   "intent": "Uczeń pomnożył całą masę przez cenę dużego opakowania i błędnie potraktował pozostałe ceny jako procent, więc nie uwzględnił liczby opakowań ani ich rodzajów.",
+   "author": "model:openai:gpt-5.6-luna",
+   "grading": {
+    "grader": "model:openai:gpt-5.6-terra",
+    "points": 0,
+    "criteria": [
+     {
+      "points": 3,
+      "met": false,
+      "quote": "120 · 18 zł = 2160 zł\n2160 + 10% = 2376 zł",
+      "note": "Nie zapisano poprawnych wyrażeń prowadzących do obliczenia kwoty ze wszystkich rodzajów opakowań ani wyniku 2472 zł."
+     },
+     {
+      "points": 2,
+      "met": false,
+      "quote": "120 · 18 zł = 2160 zł",
+      "note": "Zapis nie oblicza poprawnie kwoty sprzedaży w żadnym z wymaganych rodzajów opakowań."
+     },
+     {
+      "points": 1,
+      "met": false,
+      "quote": "120 · 18 zł = 2160 zł",
+      "note": "Nie ma poprawnego wyrażenia obliczającego masę w dwóch rodzajach opakowań, liczbę opakowań, ceny 1 kg ani kwotę za duże opakowania."
+     },
+     {
+      "points": 0,
+      "met": true,
+      "quote": "2160 + 10% = 2376 zł",
+      "note": "Rozwiązanie jest błędne."
+     }
+    ],
+    "justification": "Zapis „120 · 18 zł = 2160 zł” nie uwzględnia, że w dużych opakowaniach sprzedano tylko połowę, a nie całość 120 kg truskawek. Działanie „2160 + 10% = 2376 zł” nie jest poprawnym sposobem obliczenia przychodu, więc uczeń nie spełnia warunków żadnego dodatniego progu."
+   }
+  }
+ ]
+}
