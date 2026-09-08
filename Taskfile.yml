@@ -259,7 +259,7 @@ tasks:
     desc: Build frontu ekranu korekty (React) do ingest/correction/static/
     dir: ingest/correction/ui
     sources: ['src/**/*', 'package.json', 'vite.config.ts', 'tsconfig.json']
-    generates: ['../static/agent-panel.js', '../static/agent-panel.css']
+    generates: ['../static/correction.js', '../static/correction.css']
     cmds:
       - pnpm install --frozen-lockfile
       - pnpm run build

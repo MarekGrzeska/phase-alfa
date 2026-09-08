@@ -16,9 +16,10 @@ jinja2 = pytest.importorskip("jinja2")
 
 TEMPLATES = Path(__file__).resolve().parents[1] / "correction" / "templates"
 
-# Szablony, które dziedziczą po `base.html` — czyli każdy ekran narzędzia.
+# Szablony, które dziedziczą po `base.html` — czyli każdy ekran, którego jeszcze
+# nie przepisano na Reacta. Przegląd (`/`) zszedł już z tej listy: rysuje go
+# `app.html` plus `main.tsx`.
 SCREENS = [
-    "index.html",
     "task.html",
     "inspect_index.html",
     "inspect_list.html",
@@ -36,12 +37,17 @@ def environment() -> jinja2.Environment:
     )
 
 
-def test_kontener_i_paczka_sa_w_szablonie_wspolnym(environment) -> None:
-    """Kontener panelu, styl i skrypt — wszystko w `base.html`, nie w widoku."""
-    html = environment.get_template("base.html").render()
+@pytest.mark.parametrize("shell", ["base.html", "app.html"])
+def test_kontener_i_paczka_sa_w_obu_skorupach(environment, shell: str) -> None:
+    """Panel jest tak samo na stronach Jinja, jak na widokach Reacta.
+
+    Dwie skorupy żyją obok siebie tylko na czas migracji — dopóki żyją, agent
+    ma być na każdej, bo korektor przechodzi między nimi w jednej sesji.
+    """
+    html = environment.get_template(shell).render()
     assert 'id="agent-root"' in html
-    assert '/static/agent-panel.js' in html
-    assert '/static/agent-panel.css' in html
+    assert '/static/correction.js' in html
+    assert '/static/correction.css' in html
 
 
 def test_kontener_stoi_poza_kolumna_tresci(environment) -> None:

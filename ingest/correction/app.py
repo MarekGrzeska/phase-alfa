@@ -24,7 +24,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from correction import assets, db, inspector, pages, stats
+from correction import api, assets, db, inspector, pages
 from pdf import crop as crop_pdf
 
 app = FastAPI(title="Klucz — ekran korekty", docs_url=None, redoc_url=None)
@@ -34,6 +34,8 @@ app = FastAPI(title="Klucz — ekran korekty", docs_url=None, redoc_url=None)
 # a nie wywalić cały ekran korekty przy starcie.
 STATIC = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC), check_dir=False), name="static")
+
+app.include_router(api.router)
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["STATUS_LABELS"] = db.STATUS_LABELS
@@ -60,18 +62,6 @@ def _started_at(raw: str | None) -> datetime:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return min(parsed, now)
-
-
-def _scope(year: str = "", code: str = "", variant: str = "") -> dict:
-    """Zakres pracy — rocznik, kod, wariant. Puste pole znaczy „cały korpus".
-
-    Zakres jedzie w adresie i w ukrytych polach formularza, bo przeżywa
-    przekierowanie na `/next`: pilot G2.2 ma zostać w swoim roczniku,
-    a nie wyprowadzić korektora do pierwszego czekającego klucza z 2019 r.
-    """
-    return {"year": int(year) if year.isdigit() else None,
-            "code": code or None,
-            "variant": variant or None}
 
 
 def _scope_query(scope: dict) -> str:
@@ -148,7 +138,7 @@ def _render_task(request: Request, cur, task: dict, started_at: datetime,
                  edited_before: bool = False, scope: dict | None = None,
                  status_code: int = 200) -> HTMLResponse:
     source = db.page_source(cur, task["id"]) or {}
-    scope = scope or _scope()
+    scope = scope or db.parse_scope()
     return templates.TemplateResponse(
         request,
         "task.html",
@@ -173,34 +163,21 @@ def _render_task(request: Request, cur, task: dict, started_at: datetime,
 # ----------------------------------------------------------------------- trasy
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, status: str = "", year: str = "", code: str = "",
-          variant: str = "") -> HTMLResponse:
-    # Wszystkie filtry przyjmują TEKST i puste znaczy „wszystkie" — bo tak
-    # wygląda opcja „wszystkie" w formularzu obok. Przy `year: int | None`
-    # własny formularz tej strony wracał z 422, a `status` spoza listy z 400:
-    # jedyny sposób na filtrowanie był ustawić wszystkie naraz.
-    if status and status not in db.STATUSES:
-        raise HTTPException(400, f"nieznany status: {status}")
-    scope = _scope(year, code, variant)
-    with db.connect() as con, con.cursor() as cur:
-        return templates.TemplateResponse(
-            request,
-            "index.html",
-            {
-                "numbers": stats.collect(cur),
-                "tasks": db.list_tasks(cur, status=status or None, **scope),
-                "options": db.filters(cur),
-                "selected": {"status": status or None, **scope},
-                "scope_query": _scope_query(scope),
-                "next_id": db.next_pending(cur, **scope),
-            },
-        )
+def index(request: Request) -> HTMLResponse:
+    """Przegląd korekty. Widok rysuje React, dane bierze z `/api/overview`.
+
+    Filtry NIE są tu czytane: ten sam adres z parametrami czyta front i podaje
+    je zapytaniu. Serwer oddaje tylko skorupę, więc nie ma dwóch miejsc,
+    w których „pusty rocznik" znaczy coś innego.
+    """
+    return templates.TemplateResponse(
+        request, "app.html", {"title": "Postęp korekty", "view": "overview"})
 
 
 @app.get("/next")
 def next_task(year: str = "", code: str = "", variant: str = "") -> RedirectResponse:
     """Wejście do pracy: pierwsze nierozstrzygnięte zadanie w kolejności arkuszy."""
-    scope = _scope(year, code, variant)
+    scope = db.parse_scope(year, code, variant)
     with db.connect() as con, con.cursor() as cur:
         task_id = db.next_pending(cur, **scope)
     query = _scope_query(scope)
@@ -221,7 +198,7 @@ def task_form(request: Request, task_id: int, started_at: str | None = None,
         return _render_task(request, cur, task, _started_at(started_at),
                             errors=[], page=page,
                             edited_before=edited_before == "1",
-                            scope=_scope(year, code, variant))
+                            scope=db.parse_scope(year, code, variant))
 
 
 @app.get("/task/{task_id}/page.png")
@@ -300,7 +277,7 @@ async def task_save(request: Request, task_id: int):
     # zapis i przekierowanie). Bez tego zadanie poprawione, a zatwierdzone
     # dopiero po dołożeniu progu, wchodziło do statystyki jako trafienie parsera.
     edited_before = str(form.get("edited_before") or "") == "1"
-    scope = _scope(str(form.get("year") or ""), str(form.get("code") or ""),
+    scope = db.parse_scope(str(form.get("year") or ""), str(form.get("code") or ""),
                    str(form.get("variant") or ""))
     scope_query = _scope_query(scope)
 

@@ -119,6 +119,18 @@ def filters(cur) -> dict[str, list]:
 # przycisk wyprowadza z pilotu do pierwszego czekającego zadania z 2019 r.
 # Rzutowania są konieczne, nie ozdobne: nieotypowany NULL w `IS NULL` każe
 # Postgresowi zgadywać typ parametru i kończy się błędem.
+def parse_scope(year: str = "", code: str = "", variant: str = "") -> dict:
+    """Zakres pracy z parametrów adresu — rocznik, kod, wariant.
+
+    Wszystko wchodzi TEKSTEM i puste znaczy „cały korpus", bo tak wygląda
+    opcja „wszystkie" w liście wyboru. Przy `year: int | None` własny formularz
+    ekranu wracał z 422 i jedyny sposób na filtrowanie był ustawić wszystko naraz.
+    """
+    return {"year": int(year) if year.isdigit() else None,
+            "code": code or None,
+            "variant": variant or None}
+
+
 SCOPE_SQL = """(%(year)s::smallint  IS NULL OR d.year = %(year)s)
              AND (%(code)s::text    IS NULL OR d.code = %(code)s)
              AND (%(variant)s::text IS NULL

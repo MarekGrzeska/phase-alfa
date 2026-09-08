@@ -2,14 +2,32 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { AgentPanel } from "./agent/AgentPanel";
+import { Overview } from "./overview/Overview";
+import "./app/screen.css";
 import "./agent/panel.css";
 
-// Wyspa, a nie aplikacja: ekrany korekty są na razie renderowane przez Jinja,
-// a React siedzi w jednym kontenerze obok nich. Kolejne kroki migracji będą
-// zabierać stąd kolejne ekrany, aż zostanie sam React.
-const container = document.getElementById("agent-root");
-if (container) {
-  createRoot(container).render(
+// Migracja idzie ekranami, więc paczka musi umieć oba stany naraz: panel agenta
+// doklejany do stron Jinja i widok, który Jinja już oddała Reactowi. Który to
+// widok, mówi `data-view` na kontenerze — routing zostaje po stronie serwera,
+// bo adresy tego narzędzia są w notatkach i w zakładkach.
+const VIEWS = {
+  overview: Overview,
+};
+
+const page = document.getElementById("root");
+const view = page?.dataset.view;
+if (page && view !== undefined && view in VIEWS) {
+  const View = VIEWS[view as keyof typeof VIEWS];
+  createRoot(page).render(
+    <StrictMode>
+      <View />
+    </StrictMode>,
+  );
+}
+
+const panel = document.getElementById("agent-root");
+if (panel) {
+  createRoot(panel).render(
     <StrictMode>
       <AgentPanel />
     </StrictMode>,

@@ -25,9 +25,9 @@ export default defineConfig({
         format: "es",
         // Stałe nazwy bez hasza: odwołuje się do nich szablon Jinja,
         // a szablon nie umie odczytać manifestu.
-        entryFileNames: "agent-panel.js",
-        chunkFileNames: "agent-panel-[name].js",
-        assetFileNames: "agent-panel.[ext]",
+        entryFileNames: "correction.js",
+        chunkFileNames: "correction-[name].js",
+        assetFileNames: "correction.[ext]",
       },
     },
   },

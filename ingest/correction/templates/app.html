@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pl">
+{# Strona dla widoków, które renderuje już React. Bez `base.html`: tamten niesie
+   belkę i treść z Jinja, a tutaj oba rysuje `main.tsx`. Wspólny jest styl —
+   jedna paczka dla obu sposobów, żeby ekran nie zmieniał wyglądu w pół migracji. #}
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }} · Klucz</title>
+<link rel="stylesheet" href="/static/correction.css">
+</head>
+<body>
+<div class="workspace">
+<div class="workspace-content">
+  <div id="root" data-view="{{ view }}"></div>
+</div>
+<div id="agent-root"></div>
+<script type="module" src="/static/correction.js"></script>
+</div>
+</body>
+</html>

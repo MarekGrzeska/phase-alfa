@@ -164,11 +164,38 @@ def _events(con) -> list[dict]:
     ).fetchall()
 
 
-def test_strona_glowna_pokazuje_pomiar(client, task):
+def test_strona_glowna_oddaje_skorupe_dla_frontu(client, task):
+    """Przegląd rysuje React, więc serwer ma tu oddać kontener, a nie liczby."""
     response = client.get("/")
     assert response.status_code == 200
-    assert "Statystyka korekty" in response.text
-    assert "parser trafił sam" in response.text
+    assert 'data-view="overview"' in response.text
+
+
+def test_przeglad_podaje_pomiar_w_json(client, task):
+    """Te same liczby co dawny szablon — tyle że jako dane, nie jako HTML."""
+    response = client.get("/api/overview")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["numbers"]["status"]["total"] >= 1
+    assert set(body["numbers"]) >= {"status", "durations", "forecast", "years", "assets"}
+    assert body["status_labels"]["approved"] == "zatwierdzone"
+    assert any(row["id"] == task["id"] for row in body["tasks"])
+
+
+def test_przeglad_filtruje_po_zakresie(client, task):
+    """Zakres zawęża listę — i pusty zakres nie jest błędem, tylko „wszystko"."""
+    # Rocznik z fixture'y: klucz OMAP-100 z sesji 2025-05-01.
+    pasujace = client.get("/api/overview?year=2025").json()
+    assert any(row["id"] == task["id"] for row in pasujace["tasks"])
+    assert pasujace["selected"]["year"] == 2025
+
+    obce = client.get("/api/overview?year=2019").json()
+    assert all(row["id"] != task["id"] for row in obce["tasks"])
+
+
+def test_przeglad_odrzuca_status_spoza_slownika(client, task):
+    """Więzy zostają ostre także na wejściu: nieznany status to 400, nie pusta lista."""
+    assert client.get("/api/overview?status=zatwierdzone").status_code == 400
 
 
 def test_formularz_pokazuje_strukture_kryteriow(client, task):
@@ -504,18 +531,16 @@ def test_zapis_nie_gubi_zakresu(client, con, task):
 
 
 def test_lista_filtruje_po_wariancie(client, task, klucz_z_innego_rocznika):
-    """Adresy porównujemy ZE ZNAKIEM ZAPYTANIA, bo `/task/1` jest podciągiem `/task/12`.
+    """Wariant zawęża listę zadań — klucz wspólny dla kilku wariantów też ma trafiać.
 
-    Bez domknięcia numeru test zaczyna kłamać, gdy tylko fixture urośnie
-    do dwucyfrowych identyfikatorów.
+    Porównanie po identyfikatorach, a nie po tekście strony: listę rysuje dziś
+    front z `/api/overview`, więc to odpowiedź JSON jest tym, co widzi korektor.
     """
-    tylko_700 = client.get("/?variant=700")
-    assert f"/task/{klucz_z_innego_rocznika}?" in tylko_700.text
-    assert f"/task/{task['id']}?" not in tylko_700.text
+    def ids(variant: str) -> set[int]:
+        return {row["id"] for row in client.get(f"/api/overview?variant={variant}").json()["tasks"]}
 
-    tylko_100 = client.get("/?variant=100")
-    assert f"/task/{task['id']}?" in tylko_100.text
-    assert f"/task/{klucz_z_innego_rocznika}?" not in tylko_100.text
+    assert ids("700") == {klucz_z_innego_rocznika}
+    assert ids("100") == {task["id"]}
 
 
 @pytest.fixture
