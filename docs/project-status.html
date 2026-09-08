@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stan prac i co dalej</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600;700&display=swap">
+
+<style>
+  /* Ten sam system tokenów co `a2-korpus.html` i `a3-ocenianie.html` — dokumenty
+     kamieni mają być rodzeństwem. Nowe tu jest tylko `.rank` (lista priorytetów). */
+  :root {
+    --paper:      #f7f8fa;
+    --surface:    #ffffff;
+    --sunk:       #eef1f5;
+    --ink:        #12181f;
+    --ink-soft:   #4a5563;
+    --ink-faint:  #78838f;
+    --rule:       #c9d2dc;
+    --rule-soft:  #e2e8ef;
+    --seal:       #1b4d8f;
+    --seal-soft:  #e8eff8;
+    --mark:       #c0392b;
+    --mark-soft:  #fbeceb;
+    --done:       #2e7d63;
+    --done-soft:  #e7f2ee;
+
+    --col: 66ch;
+    --wide: 62rem;
+
+    --face-display: "Spectral", "Georgia", "Times New Roman", serif;
+    --face-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --face-mono: "IBM Plex Mono", "Consolas", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #10151b;
+      --surface:   #161d26;
+      --sunk:      #1b232e;
+      --ink:       #e4e9ef;
+      --ink-soft:  #a9b4c0;
+      --ink-faint: #7b8794;
+      --rule:      #2f3b49;
+      --rule-soft: #232c37;
+      --seal:      #7fb0e8;
+      --seal-soft: #1a2735;
+      --mark:      #ef8378;
+      --mark-soft: #2c1d1d;
+      --done:      #63c3a1;
+      --done-soft: #16271f;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #10151b;
+    --surface:   #161d26;
+    --sunk:      #1b232e;
+    --ink:       #e4e9ef;
+    --ink-soft:  #a9b4c0;
+    --ink-faint: #7b8794;
+    --rule:      #2f3b49;
+    --rule-soft: #232c37;
+    --seal:      #7fb0e8;
+    --seal-soft: #1a2735;
+    --mark:      #ef8378;
+    --mark-soft: #2c1d1d;
+    --done:      #63c3a1;
+    --done-soft: #16271f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--face-body);
+    font-size: clamp(1rem, 0.96rem + 0.2vw, 1.075rem);
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 1.25rem 6rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--wide); margin: 0 auto; }
+  .col { max-width: var(--col); }
+
+  /* ---------------------------------------------------------- nagłówek */
+  .masthead {
+    padding: 4.5rem 0 2.5rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 3rem;
+  }
+  .eyebrow {
+    font-family: var(--face-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--seal);
+    margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--face-display);
+    font-weight: 700;
+    font-size: clamp(2.3rem, 1.5rem + 3.4vw, 3.9rem);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 1.25rem;
+  }
+  .standfirst {
+    font-size: clamp(1.08rem, 1rem + 0.4vw, 1.28rem);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 52ch;
+    margin: 0;
+  }
+  .stamp {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--face-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  /* ---------------------------------------------------------- sekcje */
+  section { margin: 0 0 4.5rem; }
+
+  h2 {
+    font-family: var(--face-display);
+    font-weight: 600;
+    font-size: clamp(1.6rem, 1.25rem + 1.4vw, 2.2rem);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0 0 0.4rem;
+  }
+  h3 {
+    font-family: var(--face-body);
+    font-weight: 600;
+    font-size: 1.02rem;
+    line-height: 1.35;
+    margin: 0 0 0.35rem;
+  }
+  .kicker {
+    font-family: var(--face-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 1.6rem;
+  }
+  p { margin: 0 0 1.05rem; }
+  .col p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; }
+  em { font-style: normal; color: var(--seal); font-weight: 500; }
+
+  code, .mono {
+    font-family: var(--face-mono);
+    font-size: 0.87em;
+  }
+  code {
+    background: var(--sunk);
+    border-radius: 3px;
+    padding: 0.1em 0.34em;
+  }
+
+  /* ---------------------------------------------------------- diagram */
+  figure {
+    margin: 2.5rem 0 0;
+    padding: 1.75rem 1.5rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    background-image:
+      linear-gradient(var(--rule-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px);
+    background-size: 25px 25px, 25px 25px;
+    overflow-x: auto;
+  }
+  figure svg { display: block; width: 100%; min-width: 680px; height: auto; }
+  /* Kolor niesie stan: czerwień = puste albo czeka na człowieka, zieleń = stoi. */
+  figure svg .mk { fill: var(--mark); }
+  figure svg .mk-s { stroke: var(--mark); }
+  figure svg .ok-s { stroke: var(--done); }
+  figure svg .ok { fill: var(--done); }
+  figcaption {
+    font-size: 0.87rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin-top: 1.25rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--rule-soft);
+    max-width: 62ch;
+  }
+
+  /* ---------------------------------------------------------- karty liczb */
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin-top: 2.25rem;
+  }
+  .fig {
+    background: var(--surface);
+    padding: 1.5rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .fig .big {
+    font-family: var(--face-mono);
+    font-weight: 600;
+    font-size: clamp(1.9rem, 1.4rem + 1.6vw, 2.5rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .fig .lede { font-weight: 600; font-size: 0.95rem; }
+  .fig .note { font-size: 0.86rem; line-height: 1.45; color: var(--ink-soft); }
+  .fig.is-done .big { color: var(--done); }
+  .fig.is-open .big { color: var(--mark); }
+  .fig.is-plain .big { color: var(--seal); }
+
+  /* ---------------------------------------------------------- etapy */
+  .stages { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 2.25rem; }
+  .stage {
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem 1.4rem;
+  }
+  .stage .id {
+    font-family: var(--face-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--seal);
+    padding-top: 0.15rem;
+  }
+  .stage p { margin: 0; max-width: 62ch; }
+  .stage .measure {
+    font-family: var(--face-mono);
+    font-size: 0.83rem;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    margin-top: 0.7rem;
+    padding-left: 0.85rem;
+    border-left: 2px solid var(--seal);
+    color: var(--ink-soft);
+  }
+  .stage .measure.ready { border-left-color: var(--done); }
+  .stage .measure.pending { border-left-color: var(--mark); }
+  @media (max-width: 34rem) {
+    .stage { grid-template-columns: 1fr; gap: 0.5rem; }
+  }
+
+  /* ---------------------------------------------------------- priorytety */
+  .rank { counter-reset: rank; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 2.25rem; list-style: none; padding: 0; }
+  .rank > li {
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 3.25rem 1fr;
+    gap: 1.4rem;
+    padding: 1.6rem 1.4rem;
+  }
+  .rank > li::before {
+    counter-increment: rank;
+    content: counter(rank);
+    font-family: var(--face-mono);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--seal);
+    border-top: 2px solid var(--seal);
+    padding-top: 0.5rem;
+  }
+  .rank > li.is-hot::before { color: var(--mark); border-top-color: var(--mark); }
+  .rank .body p { margin: 0 0 0.7rem; max-width: 62ch; }
+  .rank .body p:last-child { margin-bottom: 0; }
+  .rank .done-when {
+    font-family: var(--face-mono);
+    font-size: 0.83rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    padding-left: 0.85rem;
+    border-left: 2px solid var(--rule);
+  }
+  .rank .done-when b { color: var(--ink); font-weight: 600; }
+  @media (max-width: 34rem) {
+    .rank > li { grid-template-columns: 1fr; gap: 0.6rem; }
+    .rank > li::before { justify-self: start; }
+  }
+
+  /* ---------------------------------------------------------- tabela */
+  .ledger-wrap { overflow-x: auto; margin-top: 2.25rem; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: 0.92rem; }
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-family: var(--face-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 1rem 1.1rem 0.75rem;
+  }
+  th, td { padding: 0.62rem 1.1rem; text-align: left; vertical-align: top; }
+  thead th {
+    font-family: var(--face-mono);
+    font-size: 0.73rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  tbody tr + tr td, tbody tr + tr th { border-top: 1px solid var(--rule-soft); }
+  td.num { font-family: var(--face-mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  td.hot { color: var(--mark); font-weight: 600; }
+  tbody th[scope="row"] { font-family: var(--face-mono); font-size: 0.83rem; font-weight: 600; color: var(--seal); white-space: nowrap; }
+
+  /* ---------------------------------------------------------- status */
+  .checks { list-style: none; padding: 0; margin: 2.25rem 0 0; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .checks li {
+    background: var(--surface);
+    padding: 1rem 1.35rem;
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .tag {
+    font-family: var(--face-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.28rem 0.5rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .tag.done { background: var(--done-soft); color: var(--done); }
+  .tag.open { background: var(--mark-soft); color: var(--mark); }
+  .tag.plan { background: var(--seal-soft); color: var(--seal); }
+  .checks .what { font-size: 0.96rem; line-height: 1.5; }
+  .checks .why { display: block; font-size: 0.86rem; color: var(--ink-soft); margin-top: 0.2rem; }
+  @media (max-width: 34rem) {
+    .checks li { grid-template-columns: 1fr; gap: 0.5rem; }
+    .tag { justify-self: start; }
+  }
+
+  /* ---------------------------------------------------------- pułapki */
+  .traps { counter-reset: trap; display: grid; gap: 1.5rem; margin-top: 2.25rem; }
+  .trap { display: grid; grid-template-columns: 2.25rem 1fr; gap: 1.1rem; }
+  .trap::before {
+    counter-increment: trap;
+    content: counter(trap);
+    font-family: var(--face-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--mark);
+    border-top: 2px solid var(--mark);
+    padding-top: 0.4rem;
+  }
+  .trap p { margin: 0; max-width: 60ch; font-size: 0.96rem; }
+
+  /* ---------------------------------------------------------- pull */
+  .pull {
+    border-left: 3px solid var(--seal);
+    padding: 0.4rem 0 0.4rem 1.4rem;
+    margin: 2.25rem 0;
+    font-family: var(--face-display);
+    font-size: clamp(1.15rem, 1rem + 0.7vw, 1.45rem);
+    line-height: 1.45;
+    font-weight: 500;
+    max-width: 46ch;
+  }
+
+  footer {
+    margin-top: 5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--face-mono);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: var(--ink-faint);
+  }
+
+  a { color: var(--seal); text-underline-offset: 0.18em; }
+  a:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--seal);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Faza alfy · przegląd stanu · po A2-auto</p>
+    <h1>Narzędzia stoją.<br>Brakuje człowieka i&nbsp;silnika</h1>
+    <p class="standfirst">
+      A1 zamknięty, A2 zamknięty dla wariantu 100 — 159 zadań w korpusie,
+      rozstrzygniętych w całości modelem, za około cztery dolary. Zostały dwie rzeczy:
+      próbka ludzka, bez której nie ma żadnej liczby do wniosku, i moduł
+      <code>Klucz.Grading</code>, który wciąż jest pustym plikiem.
+    </p>
+    <p class="stamp">
+      <span>Stan na 8.09.2026</span> <span>·</span>
+      <span>gałąź <code>main</code> = <code>origin/main</code>, drzewo czyste</span> <span>·</span>
+      <span>ostatni commit <code>0046628</code></span>
+    </p>
+  </header>
+
+  <!-- ============================================ 1. gdzie jesteśmy -->
+  <section>
+    <p class="kicker">Jednym zdaniem</p>
+    <h2>Wszystko, co się dało zautomatyzować, jest zautomatyzowane</h2>
+    <div class="col">
+      <p>
+        Cztery dni temu decyzja o A2-auto odwróciła zasadę „LLM proponuje, człowiek
+        zatwierdza". Wyszło lepiej, niż zakładał plan: wariant 100 wszystkich ośmiu
+        roczników wjechał do korpusu w jeden dzień, z zerową kolejką <code>unsure</code>,
+        a pierwszy przebieg na sucho wykrył przy okazji <strong>błąd systematyczny
+        parsera</strong> dotykający 1346 zadań zamkniętych.
+      </p>
+      <p>
+        Skutek uboczny jest taki, że <em>w projekcie nie ma dziś ani jednego rekordu,
+        którego dotknął człowiek</em>. Korpus rozstrzygnął model, golden set napisał model,
+        oceny w golden secie postawił model. Trzy z czterech liczb, którymi alfa ma się
+        obronić — S6′, S7, S8′ — mają dziś wartość „pomiar niegotowy”.
+      </p>
+    </div>
+
+    <div class="figures">
+      <div class="fig is-done">
+        <span class="big">159</span>
+        <span class="lede">zadań w korpusie</span>
+        <span class="note">133 <code>approved</code> · 26 <code>corrected</code> · 0 <code>unsure</code>.
+          Z 1436 sparsowanych — reszta wariantów czeka.</span>
+      </div>
+      <div class="fig is-plain">
+        <span class="big">~$4</span>
+        <span class="lede">koszt całego wariantu 100</span>
+        <span class="note"><code>verify</code> $2,94 + luka zeszytów $1,2 + <code>describe</code> $0,26
+          + <code>frame</code> $0,06. Około $0,018 na zadanie.</span>
+      </div>
+      <div class="fig is-open">
+        <span class="big">0</span>
+        <span class="lede">rekordów tkniętych ręką</span>
+        <span class="note">Udział modelu w korpusie: 100,0%. Próbka ludzka — 16 zadań,
+          20 opisów, 10 ocen — wciąż przed autorem.</span>
+      </div>
+      <div class="fig is-open">
+        <span class="big">0</span>
+        <span class="lede">linii w <code>Klucz.Grading</code></span>
+        <span class="note">Moduł istnieje, kompiluje się, rejestruje pustkę w DI.
+          <code>task bench</code> to dziś <code>echo</code>.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 2. diagram łańcucha -->
+  <section>
+    <p class="kicker">Cały łańcuch</p>
+    <h2>Gdzie kończy się to, co działa</h2>
+    <div class="col">
+      <p>
+        Lewa połowa obrazka istnieje i była uruchamiana na prawdziwych danych. Prawa
+        połowa to plan A3. Punkt styku jest jeden i został ustalony tygodnie temu:
+        widok <code>corpus_task</code> plus kontrakt zadania po HTTP, który przeglądarka
+        korpusu z W2 już czyta.
+      </p>
+    </div>
+
+    <figure>
+      <svg viewBox="0 0 980 300" role="img"
+           aria-label="Łańcuch przetwarzania: PDF-y z mirrora CKE przechodzą przez parser Pythona do tabeli task, gdzie jest 1436 sparsowanych zadań. Bramka verify z modelem przepuściła 159 z nich do widoku corpus_task — to korpus. Korpus czyta moduł Klucz.Corpus i przeglądarka W2, oba działają. Dalej pipeline oceniania A3 i plac oceniania W3 są puste. Osobno golden set: 40 zadań otwartych po trzy odpowiedzi, napisanych i ocenionych modelem, czeka na próbkę ludzką i na benchmark.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+          </marker>
+        </defs>
+
+        <g fill="currentColor" font-family="IBM Plex Mono, monospace">
+
+          <!-- ---------- linia pozioma: co działa ---------- -->
+          <g font-size="12.5">
+            <rect x="14" y="72" width="104" height="58" fill="none"
+                  stroke="currentColor" stroke-width="1" opacity="0.65"></rect>
+            <text x="66" y="96" text-anchor="middle" opacity="0.85">mirror CKE</text>
+            <text x="66" y="113" text-anchor="middle" opacity="0.55" font-size="11">PDF · 8 roczników</text>
+
+            <rect x="148" y="72" width="118" height="58" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="207" y="96" text-anchor="middle" font-size="13">parser</text>
+            <text x="207" y="113" text-anchor="middle" font-size="11" opacity="0.6">pdfplumber</text>
+
+            <rect x="296" y="72" width="118" height="58" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <text x="355" y="96" text-anchor="middle" font-size="13">task</text>
+            <text x="355" y="113" text-anchor="middle" font-size="11" opacity="0.6">1436 sparsowanych</text>
+
+            <rect x="444" y="60" width="132" height="82" fill="none" class="ok-s" stroke-width="1.5"></rect>
+            <text x="510" y="88" text-anchor="middle" font-size="13" class="ok">verify</text>
+            <text x="510" y="106" text-anchor="middle" font-size="11" opacity="0.65">bramka · model</text>
+            <text x="510" y="122" text-anchor="middle" font-size="11" opacity="0.65">0 unsure</text>
+
+            <rect x="606" y="72" width="132" height="58" fill="none" class="ok-s" stroke-width="2"></rect>
+            <text x="672" y="96" text-anchor="middle" font-size="13" class="ok">corpus_task</text>
+            <text x="672" y="113" text-anchor="middle" font-size="11" opacity="0.65">159 zadań</text>
+          </g>
+
+          <g stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#ar)">
+            <path d="M 118 101 H 144"></path>
+            <path d="M 266 101 H 292"></path>
+            <path d="M 414 101 H 440"></path>
+            <path d="M 576 101 H 602"></path>
+          </g>
+
+          <!-- ---------- konsumenci gotowi ---------- -->
+          <g font-size="12.5">
+            <rect x="790" y="34" width="176" height="54" fill="none" class="ok-s" stroke-width="1.5"></rect>
+            <text x="878" y="56" text-anchor="middle" font-size="13" class="ok">Klucz.Corpus + API</text>
+            <text x="878" y="73" text-anchor="middle" font-size="11" opacity="0.65">czyta, nie parsuje · G1.3</text>
+
+            <rect x="790" y="102" width="176" height="54" fill="none" class="ok-s" stroke-width="1.5"></rect>
+            <text x="878" y="124" text-anchor="middle" font-size="13" class="ok">przeglądarka W2</text>
+            <text x="878" y="141" text-anchor="middle" font-size="11" opacity="0.65">korpus + pulpit postępu</text>
+          </g>
+          <g stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#ar)">
+            <path d="M 738 92 H 764 V 61 H 786"></path>
+            <path d="M 738 110 H 764 V 129 H 786"></path>
+          </g>
+
+          <!-- ---------- czego nie ma ---------- -->
+          <g font-size="12.5">
+            <rect x="606" y="196" width="132" height="66" fill="none" class="mk-s"
+                  stroke-width="1.5" stroke-dasharray="5 4"></rect>
+            <text x="672" y="222" text-anchor="middle" font-size="13" class="mk">Klucz.Grading</text>
+            <text x="672" y="239" text-anchor="middle" font-size="11" class="mk" opacity="0.8">pusty · G3.1–G3.2</text>
+
+            <rect x="790" y="196" width="176" height="66" fill="none" class="mk-s"
+                  stroke-width="1.5" stroke-dasharray="5 4"></rect>
+            <text x="878" y="222" text-anchor="middle" font-size="13" class="mk">plac oceniania W3</text>
+            <text x="878" y="239" text-anchor="middle" font-size="11" class="mk" opacity="0.8">nie ruszony</text>
+
+            <rect x="296" y="196" width="242" height="66" fill="none" stroke="currentColor"
+                  stroke-width="1.5" opacity="0.8"></rect>
+            <text x="417" y="222" text-anchor="middle" font-size="13">golden set</text>
+            <text x="417" y="239" text-anchor="middle" font-size="11" opacity="0.6">40 zadań × 3 odpowiedzi · autor i oceniający: model</text>
+          </g>
+
+          <g stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#ar)" opacity="0.55">
+            <path d="M 672 134 V 192"></path>
+            <path d="M 538 229 H 602"></path>
+            <path d="M 738 229 H 786"></path>
+          </g>
+
+          <!-- ---------- brakujące ogniwo: człowiek ---------- -->
+          <g font-size="12.5">
+            <rect x="14" y="196" width="242" height="66" fill="none" class="mk-s"
+                  stroke-width="2"></rect>
+            <text x="135" y="222" text-anchor="middle" font-size="13" class="mk">próbka ludzka</text>
+            <text x="135" y="239" text-anchor="middle" font-size="11" class="mk" opacity="0.8">16 zadań · 20 opisów · 10 ocen — zero</text>
+          </g>
+          <g stroke-width="1.4" fill="none" marker-end="url(#ar)" class="mk-s" opacity="0.85">
+            <path d="M 256 229 H 292"></path>
+          </g>
+          <g class="mk-s" stroke-width="1.4" fill="none" stroke-dasharray="4 4" opacity="0.7">
+            <path d="M 135 192 V 150 H 510 V 146"></path>
+          </g>
+        </g>
+      </svg>
+      <figcaption>
+        Ciągła linia to ścieżka, którą dane przeszły naprawdę. Przerywane ramki są puste.
+        Czerwona przerywana od „próbki ludzkiej" do bramki <code>verify</code> to jedyne
+        połączenie, które istnieje wyłącznie w planie — a bez niego nikt nie wie,
+        ile warta jest zieleń po prawej.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================ 3. co stoi -->
+  <section>
+    <p class="kicker">Inwentarz</p>
+    <h2>Co jest zbudowane i uruchamiane</h2>
+
+    <ul class="checks">
+      <li>
+        <span class="tag done">A1</span>
+        <span class="what">Szkielet: monorepo, Postgres w Dockerze, monolit C# z pilnowanymi granicami modułów, OpenAPI → klient TS, CI z czterema równoległymi zadaniami
+          <span class="why">G1.1–G1.5 zamknięte, każde z przeglądem kodu w <code>docs/review/</code>.</span></span>
+      </li>
+      <li>
+        <span class="tag done">Ingest</span>
+        <span class="what">65 plików Pythona: mirror, warstwa PDF, parser OMAP E8, ładowarka, ekran korekty, cztery przebiegi LLM (<code>prefill</code>, <code>describe</code>, <code>frame</code>, <code>verify</code>), MathJSON, golden set, raporty, menu CLI
+          <span class="why">24 pliki testowe, 9 migracji schematu, 36 poleceń w <code>Taskfile.yml</code>.</span></span>
+      </li>
+      <li>
+        <span class="tag done">Korpus</span>
+        <span class="what">Wariant 100 wszystkich ośmiu roczników w <code>corpus_task</code>, z kolumną <code>reviewed_by</code> i możliwością cofnięcia jednym <code>UPDATE</code>
+          <span class="why">Odwracalność jest w schemacie (migracja 0009), nie w pamięci autora.</span></span>
+      </li>
+      <li>
+        <span class="tag done">Web</span>
+        <span class="what">W2: przeglądarka korpusu, widok zadania, pulpit postępu ingestu; <code>packages/core</code> bez DOM pilnowane testem
+          <span class="why">Czyta wyłącznie <code>corpus_task</code>; jedyny wyjątek to <code>GET /corpus/progress</code>, i jest świadomy.</span></span>
+      </li>
+      <li>
+        <span class="tag plan">Golden</span>
+        <span class="what">40 zadań otwartych × 3 odpowiedzi (pełna, częściowa, błędna) = 120 ocen za $0,85; udział punktów full 0,94 · partial 0,46 · wrong 0,04
+          <span class="why">Autor i oceniający to dwa modele OpenAI. Prawdziwie druga rodzina czeka na <code>ANTHROPIC_API_KEY</code> — kod jest gotowy.</span></span>
+      </li>
+      <li>
+        <span class="tag open">A3</span>
+        <span class="what">Nic. <code>GradingModule</code> rejestruje pustkę, <code>task bench</code> wypisuje komunikat, <code>Klucz.Learning</code> czeka na A4
+          <span class="why">To jest miejsce, w którym stoi dziś ścieżka krytyczna.</span></span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ============================================ 4. liczby -->
+  <section>
+    <p class="kicker">Rachunek</p>
+    <h2>Korpus w liczbach, na 4.09</h2>
+    <div class="col">
+      <p>
+        Kolumna <strong>korpus</strong> liczy po <code>corpus_task</code>, kolumna
+        <strong>sparsowane</strong> po całej tabeli <code>task</code>. Różnica to
+        materiał na nocny przebieg <code>verify --batch</code>, nie dziura.
+      </p>
+    </div>
+
+    <div class="ledger-wrap">
+      <table>
+        <caption>Raport kompletności · <code>task corpus:report</code></caption>
+        <thead>
+          <tr><th scope="col">Sprawdzian</th><th scope="col">Korpus</th><th scope="col">Sparsowane</th><th scope="col">Uwaga</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">zadania</th><td class="num">159</td><td class="num">1436</td><td>11% materiału, dobrany celowo: jeden wariant × osiem roczników</td></tr>
+          <tr><th scope="row">zamknięte z odpowiedzią</th><td class="num">119</td><td class="num">1087</td><td>ocenia je <code>EvaluateClosed</code>, bez modelu i bez kosztu</td></tr>
+          <tr><th scope="row">otwarte z kryteriami</th><td class="num">40</td><td class="num">349</td><td>cały golden set stoi na tych czterdziestu</td></tr>
+          <tr><th scope="row">kryteria z ≥1 warunkiem</th><td class="num">349</td><td class="num">3315</td><td>—</td></tr>
+          <tr><th scope="row">zapisy z MathJSON</th><td class="num">55</td><td class="num">419</td><td>11 świadomych odmów w korpusie; A3 traktuje je jak warunek tekstowy</td></tr>
+          <tr><th scope="row">zasoby z ramką</th><td class="num">115</td><td class="num">598</td><td>1 ramka „cała strona" została — odmowa modelu uznana za zasadną</td></tr>
+          <tr><th scope="row">zasoby bez zatwierdzonego opisu</th><td class="num hot">116</td><td class="num">651</td><td>115 ma opis <code>auto</code>; <em>zatwierdzonych przez człowieka: 0</em></td></tr>
+          <tr><th scope="row">wymagania bez zadania</th><td class="num">139</td><td class="num">0</td><td>naturalne przy jednym wariancie — mapa braków z A4 potrzebuje pokrycia</td></tr>
+          <tr><th scope="row">reguły arkusza z zakresem</th><td class="num">54</td><td class="num">442</td><td>wejście dla kroku <code>Compose</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="pull">
+      Trzy liczby do wniosku — S6′, S7, S8′ — mają dziś wartość zero.
+      Nie dlatego, że coś nie działa, tylko dlatego, że nikt jeszcze nie usiadł
+      do ekranu korekty.
+    </p>
+  </section>
+
+  <!-- ============================================ 5. priorytety -->
+  <section>
+    <p class="kicker">Na czym skupić się teraz</p>
+    <h2>Pięć rzeczy w kolejności, w jakiej się opłacają</h2>
+    <div class="col">
+      <p>
+        Kolejność wynika z jednej zasady: <strong>najpierw to, co odblokowuje resztę
+        albo traci wartość z czasem</strong>. Próbka ludzka jest pierwsza nie dlatego,
+        że jest największa — jest najmniejsza — tylko dlatego, że bez niej każda następna
+        liczba jest zdaniem „model zgadza się z modelem".
+      </p>
+    </div>
+
+    <ol class="rank">
+      <li class="is-hot">
+        <div class="body">
+          <h3>Próbka ludzka: 16 zadań, 20 opisów, 10 ocen golden</h3>
+          <p>
+            Jeden dzień pracy w ekranie korekty. Bierzemy zadania, przy których model
+            zostawił uwagę mimo werdyktu <code>match</code> — rozjazdy wymagań podstawy
+            (II.1 kontra II.2, XXII.2 kontra V.2) są już wypisane nad formularzem i to
+            są gotowi kandydaci. Do tego 20 opisów rysunków i 10 zadań golden ocenionych
+            ręcznie obok oceny modelu B.
+          </p>
+          <p>
+            To jedyna pozycja na liście, której nie da się kupić tokenami, i jedyna,
+            która blokuje <em>wszystkie</em> pomiary alfy naraz.
+          </p>
+          <p class="done-when"><b>Zrobione, gdy:</b> <code>task corpus:report</code>
+            wypisuje S6′, S7 i S8′ jako liczby, a nie „pomiar niegotowy”.</p>
+        </div>
+      </li>
+      <li class="is-hot">
+        <div class="body">
+          <h3>G3.1 — cztery kroki deterministyczne w <code>Klucz.Grading</code></h3>
+          <p>
+            <code>Normalize</code>, <code>MatchCriteria</code>, <code>EvaluateClosed</code>,
+            <code>Compose</code> — czysty C#, zero wywołań modelu, testy na utrwalonych
+            przypadkach wchodzą do CI. Wejścia są komplet: korpus stoi, MathJSON z G2.6
+            obsłuży równoważność wyrażeń, kontrakt zadania po HTTP jest ustalony i czytany
+            przez W2 od tygodni.
+          </p>
+          <p>
+            Zaczynamy od <code>EvaluateClosed</code>, bo to 119 ze 159 zadań korpusu
+            — trzy czwarte materiału ocenia się bez modelu i bez kosztu. Zamknięte
+            dają pierwszy pomiar zgodności zanim powstanie port modelu.
+          </p>
+          <p class="done-when"><b>Zrobione, gdy:</b> pipeline przechodzi zadanie zamknięte
+            z korpusu od odpowiedzi do punktów, a regresja łamie build.</p>
+        </div>
+      </li>
+      <li>
+        <div class="body">
+          <h3>G3.2 + G3.3 — port <code>IGradingModel</code> i <code>task bench</code></h3>
+          <p>
+            Port ze structured output: werdykt per kryterium plus cytat z odpowiedzi
+            ucznia, licznik tokenów i kosztu wbudowany w port — dokładnie tak, jak
+            <code>llm.py</code> robi to w ingeście. Potem <code>task bench</code>
+            przepuszcza 40 zadań golden przez pipeline i wypisuje jedną liczbę zgodności,
+            osobno dla zamkniętych i otwartych.
+          </p>
+          <p>
+            Benchmark ma sens dopiero po punkcie 1: bez próbki ludzkiej mierzy zgodność
+            modelu C z modelem B, a to nie jest pytanie, które ktokolwiek zadał.
+          </p>
+          <p class="done-when"><b>Zrobione, gdy:</b> <code>task bench</code> zapisuje
+            wynik do pliku w repozytorium, z rozrzutem względem próbki ludzkiej przy
+            każdej liczbie zgodności.</p>
+        </div>
+      </li>
+      <li>
+        <div class="body">
+          <h3>W3.1 — plac oceniania, równolegle z G3.1</h3>
+          <p>
+            Ekran z jednym zadaniem i werdyktem z cytatem. Ma powstawać od pierwszego
+            dnia A3, nie na końcu: to on dostarcza prawdziwe wejście z MathLive dla kroku
+            <code>Normalize</code>, więc pułapki formatu wychodzą, gdy kod jeszcze się
+            pisze, a nie po benchmarku.
+          </p>
+          <p class="done-when"><b>Zrobione, gdy:</b> odpowiedź wpisana w przeglądarce
+            wraca z punktacją policzoną przez <code>Klucz.Grading</code>.</p>
+        </div>
+      </li>
+      <li>
+        <div class="body">
+          <h3>Reszta wariantów — 1277 zadań nocnym <code>verify --batch</code></h3>
+          <p>
+            Około $12 i jeden przebieg. Świadomie odłożone: dopiero gdy A3 na wariancie
+            100 potwierdzi, że korpus się trzyma. Błąd systematyczny w promptcie naprawia
+            się na 159 zadaniach w godzinę, na 1436 — w dzień. Dokładnie tak wyszło
+            4.09 przy bloku „Rozwiązanie – wersja X/Y".
+          </p>
+          <p class="done-when"><b>Zrobione, gdy:</b> <code>corpus:report</code> pokazuje
+            komplet roczników, a dry-run na roczniku poprzedza każdy <code>--apply</code>.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============================================ 6. dług -->
+  <section>
+    <p class="kicker">Dług, który rośnie po cichu</p>
+    <h2>Cztery rzeczy do zrobienia przy okazji</h2>
+
+    <div class="stages">
+      <div class="stage">
+        <span class="id">nazwy</span>
+        <div>
+          <p>
+            Ponad sto z 582 nazw funkcji w <code>ingest/</code> jest wciąż po polsku
+            (<code>czytaj_klucz</code>, <code>polaczenie</code>, <code>_tnij_zadania</code>,
+            <code>arkusze_dla</code>). Dług nazwany wprost w <code>CLAUDE.md</code> przy
+            regule 4, świadomie odłożony — ale każdy nowy plik LLM-owy dokłada do niego.
+          </p>
+          <p class="measure pending">osobny commit, zero zmian zachowania — inaczej nie da się
+odróżnić regresji od przemianowania</p>
+        </div>
+      </div>
+      <div class="stage">
+        <span class="id">docs</span>
+        <div>
+          <p>
+            <code>docs/a3-ocenianie.html</code> ma nieaktualną tabelę zależności wejściowych:
+            pisze „golden set 0 z ~150" i „korpus 0 zatwierdzonych", gdy jest 40 zadań
+            i 159 rekordów. To najczęściej czytana strona przed startem A3 — i mówi,
+            że A3 jest zablokowane, choć nie jest.
+          </p>
+          <p class="measure pending">tabela zależności + karta „0 odpowiedzi w golden secie"
+do przepisania</p>
+        </div>
+      </div>
+      <div class="stage">
+        <span class="id">liczby</span>
+        <div>
+          <p>
+            Rozjazd w dokumentach: <code>plan-A2-auto.md</code> mówi 136 <code>approved</code>
+            / 23 <code>corrected</code>, raport i <code>DECYZJE.md</code> — 133 / 26. Raport
+            liczy z bazy, więc rację ma raport; plan zapisano przed ostatnim przebiegiem.
+          </p>
+          <p class="measure pending">jedna liczba w trzech miejscach = jedna prawda w bazie</p>
+        </div>
+      </div>
+      <div class="stage">
+        <span class="id">README</span>
+        <div>
+          <p>
+            Wiersz A2 w <code>README.md</code> kończy się słowami „korekta ręczna przed nami",
+            co po A2-auto znaczy już co innego: nie korekta 159 zadań, tylko próbka 16.
+            Pozycja pierwsza z listy priorytetów powinna być widoczna w tabeli stanu,
+            bo to ona jest dziś jedyną pracą ręczną w projekcie.
+          </p>
+          <p class="measure ready">jeden wiersz tabeli · przy okazji następnego commita w docs</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 7. ryzyka -->
+  <section>
+    <p class="kicker">Czego pilnować</p>
+    <h2>Rzeczy, które najłatwiej teraz zepsuć</h2>
+
+    <div class="traps">
+      <div class="trap">
+        <p>
+          <strong>Benchmark mierzący sam siebie.</strong> Model pisze odpowiedzi, model je
+          ocenia, model będzie oceniany w A3. Bez próbki ludzkiej i bez trzeciej rodziny
+          modeli liczba zgodności z benchmarku nie znaczy nic — i co gorsza, wygląda dobrze.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong>Więz bazy poluzowany dla wygody.</strong> Rekord, którego baza nie przyjmuje,
+          idzie do <code>unsure</code> i jest robotą dla człowieka. Nigdy dla
+          <code>--force</code>. Ta zasada przetrwała A2-auto i ma przetrwać A3.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong>C# sięgający po PDF.</strong> Granica warstw jest pilnowana testem
+          architektury, ale A3 to pierwszy kamień, w którym pojawi się pokusa: „przy ocenie
+          otwartego przydałby się obraz strony". Obraz ma przyjść z ingestu jako wycinek
+          albo opis, nie z <code>pdfplumber</code> w module oceniania.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong>Nocny przebieg przed czasem.</strong> $12 to nie jest dużo, ale 1277 zadań
+          rozstrzygniętych złym promptem to jest dzień na przeładowanie i utrata pewności,
+          co właściwie jest w bazie. Dry-run na jednym roczniku przed każdym
+          <code>--apply</code> — to reguła z 4.09, kupiona za $1,38.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Źródła liczb: <code>docs/corpus-A2.txt</code> (raport z 4.09.2026, 12:48) ·
+      <code>docs/plan-A2-auto.md</code>, dziennik wykonania ·
+      <code>cke-mirror/docs/DECYZJE.md</code>, sekcja 6 · stan repozytorium na commicie <code>0046628</code>.
+    </p>
+    <p>
+      Dokumenty siostrzane: <a href="a2-korpus.html">a2-korpus.html</a> ·
+      <a href="a3-ocenianie.html">a3-ocenianie.html</a> ·
+      <a href="ingest-overview.html">ingest-overview.html</a> ·
+      <a href="g1.2-ingest.html">g1.2-ingest.html</a> ·
+      <a href="review/">docs/review/</a>
+    </p>
+  </footer>
+
+</div>
+
+</body>
+</html>

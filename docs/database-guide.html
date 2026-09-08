@@ -1,0 +1,1662 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Baza od środka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600;700&display=swap">
+
+<style>
+  /* Ten sam system tokenów co `a2-korpus.html`, `a3-ocenianie.html`
+     i `project-status.html`. Nowe tutaj: `.cols` (tabela kolumn) i `.legend`. */
+  :root {
+    --paper:      #f7f8fa;
+    --surface:    #ffffff;
+    --sunk:       #eef1f5;
+    --ink:        #12181f;
+    --ink-soft:   #4a5563;
+    --ink-faint:  #78838f;
+    --rule:       #c9d2dc;
+    --rule-soft:  #e2e8ef;
+    --seal:       #1b4d8f;
+    --seal-soft:  #e8eff8;
+    --mark:       #c0392b;
+    --mark-soft:  #fbeceb;
+    --done:       #2e7d63;
+    --done-soft:  #e7f2ee;
+
+    --col: 66ch;
+    --wide: 68rem;
+
+    --face-display: "Spectral", "Georgia", "Times New Roman", serif;
+    --face-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --face-mono: "IBM Plex Mono", "Consolas", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #10151b;
+      --surface:   #161d26;
+      --sunk:      #1b232e;
+      --ink:       #e4e9ef;
+      --ink-soft:  #a9b4c0;
+      --ink-faint: #7b8794;
+      --rule:      #2f3b49;
+      --rule-soft: #232c37;
+      --seal:      #7fb0e8;
+      --seal-soft: #1a2735;
+      --mark:      #ef8378;
+      --mark-soft: #2c1d1d;
+      --done:      #63c3a1;
+      --done-soft: #16271f;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #10151b;
+    --surface:   #161d26;
+    --sunk:      #1b232e;
+    --ink:       #e4e9ef;
+    --ink-soft:  #a9b4c0;
+    --ink-faint: #7b8794;
+    --rule:      #2f3b49;
+    --rule-soft: #232c37;
+    --seal:      #7fb0e8;
+    --seal-soft: #1a2735;
+    --mark:      #ef8378;
+    --mark-soft: #2c1d1d;
+    --done:      #63c3a1;
+    --done-soft: #16271f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--face-body);
+    font-size: clamp(1rem, 0.96rem + 0.2vw, 1.075rem);
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 1.25rem 6rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--wide); margin: 0 auto; }
+  .col { max-width: var(--col); }
+
+  /* ---------------------------------------------------------- nagłówek */
+  .masthead {
+    padding: 4.5rem 0 2.5rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 3rem;
+  }
+  .eyebrow {
+    font-family: var(--face-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--seal);
+    margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--face-display);
+    font-weight: 700;
+    font-size: clamp(2.3rem, 1.5rem + 3.4vw, 3.9rem);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 1.25rem;
+  }
+  .standfirst {
+    font-size: clamp(1.08rem, 1rem + 0.4vw, 1.28rem);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 54ch;
+    margin: 0;
+  }
+  .stamp {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--face-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  /* ---------------------------------------------------------- spis */
+  .toc {
+    margin: 2.5rem 0 0;
+    padding: 1.5rem 0 0;
+    border-top: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.35rem 2rem;
+    list-style: none;
+  }
+  .toc li { font-size: 0.9rem; }
+  .toc .n {
+    font-family: var(--face-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    margin-right: 0.5rem;
+  }
+
+  /* ---------------------------------------------------------- sekcje */
+  section { margin: 0 0 4.5rem; scroll-margin-top: 1.5rem; }
+
+  h2 {
+    font-family: var(--face-display);
+    font-weight: 600;
+    font-size: clamp(1.6rem, 1.25rem + 1.4vw, 2.2rem);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0 0 0.4rem;
+  }
+  h3 {
+    font-family: var(--face-mono);
+    font-weight: 600;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    margin: 3rem 0 0.4rem;
+    color: var(--seal);
+  }
+  h3 .plain { font-family: var(--face-body); font-weight: 400; color: var(--ink-faint); font-size: 0.86rem; }
+  .kicker {
+    font-family: var(--face-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 1.6rem;
+  }
+  p { margin: 0 0 1.05rem; }
+  .col p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; }
+  em { font-style: normal; color: var(--seal); font-weight: 500; }
+
+  code, .mono {
+    font-family: var(--face-mono);
+    font-size: 0.87em;
+  }
+  code {
+    background: var(--sunk);
+    border-radius: 3px;
+    padding: 0.1em 0.34em;
+  }
+
+  /* ---------------------------------------------------------- diagram */
+  figure {
+    margin: 2.5rem 0 0;
+    padding: 1.75rem 1.5rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    background-image:
+      linear-gradient(var(--rule-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px);
+    background-size: 25px 25px, 25px 25px;
+    overflow-x: auto;
+  }
+  figure svg { display: block; width: 100%; min-width: 700px; height: auto; }
+  figure svg .mk { fill: var(--mark); }
+  figure svg .mk-s { stroke: var(--mark); }
+  figure svg .ok { fill: var(--done); }
+  figure svg .ok-s { stroke: var(--done); }
+  figure svg .sl { fill: var(--seal); }
+  figure svg .sl-s { stroke: var(--seal); }
+  figcaption {
+    font-size: 0.87rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin-top: 1.25rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--rule-soft);
+    max-width: 66ch;
+  }
+
+  /* ---------------------------------------------------------- etapy */
+  .stages { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 2.25rem; }
+  .stage {
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem 1.4rem;
+  }
+  .stage .id {
+    font-family: var(--face-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--seal);
+    padding-top: 0.15rem;
+  }
+  .stage .id span { display: block; color: var(--ink-faint); font-weight: 400; font-size: 0.74rem; margin-top: 0.25rem; }
+  .stage p { margin: 0 0 0.6rem; max-width: 64ch; }
+  .stage p:last-child { margin-bottom: 0; }
+  .stage .writes {
+    font-family: var(--face-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    margin-top: 0.7rem;
+    padding-left: 0.85rem;
+    border-left: 2px solid var(--seal);
+    color: var(--ink-soft);
+  }
+  .stage .writes.none { border-left-color: var(--rule); }
+  .stage .writes.gate { border-left-color: var(--done); }
+  .stage .writes b { color: var(--ink); font-weight: 600; }
+  @media (max-width: 40rem) {
+    .stage { grid-template-columns: 1fr; gap: 0.5rem; }
+  }
+
+  /* ---------------------------------------------------------- tabela */
+  .ledger-wrap { overflow-x: auto; margin-top: 1.5rem; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: 0.9rem; }
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-family: var(--face-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 1rem 1.1rem 0.75rem;
+  }
+  th, td { padding: 0.58rem 1rem; text-align: left; vertical-align: top; }
+  thead th {
+    font-family: var(--face-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  tbody tr + tr td, tbody tr + tr th { border-top: 1px solid var(--rule-soft); }
+  td.num { font-family: var(--face-mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  tbody th[scope="row"] { font-family: var(--face-mono); font-size: 0.82rem; font-weight: 600; color: var(--seal); white-space: nowrap; }
+
+  /* Tabela kolumn: nazwa · typ · znaczenie · źródło */
+  .cols table { font-size: 0.875rem; }
+  .cols td.name { font-family: var(--face-mono); font-weight: 600; white-space: nowrap; }
+  .cols td.type { font-family: var(--face-mono); font-size: 0.8rem; color: var(--ink-faint); white-space: nowrap; }
+  .cols td.src { font-size: 0.84rem; color: var(--ink-soft); }
+  .cols td.src b { color: var(--ink); font-weight: 600; font-family: var(--face-mono); font-size: 0.95em; }
+  .cols tr.empty td.name { color: var(--mark); }
+  .cols tr.empty td.src { color: var(--mark); }
+
+  /* ---------------------------------------------------------- status */
+  .checks { list-style: none; padding: 0; margin: 2.25rem 0 0; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .checks li {
+    background: var(--surface);
+    padding: 1rem 1.35rem;
+    display: grid;
+    grid-template-columns: 8rem 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .tag {
+    font-family: var(--face-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.28rem 0.5rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .tag.done { background: var(--done-soft); color: var(--done); }
+  .tag.open { background: var(--mark-soft); color: var(--mark); }
+  .tag.plan { background: var(--seal-soft); color: var(--seal); }
+  .checks .what { font-size: 0.95rem; line-height: 1.5; }
+  .checks .why { display: block; font-size: 0.85rem; color: var(--ink-soft); margin-top: 0.2rem; }
+  @media (max-width: 34rem) {
+    .checks li { grid-template-columns: 1fr; gap: 0.5rem; }
+    .tag { justify-self: start; }
+  }
+
+  /* ---------------------------------------------------------- pułapki */
+  .traps { counter-reset: trap; display: grid; gap: 1.5rem; margin-top: 2.25rem; }
+  .trap { display: grid; grid-template-columns: 2.25rem 1fr; gap: 1.1rem; }
+  .trap::before {
+    counter-increment: trap;
+    content: counter(trap);
+    font-family: var(--face-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--mark);
+    border-top: 2px solid var(--mark);
+    padding-top: 0.4rem;
+  }
+  .trap p { margin: 0; max-width: 62ch; font-size: 0.95rem; }
+  .trap p + p { margin-top: 0.5rem; }
+
+  /* ---------------------------------------------------------- pull */
+  .pull {
+    border-left: 3px solid var(--seal);
+    padding: 0.4rem 0 0.4rem 1.4rem;
+    margin: 2.25rem 0;
+    font-family: var(--face-display);
+    font-size: clamp(1.15rem, 1rem + 0.7vw, 1.45rem);
+    line-height: 1.45;
+    font-weight: 500;
+    max-width: 48ch;
+  }
+
+  pre {
+    background: var(--sunk);
+    border: 1px solid var(--rule-soft);
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    font-family: var(--face-mono);
+    font-size: 0.83rem;
+    line-height: 1.55;
+    margin: 1.5rem 0 0;
+  }
+  pre code { background: none; padding: 0; }
+
+  footer {
+    margin-top: 5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--face-mono);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: var(--ink-faint);
+  }
+
+  a { color: var(--seal); text-underline-offset: 0.18em; }
+  a:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--seal);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Faza alfy · schemat korpusu · przewodnik</p>
+    <h1>Baza od środka</h1>
+    <p class="standfirst">
+      Osiemnaście tabel, trzy widoki, dziewięć migracji. Ten dokument mówi,
+      co siedzi w każdej kolumnie, <strong>kto ją zapisał</strong> i w którym
+      momencie łańcucha — od pobrania PDF-u z cke.gov.pl do odczytu przez moduł C#.
+    </p>
+    <p class="stamp">
+      <span>Stan na 8.09.2026</span> <span>·</span>
+      <span>migracje 0001–0009</span> <span>·</span>
+      <span>PostgreSQL 17</span> <span>·</span>
+      <span>baza <code>klucz</code> na <code>localhost:55434</code></span>
+    </p>
+
+    <ol class="toc">
+      <li><span class="n">01</span><a href="#zasada">Zasada porządkująca</a></li>
+      <li><span class="n">02</span><a href="#chronologia">Chronologia zapisu</a></li>
+      <li><span class="n">03</span><a href="#mapa">Mapa tabel</a></li>
+      <li><span class="n">04</span><a href="#kolumny">Tabele kolumna po kolumnie</a></li>
+      <li><span class="n">05</span><a href="#statusy">Cztery cykle życia</a></li>
+      <li><span class="n">06</span><a href="#odczyt">Kto to czyta</a></li>
+      <li><span class="n">07</span><a href="#puste">Kolumny, których nikt nie wypełnia</a></li>
+      <li><span class="n">08</span><a href="#pulapki">Pułapki</a></li>
+    </ol>
+  </header>
+
+  <!-- ============================================ 1 -->
+  <section id="zasada">
+    <p class="kicker">01 · Zasada porządkująca</p>
+    <h2>Parser produkuje kandydatów. Korpusem jest widok</h2>
+    <div class="col">
+      <p>
+        Cały schemat da się zrozumieć przez jedno rozróżnienie. Tabela
+        <code>task</code> trzyma <strong>wszystko, co parser wyciągnął</strong> —
+        dziś 1436 zadań. Widok <code>corpus_task</code> trzyma <strong>to, co ktoś
+        rozstrzygnął</strong> — dziś 159. Konsumenci korpusu (moduł C#, pipeline A3,
+        przeglądarka webowa) czytają wyłącznie z widoku i nigdy wprost z tabeli.
+      </p>
+      <p>
+        Dzięki temu definicja „co jest korpusem" stoi w <em>jednym miejscu schematu</em>,
+        a nie w kodzie trzech warstw. Zmiana definicji to zmiana widoku, nie audyt
+        Pythona, C# i TypeScriptu.
+      </p>
+      <p>
+        Druga zasada dotyczy pochodzenia: <strong>każda wartość niesie ślad, skąd się
+        wzięła</strong>. Nie w komentarzu, tylko w kolumnie — <code>document.kind_source</code>
+        mówi, po czym rozpoznano typ pliku, <code>task.reviewed_by</code>, kto zatwierdził
+        rekord, <code>asset.description_status</code>, czy alt-text napisał model czy
+        człowiek. Stąd powrót od decyzji A2-auto to jedno zapytanie, a nie archeologia.
+      </p>
+    </div>
+
+    <pre><code>-- Cała definicja korpusu, migracja 0004:
+CREATE VIEW corpus_task AS
+SELECT id, marking_scheme_id, number, position, max_points, kind,
+       page, review_status, reviewed_at
+FROM task
+WHERE review_status IN ('approved', 'corrected');</code></pre>
+
+    <p class="pull">
+      Kolumny w widoku wypisane jawnie, nie przez <code>SELECT *</code>: widok
+      zamraża listę kolumn z chwili utworzenia, więc gwiazdka udawałaby aktualność.
+    </p>
+  </section>
+
+  <!-- ============================================ 2 -->
+  <section id="chronologia">
+    <p class="kicker">02 · Chronologia zapisu</p>
+    <h2>Dziewięć etapów w kolejności, w jakiej dane powstają</h2>
+    <div class="col">
+      <p>
+        Każdy etap to osobne polecenie <code>task</code>, uruchamiane ręcznie.
+        Nie ma tu żadnego demona ani zadania w tle — kolejność wymusza sam schemat:
+        etap N czyta to, co zapisał etap N−1.
+      </p>
+    </div>
+
+    <figure>
+      <svg viewBox="0 0 980 400" role="img"
+           aria-label="Oś czasu dziewięciu etapów zapisu do bazy. Etap zero, mirror, pobiera PDF-y i tworzy plik urls.tsv — bez bazy. Etap jeden, migracje, zakłada schemat i tabelę schema_migrations. Etap dwa, task ingest, to parser i ładowarka: piszą do piętnastu tabel naraz, w jednej transakcji na klucz. Etap trzy, task crops, wycina PNG do blob storage bez pisania do bazy. Etap cztery, task mathjson, wypełnia kolumny mathjson w tabeli condition_expression. Etap pięć, task prefill, dopisuje propozycje do tabeli prefill_suggestion. Etap sześć, task describe, wpisuje opisy rysunków do asset.description. Etap siedem, task frame, poprawia asset.bbox. Etap osiem to bramka: ekran korekty albo task verify ustawiają task.review_status i dopisują wiersz do correction_event — dopiero to wprowadza zadanie do widoku corpus_task. Etap dziewięć to odczyt przez moduł C#, przeglądarkę webową i golden set.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+          </marker>
+        </defs>
+
+        <g fill="currentColor" font-family="IBM Plex Mono, monospace">
+
+          <!-- oś -->
+          <line x1="20" y1="60" x2="960" y2="60" stroke="currentColor"
+                stroke-width="1" opacity="0.35"></line>
+
+          <!-- E0 -->
+          <g font-size="11">
+            <circle cx="60" cy="60" r="5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+            <text x="60" y="40" text-anchor="middle" font-size="11.5" opacity="0.9">E0 mirror</text>
+            <rect x="14" y="82" width="92" height="52" fill="none" stroke="currentColor"
+                  stroke-width="1" opacity="0.5" stroke-dasharray="4 3"></rect>
+            <text x="60" y="103" text-anchor="middle" opacity="0.7">PDF + urls.tsv</text>
+            <text x="60" y="120" text-anchor="middle" opacity="0.5">bez bazy</text>
+          </g>
+
+          <!-- E1 -->
+          <g font-size="11">
+            <circle cx="175" cy="60" r="5" class="sl" ></circle>
+            <text x="175" y="40" text-anchor="middle" font-size="11.5" class="sl">E1 task up</text>
+            <rect x="126" y="82" width="98" height="52" fill="none" class="sl-s" stroke-width="1.2"></rect>
+            <text x="175" y="103" text-anchor="middle" opacity="0.8">migracje 1–9</text>
+            <text x="175" y="120" text-anchor="middle" opacity="0.6">schema_migrations</text>
+          </g>
+
+          <!-- E2 -->
+          <g font-size="11">
+            <circle cx="330" cy="60" r="6" class="sl"></circle>
+            <text x="330" y="40" text-anchor="middle" font-size="11.5" class="sl">E2 task ingest</text>
+            <rect x="248" y="82" width="164" height="122" fill="none" class="sl-s" stroke-width="2"></rect>
+            <text x="330" y="103" text-anchor="middle" opacity="0.9">parser + ładowarka</text>
+            <text x="330" y="124" text-anchor="middle" opacity="0.65">requirement_regime</text>
+            <text x="330" y="139" text-anchor="middle" opacity="0.65">requirement · document</text>
+            <text x="330" y="154" text-anchor="middle" opacity="0.65">exam_form · task</text>
+            <text x="330" y="169" text-anchor="middle" opacity="0.65">task_version · criterion</text>
+            <text x="330" y="184" text-anchor="middle" opacity="0.65">+ 9 kolejnych</text>
+            <text x="330" y="199" text-anchor="middle" opacity="0.45">1 transakcja / klucz</text>
+          </g>
+
+          <!-- E3-E7 -->
+          <g font-size="11">
+            <circle cx="500" cy="60" r="5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+            <text x="500" y="40" text-anchor="middle" font-size="11.5" opacity="0.9">E3–E7 dopiski</text>
+            <rect x="432" y="82" width="136" height="122" fill="none" stroke="currentColor" stroke-width="1.2"></rect>
+            <text x="500" y="102" text-anchor="middle" opacity="0.75">crops → PNG</text>
+            <text x="500" y="122" text-anchor="middle" opacity="0.75">mathjson → jsonb</text>
+            <text x="500" y="142" text-anchor="middle" opacity="0.75">prefill → propozycja</text>
+            <text x="500" y="162" text-anchor="middle" opacity="0.75">describe → opis</text>
+            <text x="500" y="182" text-anchor="middle" opacity="0.75">frame → bbox</text>
+          </g>
+
+          <!-- E8 bramka -->
+          <g font-size="11">
+            <circle cx="690" cy="60" r="6" class="ok"></circle>
+            <text x="690" y="40" text-anchor="middle" font-size="11.5" class="ok">E8 bramka</text>
+            <rect x="600" y="82" width="180" height="122" fill="none" class="ok-s" stroke-width="2"></rect>
+            <text x="690" y="103" text-anchor="middle" class="ok">ekran korekty</text>
+            <text x="690" y="119" text-anchor="middle" class="ok">albo task verify</text>
+            <text x="690" y="143" text-anchor="middle" opacity="0.7">task.review_status</text>
+            <text x="690" y="158" text-anchor="middle" opacity="0.7">task.reviewed_by</text>
+            <text x="690" y="173" text-anchor="middle" opacity="0.7">correction_event</text>
+            <text x="690" y="192" text-anchor="middle" opacity="0.5">tu rekord staje się korpusem</text>
+          </g>
+
+          <!-- E9 odczyt -->
+          <g font-size="11">
+            <circle cx="880" cy="60" r="5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+            <text x="880" y="40" text-anchor="middle" font-size="11.5" opacity="0.9">E9 odczyt</text>
+            <rect x="806" y="82" width="152" height="122" fill="none" stroke="currentColor" stroke-width="1.2"></rect>
+            <text x="880" y="103" text-anchor="middle" opacity="0.75">Klucz.Corpus (C#)</text>
+            <text x="880" y="123" text-anchor="middle" opacity="0.75">przeglądarka W2</text>
+            <text x="880" y="143" text-anchor="middle" opacity="0.75">golden set → JSON</text>
+            <text x="880" y="163" text-anchor="middle" opacity="0.75">corpus:report</text>
+            <text x="880" y="185" text-anchor="middle" opacity="0.5">tylko czytają</text>
+          </g>
+
+          <!-- strzałki między blokami -->
+          <g stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#ar)" opacity="0.6">
+            <path d="M 106 108 H 122"></path>
+            <path d="M 224 108 H 244"></path>
+            <path d="M 412 143 H 428"></path>
+            <path d="M 568 143 H 596"></path>
+            <path d="M 780 143 H 802"></path>
+          </g>
+
+          <!-- pas: co jest widoczne w corpus_task -->
+          <g font-size="11">
+            <line x1="20" y1="248" x2="960" y2="248" stroke="currentColor"
+                  stroke-width="1" opacity="0.2"></line>
+            <text x="20" y="272" opacity="0.55">widoczność w corpus_task</text>
+            <rect x="248" y="286" width="332" height="34" fill="none" class="mk-s"
+                  stroke-width="1.2" stroke-dasharray="5 4"></rect>
+            <text x="414" y="307" text-anchor="middle" class="mk">review_status = 'pending' — poza korpusem</text>
+            <rect x="600" y="286" width="358" height="34" fill="none" class="ok-s" stroke-width="1.5"></rect>
+            <text x="779" y="307" text-anchor="middle" class="ok">'approved' albo 'corrected' — w korpusie</text>
+          </g>
+
+          <g font-size="11" opacity="0.6">
+            <text x="20" y="356">Etapy E3–E7 piszą do rekordów, które NIE są jeszcze korpusem — dlatego można je</text>
+            <text x="20" y="374">powtarzać dowolnie. Po E8 każdy z nich pilnuje statusu i nie nadpisuje pracy człowieka.</text>
+          </g>
+        </g>
+      </svg>
+      <figcaption>
+        Kolejność nie jest umową — jest wymuszona przez klucze obce.
+        <code>task describe</code> nie ma czego opisać, dopóki <code>task ingest</code>
+        nie założy wierszy w <code>asset</code>; <code>task verify</code> nie ma czego
+        rozstrzygać, dopóki nie istnieją kryteria.
+      </figcaption>
+    </figure>
+
+    <div class="stages">
+      <div class="stage">
+        <span class="id">E0<span>mirror</span></span>
+        <div>
+          <p>
+            <code>cke_mirror.py</code> zwozi PDF-y z cke.gov.pl do <code>data/mirror/</code>
+            i produkuje <code>urls.tsv</code>: jeden wiersz na plik, z segmentem, rocznikiem,
+            kodem, wariantami, sesją, rozpoznanym typem i sposobem rozpoznania.
+            Ten plik jest <strong>jedynym źródłem</strong> dla kolumn tabeli
+            <code>document</code> — ładowarka go przepisuje, nie interpretuje.
+          </p>
+          <p class="writes none"><b>zapisuje do bazy:</b> nic — pliki i TSV</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="id">E1<span>task up</span></span>
+        <div>
+          <p>
+            <code>migrate.py</code> wykonuje pliki <code>.sql</code> po kolei, każdy
+            w jednej transakcji razem z wpisem do <code>schema_migrations</code>. Runner
+            liczy SHA-256 treści migracji i porównuje z zapisaną — zmiana choćby komentarza
+            w zastosowanym pliku to dla niego podmiana i zatrzymuje przebieg.
+          </p>
+          <p class="writes"><b>zapisuje:</b> <code>schema_migrations</code> (version, sha256, applied_at)</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="id">E2<span>task ingest</span></span>
+        <div>
+          <p>
+            Parser <code>parsers/omap_e8/parser.py</code> czyta PDF klucza przez
+            <code>pdfplumber</code> i oddaje obiekt <code>Klucz</code>: reżimy, formy,
+            zadania z kryteriami, warunkami, zapisami, wymaganiami, rozwiązaniami
+            przykładowymi i regułami. Ładowarka <code>loader.py</code> przepisuje to
+            na wiersze — <strong>jedna transakcja na jeden klucz</strong>, więc klucz
+            wchodzi w całości albo wcale.
+          </p>
+          <p>
+            Z flagą <code>--with-papers</code> doczytywany jest zeszyt zadań: wtedy
+            powstaje drugi wiersz w <code>document</code> (rola <code>paper</code>),
+            a <code>task_version</code> dostaje treść zadania i wykryte regiony graficzne.
+          </p>
+          <p>
+            Ponowny przebieg kasuje własne wiersze (<code>_wyczysc_klucz</code>) —
+            ale <strong>nie dotknie klucza, w którym cokolwiek jest już rozstrzygnięte</strong>,
+            chyba że padnie jawne <code>--overwrite-reviewed</code>.
+          </p>
+          <p class="writes"><b>zapisuje:</b> <code>requirement_regime</code> ·
+            <code>requirement</code> · <code>document</code> · <code>exam_form</code> ·
+            <code>exam_form_document</code> · <code>task</code> · <code>task_requirement</code> ·
+            <code>task_version</code> · <code>model_answer</code> · <code>criterion</code> ·
+            <code>criterion_condition</code> · <code>condition_expression</code> ·
+            <code>example_solution</code> · <code>rule</code> · <code>asset</code></p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="id">E3<span>task crops</span></span>
+        <div>
+          <p>
+            Czyta <code>asset.bbox</code> i tnie wycinki PNG do blob storage pod ścieżką
+            z <code>asset.path</code>. Z flagą <code>--prune</code> kasuje pliki, do których
+            nie ma już wiersza.
+          </p>
+          <p class="writes none"><b>zapisuje do bazy:</b> nic — tylko pliki PNG</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="id">E4<span>task mathjson</span></span>
+        <div>
+          <p>
+            <code>normalize.py</code> przygotowuje zapis, <code>convert.mjs</code>
+            (Compute Engine, Node) tłumaczy go na MathJSON, <code>fill.py</code> zapisuje
+            wynik. Zapis, którego konwerter nie ugryzł, dostaje status <code>failed</code>
+            i powód po polsku — żeby był w ekranie korekty widoczny jako robota, a nie
+            znikał jako pusta komórka.
+          </p>
+          <p class="writes"><b>zapisuje:</b> <code>condition_expression.mathjson</code>,
+            <code>.mathjson_status</code>, <code>.mathjson_error</code> — nigdy tam,
+            gdzie status to <code>approved</code></p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="id">E5<span>task prefill</span></span>
+        <div>
+          <p>
+            Model czyta stronę klucza i proponuje strukturę progów, warunków i zapisów.
+            Propozycja <strong>nie dotyka tabel korpusu</strong> — ląduje obok, we własnej
+            tabeli, a ekran pokazuje ją jako różnicę przy polu. Wiersz jest jednocześnie
+            znacznikiem ramienia eksperymentu S6.
+          </p>
+          <p class="writes"><b>zapisuje:</b> <code>prefill_suggestion</code> — jeden wiersz
+            na parę (zadanie, model)</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="id">E6<span>task describe</span></span>
+        <div>
+          <p>
+            Alt-text rysunków. Zapis idzie zawsze ze statusem <code>auto</code> i
+            wyłącznie tam, gdzie status nie jest jeszcze ludzki — warunek powtarza sito
+            zapytania, bo między odczytem a zapisem człowiek mógł zdążyć zatwierdzić opis.
+          </p>
+          <p class="writes"><b>zapisuje:</b> <code>asset.description</code>,
+            <code>asset.description_status = 'auto'</code></p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="id">E7<span>task frame</span></span>
+        <div>
+          <p>
+            Dla zasobów, których ramka obejmuje całą stronę: model dostaje obraz strony
+            z siatką i oddaje cztery liczby w pikselach, kod przelicza je na punkty PDF,
+            tnie tą samą funkcją co przycisk „Wytnij" w ekranie i zapisuje ramkę.
+          </p>
+          <p class="writes"><b>zapisuje:</b> <code>asset.bbox</code> + plik PNG</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="id">E8<span>korekta / verify</span></span>
+        <div>
+          <p>
+            Bramka. Dwie drogi, jeden kod: człowiek w ekranie na localhoście albo
+            <code>task verify</code>, w którym model porównuje rekord ze stroną klucza.
+            Obie idą przez te same funkcje <code>db.save</code> i <code>db.decide</code>,
+            więc status <code>approved</code> kontra <code>corrected</code> wychodzi
+            z <strong>porównania z bazą</strong>, a nie z deklaracji.
+          </p>
+          <p>
+            <code>approved</code> znaczy „parser trafił sam", <code>corrected</code> —
+            „coś poprawiono". Różnica między nimi jest wynikiem badawczym alfy, więc
+            trzymana jest jako osobny status, nie jako flaga.
+          </p>
+          <p class="writes gate"><b>zapisuje:</b> <code>task.review_status</code>,
+            <code>.reviewed_at</code>, <code>.reviewed_by</code>, <code>.review_model</code> ·
+            <code>correction_event</code> · edycje w sześciu tabelach korpusu ·
+            <code>asset</code> (ramka i opis) · <code>document.ingest_status</code></p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="id">E9<span>odczyt</span></span>
+        <div>
+          <p>
+            Od tego miejsca baza jest tylko czytana. <code>Klucz.Corpus</code> w C#
+            składa zadanie z ośmiu zapytań, przeglądarka W2 dostaje je po HTTP,
+            <code>golden/grade.py</code> bierze kryteria do oceny odpowiedzi,
+            <code>reports/corpus.py</code> liczy kompletność.
+          </p>
+          <p class="writes none"><b>zapisuje:</b> nic</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ 3 -->
+  <section id="mapa">
+    <p class="kicker">03 · Mapa tabel</p>
+    <h2>Osiemnaście tabel w sześciu blokach</h2>
+    <div class="col">
+      <p>
+        Podział na bloki jest ten sam, co w pliku migracji 0001 — i nie jest kosmetyczny:
+        blok mówi, <em>kiedy</em> wiersz powstaje i <em>co go kasuje</em>. Wszystko poniżej
+        <code>task</code> wisi na kaskadzie, więc przeładowanie klucza czyści całe poddrzewo
+        jednym <code>DELETE</code>.
+      </p>
+    </div>
+
+    <figure>
+      <svg viewBox="0 0 980 520" role="img"
+           aria-label="Diagram relacji. Blok pierwszy: requirement_regime, do którego odnoszą się requirement i exam_form. Blok drugi: document, z którego wychodzą exam_form_document i task. Blok trzeci: task, a pod nim task_requirement łączące zadanie z wymaganiem, task_version z model_answer i asset pod spodem. Blok czwarty: criterion pod zadaniem, criterion_condition pod kryterium, condition_expression pod warunkiem — trzy poziomy dysjunkcji. Obok example_solution i answer_example, oba wiszące na zadaniu. Blok piąty: rule wisząca na dokumencie klucza. Blok szósty, dołożony migracjami: correction_event i prefill_suggestion, oba wiszące na zadaniu. Na dole widok corpus_task, filtrujący tabelę task po statusie.">
+        <defs>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+          </marker>
+        </defs>
+        <g fill="currentColor" font-family="IBM Plex Mono, monospace" font-size="11.5">
+
+          <!-- podstawa programowa -->
+          <rect x="14" y="26" width="150" height="40" fill="none" stroke="currentColor" stroke-width="1.3"></rect>
+          <text x="89" y="51" text-anchor="middle">requirement_regime</text>
+
+          <rect x="14" y="108" width="150" height="40" fill="none" stroke="currentColor" stroke-width="1.3"></rect>
+          <text x="89" y="133" text-anchor="middle">requirement</text>
+
+          <!-- dokumenty -->
+          <rect x="222" y="26" width="130" height="40" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+          <text x="287" y="51" text-anchor="middle">document</text>
+
+          <rect x="222" y="108" width="130" height="40" fill="none" stroke="currentColor" stroke-width="1.3"></rect>
+          <text x="287" y="133" text-anchor="middle">exam_form</text>
+
+          <rect x="222" y="190" width="130" height="40" fill="none" stroke="currentColor" stroke-width="1"></rect>
+          <text x="287" y="209" text-anchor="middle" font-size="10.5">exam_form_</text>
+          <text x="287" y="222" text-anchor="middle" font-size="10.5">document</text>
+
+          <!-- zadanie -->
+          <rect x="410" y="108" width="132" height="44" fill="none" class="sl-s" stroke-width="2.4"></rect>
+          <text x="476" y="135" text-anchor="middle" class="sl" font-size="13">task</text>
+
+          <rect x="410" y="26" width="132" height="40" fill="none" stroke="currentColor" stroke-width="1"></rect>
+          <text x="476" y="45" text-anchor="middle" font-size="10.5">task_</text>
+          <text x="476" y="58" text-anchor="middle" font-size="10.5">requirement</text>
+
+          <rect x="410" y="196" width="132" height="40" fill="none" stroke="currentColor" stroke-width="1.3"></rect>
+          <text x="476" y="221" text-anchor="middle">task_version</text>
+
+          <rect x="352" y="278" width="122" height="40" fill="none" stroke="currentColor" stroke-width="1"></rect>
+          <text x="413" y="303" text-anchor="middle" font-size="11">model_answer</text>
+
+          <rect x="490" y="278" width="112" height="40" fill="none" stroke="currentColor" stroke-width="1"></rect>
+          <text x="546" y="303" text-anchor="middle">asset</text>
+
+          <!-- kryteria -->
+          <rect x="620" y="26" width="140" height="38" fill="none" stroke="currentColor" stroke-width="1.3"></rect>
+          <text x="690" y="50" text-anchor="middle">criterion</text>
+
+          <rect x="620" y="94" width="140" height="38" fill="none" stroke="currentColor" stroke-width="1.3"></rect>
+          <text x="690" y="113" text-anchor="middle" font-size="10.5">criterion_</text>
+          <text x="690" y="126" text-anchor="middle" font-size="10.5">condition</text>
+
+          <rect x="620" y="162" width="140" height="38" fill="none" stroke="currentColor" stroke-width="1.3"></rect>
+          <text x="690" y="181" text-anchor="middle" font-size="10.5">condition_</text>
+          <text x="690" y="194" text-anchor="middle" font-size="10.5">expression</text>
+
+          <rect x="620" y="230" width="140" height="36" fill="none" stroke="currentColor" stroke-width="1"></rect>
+          <text x="690" y="253" text-anchor="middle" font-size="11">example_solution</text>
+
+          <rect x="620" y="292" width="140" height="36" fill="none" class="mk-s" stroke-width="1" stroke-dasharray="4 3"></rect>
+          <text x="690" y="309" text-anchor="middle" class="mk" font-size="11">answer_example</text>
+          <text x="690" y="322" text-anchor="middle" class="mk" font-size="9.5" opacity="0.8">pusta</text>
+
+          <!-- reguły + dopiski -->
+          <rect x="812" y="26" width="150" height="38" fill="none" stroke="currentColor" stroke-width="1.3"></rect>
+          <text x="887" y="50" text-anchor="middle">rule</text>
+
+          <rect x="812" y="108" width="150" height="44" fill="none" class="ok-s" stroke-width="1.6"></rect>
+          <text x="887" y="127" text-anchor="middle" class="ok" font-size="11">correction_event</text>
+          <text x="887" y="142" text-anchor="middle" opacity="0.55" font-size="9.5">migracje 0004 · 0009</text>
+
+          <rect x="812" y="196" width="150" height="44" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3"></rect>
+          <text x="887" y="215" text-anchor="middle" font-size="11">prefill_suggestion</text>
+          <text x="887" y="230" text-anchor="middle" opacity="0.55" font-size="9.5">migracja 0006 · obok korpusu</text>
+
+          <!-- widok -->
+          <rect x="410" y="380" width="132" height="44" fill="none" class="ok-s" stroke-width="2"></rect>
+          <text x="476" y="400" text-anchor="middle" class="ok">corpus_task</text>
+          <text x="476" y="415" text-anchor="middle" opacity="0.55" font-size="9.5">WIDOK · filtr statusu</text>
+
+          <rect x="212" y="380" width="152" height="44" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"></rect>
+          <text x="288" y="400" text-anchor="middle" font-size="11">tasks_per_requirement</text>
+          <text x="288" y="415" text-anchor="middle" opacity="0.55" font-size="9.5">WIDOK · mapa braków</text>
+
+          <rect x="590" y="380" width="132" height="44" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"></rect>
+          <text x="656" y="400" text-anchor="middle" font-size="11">twins</text>
+          <text x="656" y="415" text-anchor="middle" opacity="0.55" font-size="9.5">WIDOK · bliźniaki X/Y</text>
+
+          <!-- krawędzie -->
+          <g stroke="currentColor" stroke-width="1.1" fill="none" marker-end="url(#ar2)" opacity="0.65">
+            <path d="M 89 104 V 70"></path>
+            <path d="M 168 128 H 196 V 66 H 218"></path>
+            <path d="M 287 104 V 70"></path>
+            <path d="M 287 186 V 152"></path>
+            <path d="M 356 210 H 380 V 66 H 406"></path>
+            <path d="M 356 130 H 406"></path>
+            <path d="M 476 104 V 70"></path>
+            <path d="M 168 46 H 196 V 46"></path>
+            <path d="M 476 192 V 156"></path>
+            <path d="M 440 274 V 240"></path>
+            <path d="M 530 274 V 240"></path>
+            <path d="M 616 46 H 590 V 126 H 546"></path>
+            <path d="M 690 90 V 68"></path>
+            <path d="M 690 158 V 136"></path>
+            <path d="M 616 248 H 590 V 138 H 546"></path>
+            <path d="M 808 46 H 790 V 60 H 356"></path>
+            <path d="M 808 130 H 546"></path>
+            <path d="M 808 218 H 780 V 140 H 546"></path>
+          </g>
+          <g stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#ar2)" class="ok-s">
+            <path d="M 476 376 V 156"></path>
+          </g>
+
+          <g opacity="0.6" font-size="10.5">
+            <text x="14" y="460">Strzałka biegnie od dziecka do rodzica (klucz obcy). Linie przerywane —</text>
+            <text x="14" y="476">tabele i widoki dołożone poza migracją 0001 albo dziś puste.</text>
+            <text x="14" y="497">Kaskada: usunięcie wiersza `task` kasuje wszystko, co pod nim wisi.</text>
+          </g>
+        </g>
+      </svg>
+      <figcaption>
+        Dwa miejsca wyłamują się z drzewa i to jest zamierzone. <code>rule</code> wisi
+        na <strong>dokumencie</strong>, nie na zadaniu, bo „Uwagi ogólne" obowiązują cały
+        arkusz. <code>correction_event</code> ma <code>ON DELETE SET NULL</code>, nie kaskadę —
+        pomiar kosztu korekty ma przeżyć przeładowanie korpusu.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================ 4 -->
+  <section id="kolumny">
+    <p class="kicker">04 · Tabele kolumna po kolumnie</p>
+    <h2>Co znaczy każda kolumna i kto ją zapisał</h2>
+    <div class="col">
+      <p>
+        Kolumna <strong>źródło</strong> odpowiada na pytanie „skąd wzięła się ta wartość":
+        z którego pliku PDF, z którego pola <code>urls.tsv</code>, z którego przebiegu.
+        Kolumny wypełniane wyłącznie przez wartość domyślną też są tu wypisane —
+        bo pusto ≠ przypadkiem.
+      </p>
+    </div>
+
+    <!-- ---------------------------------------------------- 01 podstawa -->
+    <h3>requirement_regime <span class="plain">— reżim wymagań, 3 wiersze na segment</span></h3>
+    <div class="col">
+      <p>
+        Archiwum E8 obejmuje trzy reżimy i nie wolno ich mieszać bez oznaczenia:
+        zadania z lat 2021–2024 sprawdzały okrojony zakres pandemiczny. Reżim wisi
+        na <strong>sesji egzaminacyjnej</strong>, nie na roku publikacji pliku.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">smallserial PK</td><td>klucz techniczny</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">code</td><td class="type">text UNIQUE</td><td><code>pp2017</code>, <code>wym-covid</code>, <code>pp2024</code></td><td class="src"><b>parser</b> — nagłówek tabeli wymagań w kluczu</td></tr>
+          <tr><td class="name">name</td><td class="type">text NOT NULL</td><td>pełna nazwa reżimu</td><td class="src"><b>parser</b>; gdy pusta, wpisywany jest <code>code</code></td></tr>
+          <tr><td class="name">session_from</td><td class="type">date NOT NULL</td><td>od kiedy obowiązuje</td><td class="src"><b>ładowarka</b> — sesja klucza, który pierwszy przyniósł ten reżim</td></tr>
+          <tr class="empty"><td class="name">session_to</td><td class="type">date NULL</td><td>do kiedy; NULL = nadal</td><td class="src">nikt nie zapisuje — zawsze NULL</td></tr>
+          <tr><td class="name">source</td><td class="type">text</td><td>akt prawny albo komunikat CKE</td><td class="src"><b>parser</b> — przypis pod tabelą wymagań</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>requirement <span class="plain">— wymagania podstawy programowej</span></h3>
+    <div class="col">
+      <p>
+        Klucze CKE podają przy każdym zadaniu wymaganie ogólne (cyfra rzymska)
+        i co najmniej jedno szczegółowe (dział rzymski + punkt arabski) razem z etapem
+        edukacyjnym. To znaczy, że <strong>mapa braków wypada z parsera za darmo</strong> —
+        nie trzeba jej budować osobno.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">regime_id</td><td class="type">FK smallint</td><td>do którego reżimu należy</td><td class="src"><b>ładowarka</b> — reżim zadeklarowany przy zadaniu, inaczej domyślny klucza</td></tr>
+          <tr class="empty"><td class="name">parent_id</td><td class="type">FK self</td><td>wymaganie nadrzędne</td><td class="src">nikt nie zapisuje — drzewo jest dziś płaskie</td></tr>
+          <tr><td class="name">kind</td><td class="type">CHECK general/specific</td><td>ogólne czy szczegółowe</td><td class="src"><b>ładowarka</b> — z której kolumny tabeli w kluczu wyszło</td></tr>
+          <tr><td class="name">stage</td><td class="type">text NULL</td><td><code>IV-VI</code>, <code>VII-VIII</code>; NULL dla ogólnych</td><td class="src"><b>parser</b> — etap wypisany przy wymaganiu</td></tr>
+          <tr><td class="name">path</td><td class="type">text NOT NULL</td><td><code>V.3</code> — dział rzymski + punkt</td><td class="src"><b>parser</b></td></tr>
+          <tr><td class="name">content</td><td class="type">text NOT NULL</td><td>treść wymagania</td><td class="src"><b>parser</b>; przy rozjeździe cytowań wygrywa pierwszy zapis, reszta idzie do raportu kolizji</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col"><p style="margin-top:1rem">
+      Więz: <code>UNIQUE NULLS NOT DISTINCT (regime_id, kind, stage, path)</code>. Bez
+      <code>NULLS NOT DISTINCT</code> (migracja 0003) dwa identyczne wymagania ogólne
+      wchodziły do bazy bez protestu, a mapa braków po cichu podwajała liczby.
+    </p></div>
+
+    <!-- ---------------------------------------------------- 02 dokumenty -->
+    <h3>document <span class="plain">— jeden wiersz = jeden PDF w mirrorze</span></h3>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">segment</td><td class="type">text NOT NULL</td><td><code>e8</code>, <code>matura-f2023</code></td><td class="src"><b>urls.tsv</b> — kolumna mirrora</td></tr>
+          <tr><td class="name">year</td><td class="type">smallint</td><td>rocznik <em>strony</em>, z której wzięty</td><td class="src"><b>urls.tsv</b>. Uwaga: nie to samo co sesja — 7 plików z rocznika 2019 ma sesję 2018</td></tr>
+          <tr><td class="name">code</td><td class="type">text</td><td><code>OMAP</code> — kod arkusza</td><td class="src"><b>urls.tsv</b></td></tr>
+          <tr><td class="name">variants</td><td class="type">text NULL</td><td><code>100,X</code> — surowa lista z nazwy pliku, do audytu</td><td class="src"><b>urls.tsv</b>, bez interpretacji</td></tr>
+          <tr><td class="name">session</td><td class="type">date NULL</td><td>sesja egzaminu; NULL dla arkuszy pokazowych</td><td class="src"><b>parser</b> (termin z klucza), w drugiej kolejności <code>urls.tsv</code>, awaryjnie <code>2019-01-01</code></td></tr>
+          <tr><td class="name">kind</td><td class="type">CHECK ×6</td><td><code>marking_scheme</code>, <code>paper</code>, <code>answer_sheet</code>…</td><td class="src"><b>ładowarka</b>: klucz zawsze <code>marking_scheme</code>, zeszyt zadań <code>paper</code></td></tr>
+          <tr><td class="name">kind_source</td><td class="type">text NOT NULL</td><td><em>po czym</em> rozpoznano typ: <code>suffix</code>, <code>prefix</code>, <code>directory</code>, <code>default</code></td><td class="src"><b>urls.tsv</b> — mirror zapisuje regułę, która zadziałała</td></tr>
+          <tr><td class="name">url</td><td class="type">text UNIQUE</td><td>adres na cke.gov.pl — klucz naturalny wiersza</td><td class="src"><b>urls.tsv</b></td></tr>
+          <tr><td class="name">path</td><td class="type">text NOT NULL</td><td>ścieżka pliku w mirrorze</td><td class="src"><b>urls.tsv</b>; nadpisywana przy każdym ingeście</td></tr>
+          <tr class="empty"><td class="name">sha256</td><td class="type">char(64) NULL</td><td>kotwica odtwarzalności pliku</td><td class="src">nikt nie zapisuje — kolumna czeka na powiązanie z sumami mirrora</td></tr>
+          <tr><td class="name">pages</td><td class="type">smallint</td><td>liczba stron PDF-u</td><td class="src"><b>parser</b> (<code>k.stron</code>); dla zeszytu — z inwentaryzacji <code>pypdf</code></td></tr>
+          <tr><td class="name">ingest_status</td><td class="type">CHECK ×4 DEFAULT 'new'</td><td><code>new</code> → <code>parsed</code> → <code>approved</code> / <code>rejected</code></td><td class="src"><b>ładowarka</b> ustawia <code>new</code> (także przy przeładowaniu), <b>ekran korekty</b> przelicza po każdym rozstrzygnięciu</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>exam_form <span class="plain">— forma arkusza, czyli to, co uczeń dostaje na stole</span></h3>
+    <div class="col">
+      <p>
+        Dwie osie, które łatwo pomylić: <code>variant</code> to <strong>dostosowanie</strong>
+        (100, 200, 400, 700…) — warianty 700 i 800 mają inne, łatwiejsze zadania na to samo
+        wymaganie, więc rodzą osobne rekordy <code>task</code>. <code>version</code> to
+        <strong>bliźniak X/Y</strong> — inna treść, te same kryteria.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">regime_id</td><td class="type">FK</td><td>reżim wymagań tej formy</td><td class="src"><b>ładowarka</b> — domyślny reżim klucza</td></tr>
+          <tr><td class="name">exam</td><td class="type">CHECK e8/matura</td><td>egzamin</td><td class="src"><b>parser</b> — rozpoznany z klucza</td></tr>
+          <tr><td class="name">subject</td><td class="type">text</td><td><code>matematyka</code> — dane zostają po polsku</td><td class="src"><b>urls.tsv</b>, domyślnie <code>matematyka</code></td></tr>
+          <tr><td class="name">code</td><td class="type">text</td><td><code>OMAP</code>, <code>OMAU</code></td><td class="src"><b>parser</b> — nagłówek „Formy arkusza"</td></tr>
+          <tr><td class="name">variant</td><td class="type">text</td><td><code>100</code>, <code>200</code>, <code>C00</code>…</td><td class="src"><b>parser</b>; gdy klucz nie ma nagłówka (2019, 2020) — z nazwy pliku</td></tr>
+          <tr><td class="name">version</td><td class="type">text NULL</td><td><code>X</code>, <code>Y</code> albo NULL</td><td class="src"><b>parser</b> — „(wersje X i Y)" w nagłówku</td></tr>
+          <tr><td class="name">session</td><td class="type">date NOT NULL</td><td>sesja egzaminacyjna</td><td class="src">ta sama, co w <code>document.session</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>exam_form_document <span class="plain">— N:M, sedno modelu</span></h3>
+    <div class="col">
+      <p>
+        Jeden klucz <code>OMAP-100-2505-zasady.pdf</code> obsługuje sześć form, a forma 100
+        ma dwa zeszyty zadań. Trójka „arkusz + karta + zasady" nie ma tu gdzie stanąć —
+        stąd tabela pośrednia, a nie kolumny w <code>document</code>.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">exam_form_id</td><td class="type">FK, część PK</td><td>forma</td><td class="src"><b>ładowarka</b></td></tr>
+          <tr><td class="name">document_id</td><td class="type">FK, część PK</td><td>plik</td><td class="src"><b>ładowarka</b></td></tr>
+          <tr><td class="name">role</td><td class="type">CHECK ×5, część PK</td><td>czym ten plik jest <em>dla tej formy</em></td><td class="src"><b>ładowarka</b>: <code>marking_scheme</code> dla klucza, <code>paper</code> dla zeszytu</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ---------------------------------------------------- 03 zadania -->
+    <h3>task <span class="plain">— zadanie jako jednostka logiczna; 1436 wierszy</span></h3>
+    <div class="col">
+      <p>
+        Zadania 1–15 (po 1 pkt, zamknięte) mają w kluczu nagłówek „Rozwiązanie – wersja X |
+        wersja Y" z różnymi odpowiedziami, a zadania otwarte nie mają go wcale. Stąd podział
+        na dwa poziomy: <strong>kryteria wiszą na zadaniu, odpowiedzi na wersji</strong>.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">marking_scheme_id</td><td class="type">FK document</td><td>z którego klucza wyjęto kryteria</td><td class="src"><b>ładowarka</b></td></tr>
+          <tr><td class="name">number</td><td class="type">text</td><td><code>16</code>, <code>4.1</code> — numer w arkuszu</td><td class="src"><b>parser</b>; <b>ekran korekty</b> może poprawić</td></tr>
+          <tr><td class="name">position</td><td class="type">smallint</td><td>kolejność w kluczu — do sortowania</td><td class="src"><b>parser</b></td></tr>
+          <tr><td class="name">max_points</td><td class="type">smallint CHECK 0–60</td><td>pula punktów</td><td class="src"><b>parser</b>; <b>ekran korekty</b> może poprawić</td></tr>
+          <tr><td class="name">kind</td><td class="type">CHECK ×4</td><td><code>closed</code>, <code>open_short</code>, <code>open_extended</code>, <code>essay</code></td><td class="src"><b>parser</b> — z puli punktów i obecności kryteriów; <b>ekran</b> może poprawić</td></tr>
+          <tr><td class="name">page</td><td class="type">smallint <span style="opacity:.6">(0004)</span></td><td>strona w <strong>kluczu</strong> — tę renderuje ekran korekty</td><td class="src"><b>parser</b>. Nie mylić z <code>task_version.page</code>, która bywa stroną w zeszycie</td></tr>
+          <tr><td class="name">review_status</td><td class="type">CHECK ×4 DEFAULT 'pending' <span style="opacity:.6">(0004)</span></td><td><code>pending</code> / <code>approved</code> / <code>corrected</code> / <code>rejected</code></td><td class="src"><b>db.decide</b> — ekran korekty albo <code>task verify</code>. Parser zawsze zostawia <code>pending</code></td></tr>
+          <tr><td class="name">reviewed_at</td><td class="type">timestamptz <span style="opacity:.6">(0004)</span></td><td>kiedy rozstrzygnięto</td><td class="src"><b>db.decide</b> — <code>now()</code> bazy; cofnięcie do korekty zeruje</td></tr>
+          <tr><td class="name">reviewed_by</td><td class="type">CHECK human/model DEFAULT 'human' <span style="opacity:.6">(0009)</span></td><td>kto rozstrzygnął</td><td class="src"><b>db.decide</b>; <code>model</code> ustawia wyłącznie <code>task verify</code>. Dziś 159 z 159 to <code>model</code></td></tr>
+          <tr><td class="name">review_model</td><td class="type">text NULL <span style="opacity:.6">(0009)</span></td><td>adres modelu <code>dostawca:nazwa</code></td><td class="src"><b>task verify</b>; NULL, gdy rozstrzygał człowiek</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>task_requirement <span class="plain">— zadanie ↔ wymagania, N:M</span></h3>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">task_id</td><td class="type">FK, część PK</td><td>zadanie</td><td class="src"><b>ładowarka</b>; <b>ekran korekty</b> dodaje i kasuje powiązania</td></tr>
+          <tr><td class="name">requirement_id</td><td class="type">FK, część PK</td><td>wymaganie</td><td class="src">jw. Zadanie 20 z OMAP-100-2505 wskazuje trzy wymagania naraz</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>task_version <span class="plain">— konkretna treść w konkretnej formie</span></h3>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">task_id</td><td class="type">FK task</td><td>którego zadania to wersja</td><td class="src"><b>ładowarka</b></td></tr>
+          <tr><td class="name">exam_form_id</td><td class="type">FK exam_form</td><td>w której formie</td><td class="src"><b>ładowarka</b>; UNIQUE (task_id, exam_form_id)</td></tr>
+          <tr><td class="name">paper_id</td><td class="type">FK document NULL</td><td>z którego zeszytu wzięto treść</td><td class="src"><b>ładowarka</b> tylko przy <code>--with-papers</code>; inaczej NULL</td></tr>
+          <tr><td class="name">content</td><td class="type">text NULL</td><td>treść zadania po rekonstrukcji układu (ułamki, potęgi)</td><td class="src"><b>parser zeszytu</b> + <code>reconstruct.py</code>; <b>ekran korekty</b> może poprawić. NULL, gdy mirror nie ma zeszytu</td></tr>
+          <tr class="empty"><td class="name">content_status</td><td class="type">CHECK ×3 DEFAULT 'auto'</td><td>skąd treść: <code>auto</code> / <code>corrected</code> / <code>approved</code></td><td class="src">nikt nie zmienia — zawsze <code>auto</code>. Ekran edytuje treść, ale statusu nie podnosi</td></tr>
+          <tr><td class="name">page</td><td class="type">smallint NULL</td><td>strona <strong>w zeszycie</strong>, gdy zeszyt jest; inaczej strona klucza</td><td class="src"><b>parser</b></td></tr>
+          <tr class="empty"><td class="name">bbox</td><td class="type">numeric[4] NULL</td><td>gdzie na stronie stoi treść zadania</td><td class="src">nikt nie zapisuje — wycinanie dotyczy dziś tylko grafiki (<code>asset.bbox</code>)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>model_answer <span class="plain">— odpowiedź wzorcowa zadania zamkniętego</span></h3>
+    <div class="col">
+      <p>
+        W kluczu wygląda to tak: <code>Rozwiązanie – wersja X | wersja Y</code> nad
+        <code>BD | AC</code>. Płaska ekstrakcja skleja to w „BD AC" i traci przypisanie
+        do kolumny — odzyskuje je dopiero <code>extract_tables()</code>.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">task_version_id</td><td class="type">FK task_version</td><td>której wersji dotyczy</td><td class="src"><b>ładowarka</b></td></tr>
+          <tr><td class="name">part</td><td class="type">text NULL</td><td><code>1</code>, <code>2</code> przy zadaniach wieloczęściowych</td><td class="src"><b>parser</b>; UNIQUE NULLS NOT DISTINCT z <code>task_version_id</code></td></tr>
+          <tr><td class="name">answer</td><td class="type">text NOT NULL</td><td><code>BD</code>, <code>FP</code>, <code>PF</code></td><td class="src"><b>parser</b> — z tabeli odpowiedzi; <b>ekran korekty</b> może poprawić</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ---------------------------------------------------- 04 kryteria -->
+    <h3>criterion → criterion_condition → condition_expression <span class="plain">— trzy poziomy dysjunkcji</span></h3>
+    <div class="col">
+      <p>
+        To jest cała teza produktu w trzech tabelach. Próg jest osiągnięty, gdy spełniony
+        jest <strong>dowolny</strong> warunek; warunek — gdy uczeń zapisał
+        <strong>dowolny</strong> z równoważnych zapisów. Spłaszczenie tego do jednego pola
+        tekstowego dałoby silnikowi akapit prozy zamiast listy sprawdzalnych alternatyw.
+      </p>
+    </div>
+    <pre><code>3 punkty – pełne rozwiązanie                    ← criterion (points=3, label)
+    poprawny sposób obliczenia..., wynik 105 cm²
+2 punkty                                        ← criterion (points=2)
+  • poprawny sposób obliczenia pola AECF, np.   ← criterion_condition (position=1)
+       P = ...   albo   P = ...   albo   P = ... ← condition_expression ×3
+  LUB                                           ← granica warunku
+  • poprawny sposób obliczenia, jaką częścią... ← criterion_condition (position=2)</code></pre>
+    <div class="ledger-wrap cols">
+      <table>
+        <caption>criterion — próg punktowy</caption>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">task_id</td><td class="type">FK task</td><td>czyj to próg</td><td class="src"><b>ładowarka</b>, <b>ekran</b> (<code>add_criterion</code>)</td></tr>
+          <tr><td class="name">points</td><td class="type">smallint</td><td>ile punktów daje ten próg</td><td class="src"><b>parser</b> — „3 punkty". <strong>UNIQUE (task_id, points)</strong> — ten więz złapał prawdziwy błąd parsera</td></tr>
+          <tr><td class="name">label</td><td class="type">text NULL</td><td><code>pełne rozwiązanie</code></td><td class="src"><b>parser</b> — tekst po myślniku w nagłówku progu</td></tr>
+          <tr><td class="name">description</td><td class="type">text NULL</td><td>treść progu, gdy nie ma wypunktowanych warunków</td><td class="src"><b>parser</b>; NULL przy każdym progu z listą warunków</td></tr>
+          <tr><td class="name">position</td><td class="type">smallint</td><td>kolejność wyświetlania</td><td class="src"><b>parser</b>; nowy próg z ekranu dostaje <code>max+1</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <caption>criterion_condition — warunek (alternatywa progu)</caption>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">criterion_id</td><td class="type">FK criterion</td><td>do którego progu należy</td><td class="src"><b>ładowarka</b>, <b>ekran</b> (<code>add_condition</code>)</td></tr>
+          <tr><td class="name">description</td><td class="type">text NOT NULL</td><td>treść warunku</td><td class="src"><b>parser</b> — punkt wypunktowania; <b>ekran</b> może poprawić. Pole obowiązkowe przy zapisie</td></tr>
+          <tr><td class="name">position</td><td class="type">smallint</td><td>kolejność w progu</td><td class="src"><b>ładowarka</b> — numeruje od 1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <caption>condition_expression — zapis równoważny</caption>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">condition_id</td><td class="type">FK criterion_condition</td><td>w którym warunku</td><td class="src"><b>ładowarka</b>, <b>ekran</b> (<code>add_expression</code>)</td></tr>
+          <tr><td class="name">expression</td><td class="type">text NOT NULL</td><td><code>P = 1/2⋅15·2⋅(15∶5)</code></td><td class="src"><b>parser</b> — rozbicie po „albo"/„lub", <strong>obcinane do 300 znaków</strong>; <b>ekran</b> może poprawić</td></tr>
+          <tr><td class="name">mathjson</td><td class="type">jsonb NULL</td><td>wyrażenie w postaci porównywalnej maszynowo</td><td class="src"><b>task mathjson</b> — Compute Engine przez <code>convert.mjs</code></td></tr>
+          <tr><td class="name">mathjson_status</td><td class="type">CHECK ×4 DEFAULT 'none' <span style="opacity:.6">(0005)</span></td><td><code>none</code> / <code>auto</code> / <code>approved</code> / <code>failed</code></td><td class="src"><b>task mathjson</b>; <code>approved</code> tylko z ekranu. <code>failed</code> jest stanem <em>jawnym</em>, żeby odmowa była widoczna jako robota</td></tr>
+          <tr><td class="name">mathjson_error</td><td class="type">text NULL <span style="opacity:.6">(0005)</span></td><td>powód odmowy, po polsku</td><td class="src"><b>task mathjson</b> — komunikat Compute Engine albo własna diagnoza</td></tr>
+          <tr><td class="name">position</td><td class="type">smallint</td><td>kolejność w warunku</td><td class="src"><b>ładowarka</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>example_solution <span class="plain">— „I sposób", „II sposób" z klucza</span></h3>
+    <div class="col">
+      <p>
+        100% kluczy matematyki E8 to ma. Gotowy materiał few-shot autorstwa samej komisji —
+        „Trzy filary" zakładały, że trzeba go napisać samemu.
+        <strong>Ekran korekty tego nie edytuje</strong>: wiersz powstaje w ingeście i tam
+        się go poprawia.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">task_id</td><td class="type">FK task</td><td>czyje rozwiązanie</td><td class="src"><b>ładowarka</b></td></tr>
+          <tr><td class="name">points</td><td class="type">smallint</td><td>„ocenione na 2 punkty"</td><td class="src"><b>parser</b>; gdy klucz nie podaje — pula zadania</td></tr>
+          <tr><td class="name">method</td><td class="type">text NULL</td><td><code>I</code>, <code>II</code></td><td class="src"><b>parser</b></td></tr>
+          <tr><td class="name">content</td><td class="type">text NOT NULL</td><td>treść rozwiązania</td><td class="src"><b>parser</b> + rekonstrukcja układu</td></tr>
+          <tr><td class="name">position</td><td class="type">smallint</td><td>kolejność</td><td class="src"><b>parser</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>answer_example <span class="plain">— tabela dziś pusta</span></h3>
+    <div class="col">
+      <p>
+        Pary „odpowiedź → dlaczego punkt / dlaczego nie". W kluczach z <strong>angielskiego</strong>
+        są osobnymi tabelami („Przykłady odpowiedzi akceptowanych | Uzasadnienie"), i pod nie
+        ta tabela powstała. Parser OMAP (matematyka) takich sekcji nie widzi, więc
+        <strong>żaden kod dziś tu nie pisze</strong> — 0 wierszy.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr class="empty"><td class="name">id · task_id</td><td class="type">serial PK · FK</td><td>zadanie</td><td class="src">czeka na parser angielskiego (K6)</td></tr>
+          <tr class="empty"><td class="name">content</td><td class="type">text NOT NULL</td><td>przykładowa odpowiedź ucznia</td><td class="src">—</td></tr>
+          <tr class="empty"><td class="name">accepted</td><td class="type">boolean NOT NULL</td><td>czy uznana</td><td class="src">—</td></tr>
+          <tr class="empty"><td class="name">justification</td><td class="type">text NULL</td><td>uzasadnienie komisji</td><td class="src">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>rule <span class="plain">— „Uwagi ogólne", czyli reguły całego arkusza</span></h3>
+    <div class="col">
+      <p>
+        Nie są to kryteria zadania: „błąd rachunkowy przy poprawnej metodzie obniża ocenę
+        o 1 punkt" działa <strong>po</strong> ocenie wszystkich kryteriów naraz, czyli
+        w kroku <code>Compose</code>. Dlatego reguła wisi na dokumencie, nie na zadaniu.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">marking_scheme_id</td><td class="type">FK document</td><td>z którego klucza</td><td class="src"><b>ładowarka</b></td></tr>
+          <tr><td class="name">kind</td><td class="type">CHECK ×6</td><td><code>arithmetic</code>, <code>result_only</code>, <code>accommodation</code>, <code>calculator</code>, <code>conflicting_solutions</code>, <code>other</code></td><td class="src"><b>parser</b> — klasyfikacja po treści, jedna funkcja dla obu ścieżek</td></tr>
+          <tr><td class="name">content</td><td class="type">text NOT NULL</td><td>treść reguły</td><td class="src"><b>parser</b></td></tr>
+          <tr><td class="name">tasks_from · tasks_to</td><td class="type">text NULL</td><td>zakres obowiązywania, np. 16–21</td><td class="src"><b>parser</b>; przy „Uwagach" pod konkretnym zadaniem oba pola to numer tego zadania</td></tr>
+          <tr><td class="name">position</td><td class="type">smallint</td><td>kolejność</td><td class="src"><b>ładowarka</b>: reguły arkusza numerowane od parsera, uwagi zadania od <code>1000 + position×10</code> — żeby nie mieszały się z ogólnymi</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>asset <span class="plain">— wycinek graficzny; 38% zadań matematyki bez niego nie istnieje</span></h3>
+    <div class="col">
+      <p>
+        Rysunek wisi na <strong>wersji</strong>, nie na zadaniu: bliźniaki X i Y mają ten sam
+        schemat, ale inne liczby na osiach. To jedyna tabela, do której pisze pięć różnych
+        procesów.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">task_version_id</td><td class="type">FK task_version</td><td>przy której wersji stoi rysunek</td><td class="src"><b>ładowarka</b></td></tr>
+          <tr><td class="name">kind</td><td class="type">CHECK ×6</td><td><code>drawing</code>, <code>diagram</code>, <code>chart</code>, <code>table</code>, <code>map</code>, <code>sheet_music</code></td><td class="src"><b>detektor regionów</b> (<code>regions.py</code>)</td></tr>
+          <tr><td class="name">path</td><td class="type">text NOT NULL</td><td>ścieżka względna w blob storage</td><td class="src"><b>ładowarka</b> składa ją z kodu, sesji, wariantu, wersji i numeru zadania — bez sesji i wariantu zadanie 16 z maja 2025 i 2024 wskazywałyby ten sam plik</td></tr>
+          <tr><td class="name">page</td><td class="type">smallint NOT NULL</td><td>strona źródłowa</td><td class="src"><b>detektor</b>; <b>ekran korekty</b> może poprawić przy ręcznej ramce</td></tr>
+          <tr><td class="name">bbox</td><td class="type">numeric[4] NOT NULL</td><td>ramka w punktach PDF — skąd wycięty</td><td class="src"><b>detektor</b> (auto), <b>task frame</b> (model), <b>ekran korekty</b> (ręcznie). Każdy zapis pociąga ponowne cięcie PNG</td></tr>
+          <tr><td class="name">description</td><td class="type">text NULL</td><td>alt-text — WCAG nie jest opcją</td><td class="src"><b>task describe</b> (model) albo <b>ekran korekty</b> (człowiek)</td></tr>
+          <tr><td class="name">description_status</td><td class="type">CHECK ×5 DEFAULT 'none' <span style="opacity:.6">(0001+0007+0008)</span></td><td><code>none</code> / <code>auto</code> / <code>approved</code> / <code>corrected</code> / <code>manual</code></td><td class="src"><b>task describe</b> ustawia <code>auto</code>; ekran podnosi na <code>approved</code> (przyjęte bez zmian), <code>corrected</code> (poprawione) albo <code>manual</code> (napisane od zera — stoi poza pomiarem S7)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ---------------------------------------------------- 06 dopiski -->
+    <h3>correction_event <span class="plain">— dziennik pracy; surowiec dla S8</span></h3>
+    <div class="col">
+      <p>
+        Czas liczy się z dziennika, a nie z licznika w kolumnie: licznik nadpisany traci
+        historię, dziennik nie. Klucz obcy ma <code>ON DELETE SET NULL</code>, nie kaskadę —
+        wiersz bez zadania wciąż niesie czas i rodzaj decyzji, czyli wszystko, czego pomiar
+        potrzebuje.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">task_id</td><td class="type">FK ON DELETE SET NULL</td><td>czego dotyczyła decyzja</td><td class="src"><b>db.decide</b> / <b>db.record_unsure</b></td></tr>
+          <tr><td class="name">action</td><td class="type">CHECK ×5 <span style="opacity:.6">(0004+0009)</span></td><td><code>approve</code> / <code>correct</code> / <code>reject</code> / <code>reopen</code> / <code>unsure</code></td><td class="src"><b>db.decide</b> wylicza <code>approve</code> kontra <code>correct</code> z tego, czy cokolwiek się zmieniło — łącznie z poprawkami z wcześniejszych rund</td></tr>
+          <tr><td class="name">started_at</td><td class="type">timestamptz NOT NULL</td><td>kiedy otwarto formularz</td><td class="src">zegar <strong>hosta</strong>, przycinany przez <code>LEAST(…, now())</code> — bo zegar Dockera potrafi zostać w tyle po uśpieniu laptopa</td></tr>
+          <tr><td class="name">finished_at</td><td class="type">timestamptz DEFAULT now()</td><td>kiedy zapisano</td><td class="src">zegar <strong>bazy</strong>. Więz <code>CHECK (finished_at &gt;= started_at)</code> jest założeniem o dwóch zegarach</td></tr>
+          <tr><td class="name">fields_changed</td><td class="type">jsonb NULL</td><td><code>{"edited": {"criterion": 2}}</code>; przy <code>unsure</code> — <code>{"reasons": [...]}</code>; przy <code>match</code> modelu — <code>{"notes": [...]}</code></td><td class="src"><b>db.save</b> liczy różnicę względem bazy; uwagi modelu trafiają tu nawet bez poprawki</td></tr>
+          <tr><td class="name">actor</td><td class="type">CHECK human/model DEFAULT 'human' <span style="opacity:.6">(0009)</span></td><td>kto klikał</td><td class="src"><b>db.decide</b>. Statystyka S8 filtruje po <code>human</code>, żeby automat nie mieszał się z pomiarem czasu człowieka</td></tr>
+          <tr><td class="name">model</td><td class="type">text NULL <span style="opacity:.6">(0009)</span></td><td>który model</td><td class="src"><b>task verify</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>prefill_suggestion <span class="plain">— propozycja modelu, obok korpusu</span></h3>
+    <div class="col">
+      <p>
+        Reguła G2.5: podpowiedź <strong>nie może</strong> lądować w <code>criterion</code>
+        ani <code>criterion_condition</code>. Leży obok, a ekran pokazuje ją jako różnicę
+        przy polu, którego dotyczy. Wiersz jest jednocześnie znacznikiem ramienia
+        eksperymentu S6 — bez niego trzeba by rekonstruować z pamięci, kiedy prefill był włączony.
+      </p>
+    </div>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">id</td><td class="type">serial PK</td><td>—</td><td class="src">sekwencja</td></tr>
+          <tr><td class="name">task_id</td><td class="type">FK task</td><td>do którego zadania</td><td class="src"><b>task prefill</b></td></tr>
+          <tr><td class="name">model</td><td class="type">text NOT NULL</td><td>adres modelu — parametr przebiegu, nie stała</td><td class="src"><b>task prefill</b>; UNIQUE (task_id, model), więc powtórka nadpisuje własny wynik</td></tr>
+          <tr><td class="name">payload</td><td class="type">jsonb NOT NULL</td><td>progi → warunki → zapisy w kształcie parsera</td><td class="src"><b>task prefill</b> — structured output. Bez więzów korpusu, bo to jeszcze nie korpus</td></tr>
+          <tr><td class="name">input_tokens · output_tokens</td><td class="type">integer DEFAULT 0</td><td>rachunek za wywołanie</td><td class="src"><b>llm.py</b> — licznik wbudowany w warstwę wywołań</td></tr>
+          <tr><td class="name">batch</td><td class="type">boolean DEFAULT false</td><td>czy szło przez Batch API (−50% ceny)</td><td class="src"><b>task prefill</b>; bez tej flagi rachunek z tokenów byłby dwa razy za wysoki</td></tr>
+          <tr><td class="name">created_at</td><td class="type">timestamptz DEFAULT now()</td><td>kiedy</td><td class="src">baza; odświeżane przy nadpisaniu</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>schema_migrations <span class="plain">— poza migracjami; zakłada ją runner</span></h3>
+    <div class="ledger-wrap cols">
+      <table>
+        <thead><tr><th>Kolumna</th><th>Typ</th><th>Co znaczy</th><th>Źródło wartości</th></tr></thead>
+        <tbody>
+          <tr><td class="name">version</td><td class="type">text PK</td><td><code>0009</code> — numer pliku</td><td class="src"><b>migrate.py</b></td></tr>
+          <tr><td class="name">applied_at</td><td class="type">timestamptz DEFAULT now()</td><td>kiedy zastosowano</td><td class="src">baza</td></tr>
+          <tr><td class="name">sha256</td><td class="type">char(64) NOT NULL</td><td>suma treści pliku <code>.sql</code></td><td class="src"><b>migrate.py</b>. Dlatego <strong>zastosowanej migracji nie wolno tknąć</strong>, komentarza też</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Trzy widoki</h3>
+    <div class="ledger-wrap">
+      <table>
+        <thead><tr><th>Widok</th><th>Co pokazuje</th><th>Kto z niego korzysta</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">corpus_task</th><td>zadania ze statusem <code>approved</code> albo <code>corrected</code> — <strong>definicja korpusu</strong></td><td>moduł C#, przeglądarka W2, <code>golden/grade.py</code>, raport kompletności</td></tr>
+          <tr><th scope="row">tasks_per_requirement</th><td>mapa braków: wymaganie → ile zadań je sprawdza, za ile punktów, w ilu formach</td><td>raport; wejście dla A4. Liczy po <code>task</code>, nie po korpusie</td></tr>
+          <tr><th scope="row">twins</th><td>zadania istniejące w dwóch wersjach (X i Y)</td><td>raport i kontrola parsera — 138 z 159 zadań korpusu ma bliźniaka</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================ 5 -->
+  <section id="statusy">
+    <p class="kicker">05 · Cztery cykle życia</p>
+    <h2>Statusy: co je podnosi i co je zeruje</h2>
+    <div class="col">
+      <p>
+        Schemat ma cztery niezależne kolumny statusu. Każda odpowiada na inne pytanie
+        i każda domyka się w innym momencie — dlatego nie ma jednej „gotowości rekordu".
+      </p>
+    </div>
+
+    <figure>
+      <svg viewBox="0 0 980 330" role="img"
+           aria-label="Cztery diagramy stanów. Pierwszy: task.review_status zaczyna od pending, skąd bramka prowadzi do approved, gdy nic nie poprawiono, do corrected, gdy coś poprawiono, albo do rejected. Z każdego z nich reopen wraca do pending i zdejmuje autora. Drugi: asset.description_status zaczyna od none; task describe podnosi na auto; z auto człowiek robi approved lub corrected; z none bezpośrednio manual. Trzeci: condition_expression.mathjson_status zaczyna od none, konwerter daje auto albo failed, człowiek podnosi na approved, którego konwerter już nie nadpisze. Czwarty: document.ingest_status idzie z new na parsed, gdy trwa korekta, na approved, gdy komplet rozstrzygnięć, albo rejected.">
+        <defs>
+          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+          </marker>
+        </defs>
+        <g fill="currentColor" font-family="IBM Plex Mono, monospace" font-size="11">
+
+          <!-- 1. review_status -->
+          <text x="14" y="22" font-size="11.5" class="sl">task.review_status</text>
+          <g>
+            <rect x="14" y="38" width="86" height="30" fill="none" class="mk-s" stroke-width="1.4"></rect>
+            <text x="57" y="57" text-anchor="middle" class="mk">pending</text>
+
+            <rect x="150" y="14" width="94" height="28" fill="none" class="ok-s" stroke-width="1.4"></rect>
+            <text x="197" y="32" text-anchor="middle" class="ok">approved</text>
+
+            <rect x="150" y="52" width="94" height="28" fill="none" class="ok-s" stroke-width="1.4"></rect>
+            <text x="197" y="70" text-anchor="middle" class="ok">corrected</text>
+
+            <rect x="150" y="90" width="94" height="28" fill="none" stroke="currentColor" stroke-width="1" opacity="0.55"></rect>
+            <text x="197" y="108" text-anchor="middle" opacity="0.7">rejected</text>
+          </g>
+          <g stroke="currentColor" stroke-width="1.1" fill="none" marker-end="url(#ar3)" opacity="0.7">
+            <path d="M 100 48 H 124 V 28 H 146"></path>
+            <path d="M 100 55 H 124 V 66 H 146"></path>
+            <path d="M 100 60 H 118 V 104 H 146"></path>
+          </g>
+          <g stroke="currentColor" stroke-width="1" fill="none" marker-end="url(#ar3)" opacity="0.45" stroke-dasharray="4 3">
+            <path d="M 197 122 V 138 H 57 V 72"></path>
+          </g>
+          <text x="112" y="150" text-anchor="middle" font-size="9.5" opacity="0.55">reopen — zdejmuje też reviewed_by</text>
+          <text x="14" y="172" font-size="9.5" opacity="0.6">approved = parser trafił sam · corrected = cokolwiek poprawiono</text>
+
+          <!-- 2. description_status -->
+          <text x="330" y="22" font-size="11.5" class="sl">asset.description_status</text>
+          <g>
+            <rect x="330" y="38" width="70" height="28" fill="none" stroke="currentColor" stroke-width="1" opacity="0.55"></rect>
+            <text x="365" y="56" text-anchor="middle" opacity="0.7">none</text>
+
+            <rect x="430" y="38" width="70" height="28" fill="none" class="sl-s" stroke-width="1.3"></rect>
+            <text x="465" y="56" text-anchor="middle" class="sl">auto</text>
+
+            <rect x="530" y="14" width="90" height="28" fill="none" class="ok-s" stroke-width="1.3"></rect>
+            <text x="575" y="32" text-anchor="middle" class="ok">approved</text>
+
+            <rect x="530" y="52" width="90" height="28" fill="none" class="ok-s" stroke-width="1.3"></rect>
+            <text x="575" y="70" text-anchor="middle" class="ok">corrected</text>
+
+            <rect x="430" y="96" width="90" height="28" fill="none" stroke="currentColor" stroke-width="1" opacity="0.6"></rect>
+            <text x="475" y="114" text-anchor="middle" opacity="0.75">manual</text>
+          </g>
+          <g stroke="currentColor" stroke-width="1.1" fill="none" marker-end="url(#ar3)" opacity="0.7">
+            <path d="M 400 52 H 426"></path>
+            <path d="M 500 48 H 514 V 28 H 526"></path>
+            <path d="M 500 56 H 514 V 66 H 526"></path>
+            <path d="M 365 70 V 110 H 426"></path>
+          </g>
+          <text x="465" y="84" text-anchor="middle" font-size="9.5" opacity="0.55">task describe</text>
+          <text x="330" y="150" font-size="9.5" opacity="0.6">manual = opis pisany od zera, stoi POZA pomiarem S7</text>
+          <text x="330" y="166" font-size="9.5" opacity="0.6">dziś: 115 × auto, 0 × approved</text>
+
+          <!-- 3. mathjson_status -->
+          <text x="700" y="22" font-size="11.5" class="sl">mathjson_status</text>
+          <g>
+            <rect x="700" y="38" width="66" height="28" fill="none" stroke="currentColor" stroke-width="1" opacity="0.55"></rect>
+            <text x="733" y="56" text-anchor="middle" opacity="0.7">none</text>
+
+            <rect x="796" y="14" width="66" height="28" fill="none" class="sl-s" stroke-width="1.3"></rect>
+            <text x="829" y="32" text-anchor="middle" class="sl">auto</text>
+
+            <rect x="796" y="60" width="66" height="28" fill="none" class="mk-s" stroke-width="1.3"></rect>
+            <text x="829" y="78" text-anchor="middle" class="mk">failed</text>
+
+            <rect x="892" y="14" width="72" height="28" fill="none" class="ok-s" stroke-width="1.3"></rect>
+            <text x="928" y="32" text-anchor="middle" class="ok">approved</text>
+          </g>
+          <g stroke="currentColor" stroke-width="1.1" fill="none" marker-end="url(#ar3)" opacity="0.7">
+            <path d="M 766 48 H 780 V 28 H 792"></path>
+            <path d="M 766 56 H 780 V 74 H 792"></path>
+            <path d="M 862 28 H 888"></path>
+          </g>
+          <text x="700" y="118" font-size="9.5" opacity="0.6">approved jest ścianą: konwerter</text>
+          <text x="700" y="132" font-size="9.5" opacity="0.6">nie nadpisze go przy powtórce</text>
+          <text x="700" y="152" font-size="9.5" opacity="0.6">failed niesie powód po polsku</text>
+
+          <!-- 4. ingest_status -->
+          <line x1="14" y1="200" x2="964" y2="200" stroke="currentColor" stroke-width="1" opacity="0.2"></line>
+          <text x="14" y="226" font-size="11.5" class="sl">document.ingest_status <tspan opacity="0.55" font-size="10">— liczony, nie ustawiany ręcznie</tspan></text>
+          <g>
+            <rect x="14" y="242" width="76" height="28" fill="none" stroke="currentColor" stroke-width="1" opacity="0.6"></rect>
+            <text x="52" y="260" text-anchor="middle" opacity="0.75">new</text>
+
+            <rect x="140" y="242" width="82" height="28" fill="none" class="sl-s" stroke-width="1.3"></rect>
+            <text x="181" y="260" text-anchor="middle" class="sl">parsed</text>
+
+            <rect x="272" y="242" width="92" height="28" fill="none" class="ok-s" stroke-width="1.3"></rect>
+            <text x="318" y="260" text-anchor="middle" class="ok">approved</text>
+
+            <rect x="414" y="242" width="88" height="28" fill="none" stroke="currentColor" stroke-width="1" opacity="0.55"></rect>
+            <text x="458" y="260" text-anchor="middle" opacity="0.7">rejected</text>
+          </g>
+          <g stroke="currentColor" stroke-width="1.1" fill="none" marker-end="url(#ar3)" opacity="0.7">
+            <path d="M 90 256 H 136"></path>
+            <path d="M 222 256 H 268"></path>
+            <path d="M 364 256 H 410"></path>
+          </g>
+          <g font-size="9.5" opacity="0.6">
+            <text x="14" y="292">ładowarka</text>
+            <text x="140" y="292">zostało cokolwiek `pending`</text>
+            <text x="272" y="292">komplet rozstrzygnięć</text>
+            <text x="414" y="292">wszystko odrzucone</text>
+          </g>
+          <text x="14" y="318" font-size="9.5" opacity="0.6">Przeładowanie klucza cofa status na `new` — inaczej przeładowany klucz zostawałby `approved` o zadaniach, których nikt nie widział.</text>
+        </g>
+      </svg>
+      <figcaption>
+        Piąty status, <code>task_version.content_status</code>, istnieje w schemacie od
+        migracji 0001 i <strong>nigdy nie zmienia wartości</strong> — treść zadania z zeszytu
+        zawsze zostaje <code>auto</code>, także po ręcznej poprawce w ekranie.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================ 6 -->
+  <section id="odczyt">
+    <p class="kicker">06 · Kto to czyta</p>
+    <h2>Cztery drogi odczytu, żadna nie pisze</h2>
+
+    <div class="ledger-wrap">
+      <table>
+        <caption>Odczyt korpusu · stan na 8.09.2026</caption>
+        <thead>
+          <tr><th>Konsument</th><th>Skąd czyta</th><th>Po co</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Klucz.Corpus (C#)</th>
+            <td><code>corpus_task</code> + <code>task_version</code>, <code>model_answer</code>,
+              <code>asset</code>, <code>criterion</code>→<code>condition</code>→<code>expression</code>,
+              <code>task_requirement</code>, <code>example_solution</code>, <code>rule</code></td>
+            <td>składa <code>TaskDetail</code> dla API. <strong>Nigdy nie otwiera PDF-a</strong> — pilnuje tego test architektury</td>
+          </tr>
+          <tr>
+            <th scope="row">GET /corpus/progress</th>
+            <td>cała tabela <code>task</code></td>
+            <td>jedyny świadomy wyjątek: pulpit odpowiada na pytanie „ile jeszcze zostało", więc rekordy spoza korpusu są tam treścią, nie szumem</td>
+          </tr>
+          <tr>
+            <th scope="row">Ekran korekty</th>
+            <td><code>task</code> (wszystkie statusy) + całe poddrzewo + <code>prefill_suggestion</code> + ostatni wpis modelu z <code>correction_event</code></td>
+            <td>jedyny konsument, który potem <em>pisze</em>. Renderuje stronę klucza z <code>task.page</code></td>
+          </tr>
+          <tr>
+            <th scope="row">golden/grade.py</th>
+            <td><code>corpus_task</code> ⋈ <code>task</code> ⋈ kryteria</td>
+            <td>model B ocenia odpowiedzi próg po progu; wynik idzie do plików JSON w <code>ingest/golden/</code>, nie do bazy</td>
+          </tr>
+          <tr>
+            <th scope="row">corpus:report · correction:report</th>
+            <td>wszystko, obie kolumny naraz</td>
+            <td>kompletność korpusu kontra kompletność sparsowanego; rozbicie <code>human</code> / <code>model</code>; pomiary S6, S7, S8</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col" style="margin-top:2rem">
+      <p>
+        Blob storage stoi obok bazy i trzyma wycinki PNG. Wiąże je jedna kolumna:
+        <code>asset.path</code> jest ścieżką <strong>względną</strong>, więc ta sama baza
+        działa z katalogiem na dysku i z Azurite bez zmiany danych.
+        Endpoint <code>GET /corpus/assets/{id}</code> czyta ścieżkę z bazy i oddaje plik strumieniem.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================ 7 -->
+  <section id="puste">
+    <p class="kicker">07 · Kolumny, których nikt nie wypełnia</p>
+    <h2>Sześć miejsc, gdzie pusto znaczy „jeszcze nie", nie „nie dotyczy"</h2>
+    <div class="col">
+      <p>
+        Wyszukane przez porównanie schematu z każdym <code>INSERT</code> i <code>UPDATE</code>
+        w repozytorium. Żadne z tych miejsc nie jest błędem — ale każde jest obietnicą,
+        której kod dziś nie dotrzymuje, więc lepiej mieć je wypisane niż odkrywać przy A3.
+      </p>
+    </div>
+
+    <ul class="checks">
+      <li><span class="tag open">document</span>
+        <span class="what"><code>sha256</code> — „kotwica odtwarzalności" w komentarzu migracji
+          <span class="why">Mirror liczy sumy plików, ładowarka ich nie przepisuje. Bez tego nie da się stwierdzić, czy PDF na dysku to ten sam, z którego wyszedł korpus.</span></span></li>
+      <li><span class="tag open">requirement</span>
+        <span class="what"><code>parent_id</code> — drzewo wymagań jest dziś płaskie
+          <span class="why">Wymaganie ogólne i szczegółowe stoją obok siebie, powiązane tylko przez <code>kind</code>. Mapa braków tego nie potrzebuje, hierarchiczny raport dla ucznia w A4 — być może tak.</span></span></li>
+      <li><span class="tag open">task_version</span>
+        <span class="what"><code>bbox</code> — gdzie na stronie stoi treść zadania
+          <span class="why">Wycinanie dotyczy dziś tylko grafiki. Kolumna czeka na ekran, który pokazywałby fragment zeszytu obok treści.</span></span></li>
+      <li><span class="tag open">task_version</span>
+        <span class="what"><code>content_status</code> — zawsze <code>auto</code>
+          <span class="why">Ekran korekty edytuje treść zadania, ale nie podnosi statusu. Odpowiednik S7 dla treści jest więc dziś niepoliczalny.</span></span></li>
+      <li><span class="tag open">requirement_regime</span>
+        <span class="what"><code>session_to</code> — zawsze NULL
+          <span class="why">Każdy reżim wygląda na obowiązujący. Przy trzech reżimach i ręcznym doborze roczników to nie boli; przy maturze (K6) zacznie.</span></span></li>
+      <li><span class="tag open">answer_example</span>
+        <span class="what">cała tabela — 0 wierszy
+          <span class="why">Zaprojektowana pod klucze z angielskiego („Przykłady odpowiedzi akceptowanych"). Parser matematyki takich sekcji nie widzi i widzieć nie będzie.</span></span></li>
+    </ul>
+  </section>
+
+  <!-- ============================================ 8 -->
+  <section id="pulapki">
+    <p class="kicker">08 · Pułapki</p>
+    <h2>Rzeczy, które zaskakują przy pierwszym zapytaniu</h2>
+
+    <div class="traps">
+      <div class="trap">
+        <p>
+          <strong>Dwie kolumny <code>page</code> znaczą co innego.</strong>
+          <code>task.page</code> to strona w <em>kluczu</em> — tę renderuje ekran korekty,
+          bo sprawdza kryteria przeciwko dokumentowi, z którego wyszły.
+          <code>task_version.page</code> to strona w <em>zeszycie zadań</em>, gdy zeszyt
+          w ogóle jest. Klucze wczytane bez zeszytów mają w obu tę samą liczbę i to właśnie
+          myli.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong><code>UNIQUE (task_id, points)</code> jest ostry celowo.</strong>
+          Złapał prawdziwy błąd: sekcja reguł przekrojowych stoi <em>między</em> zadaniami,
+          więc podział tekstu po nagłówkach doklejał ją do zadania poprzedzającego,
+          a jej zdanie „…to otrzymuje 0 punktów" udawało drugi próg zerowy.
+        </p>
+        <p>
+          Gdy parser łamie więz — naprawia się parser albo poprawia rekord w ekranie.
+          Nigdy nie luzuje się więzu.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong><code>NULLS NOT DISTINCT</code> w trzech więzach.</strong>
+          W PostgreSQL domyślnie <code>NULL &lt;&gt; NULL</code>, więc <code>UNIQUE</code>
+          go nie pilnuje. Dotyczy <code>requirement.stage</code> (NULL dla ogólnych),
+          <code>exam_form.version</code> (NULL bez bliźniaka) i <code>model_answer.part</code>.
+          W sondzie problem był niewidoczny, bo ładowarka trzymała słowniki w pamięci
+          procesu — czyli działało dokładnie tak długo, jak jeden przebieg.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong>Kolacja <code>pl_icu</code> nakłada się jawnie.</strong>
+          Cluster stoi w <code>C.UTF-8</code>, bo obraz <code>postgres:17-alpine</code>
+          opiera się na musl, które nie ma <code>pl_PL.UTF-8</code>. Polskie sortowanie
+          wchodzi przez ICU i trzeba je dopisać tam, gdzie kolejność ma znaczenie dla
+          człowieka: <code>ORDER BY content COLLATE pl_icu</code>.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong><code>bbox</code> to <code>numeric[4]</code>, nie cztery kolumny.</strong>
+          Kolejność: <code>[x0, top, x1, bottom]</code>, w punktach PDF (72 na cal), licząc
+          od <em>górnej</em> krawędzi strony — tak jak liczy <code>pdfplumber</code>.
+          Model w <code>task frame</code> oddaje piksele obrazu w skali 2 i to kod je przelicza;
+          pierwsza wersja prosiła o punkty i dostawała piksele.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong>Zapisy równoważne są obcinane do 300 znaków.</strong>
+          <code>condition_expression.expression</code> dostaje <code>zap[:300]</code>
+          w ładowarce. Przy zapisie dłuższym niż 300 znaków w bazie stoi urwany tekst,
+          a nie błąd — więc konwerter MathJSON melduje wtedy odmowę o niejasnym powodzie.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong>Przeładowanie klucza jest bronione przed utratą pracy.</strong>
+          <code>_wyczysc_klucz</code> sprawdza, czy w kluczu jest cokolwiek poza
+          <code>pending</code>, i przerywa, jeśli tak. Bramka stoi tuż przed
+          <code>DELETE</code>, a nie w wywołującym — żeby obowiązywała każdą drogę:
+          runner, testy, ekran. Ominąć da się ją tylko jawnym <code>--overwrite-reviewed</code>.
+        </p>
+      </div>
+      <div class="trap">
+        <p>
+          <strong>Statusu nie da się przekłamać kliknięciem.</strong>
+          O tym, czy rekord jest <code>approved</code> czy <code>corrected</code>,
+          rozstrzyga porównanie z bazą w <code>db.save</code>, a nie deklaracja piszącego —
+          i tak samo dla opisu rysunku. Poprawka z wcześniejszej rundy nie znika z pomiaru,
+          bo <code>decide</code> pyta dziennik, czy zadanie było już kiedyś poprawiane.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Źródła: <code>ingest/schema/migrations/0001–0009</code> · <code>parsers/omap_e8/loader.py</code> ·
+      <code>correction/db.py</code>, <code>assets.py</code>, <code>describe.py</code>,
+      <code>frame.py</code>, <code>prefill.py</code>, <code>verify.py</code> ·
+      <code>mathjson/fill.py</code> · <code>schema/migrate.py</code> ·
+      <code>backend/src/Klucz.Corpus/Infrastructure/PostgresCorpusReader.cs</code>.
+      Liczby wierszy — <code>docs/corpus-A2.txt</code> z 4.09.2026.
+    </p>
+    <p>
+      Dokumenty siostrzane: <a href="ingest-overview.html">ingest-overview.html</a> ·
+      <a href="project-status.html">project-status.html</a> ·
+      <a href="a2-korpus.html">a2-korpus.html</a> ·
+      <a href="a3-ocenianie.html">a3-ocenianie.html</a> ·
+      <a href="g1.2-ingest.html">g1.2-ingest.html</a>
+    </p>
+  </footer>
+
+</div>
+
+</body>
+</html>
