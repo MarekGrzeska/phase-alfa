@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { AgentPanel } from "./agent/AgentPanel";
 import { Overview } from "./overview/Overview";
+import { TaskForm } from "./task/TaskForm";
 import "./app/screen.css";
 import "./agent/panel.css";
 
@@ -12,6 +13,7 @@ import "./agent/panel.css";
 // bo adresy tego narzędzia są w notatkach i w zakładkach.
 const VIEWS = {
   overview: Overview,
+  task: TaskForm,
 };
 
 const page = document.getElementById("root");

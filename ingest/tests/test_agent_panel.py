@@ -16,11 +16,10 @@ jinja2 = pytest.importorskip("jinja2")
 
 TEMPLATES = Path(__file__).resolve().parents[1] / "correction" / "templates"
 
-# Szablony, które dziedziczą po `base.html` — czyli każdy ekran, którego jeszcze
-# nie przepisano na Reacta. Przegląd (`/`) zszedł już z tej listy: rysuje go
-# `app.html` plus `main.tsx`.
+# Szablony, które dziedziczą po `base.html` — czyli to, co zostało jeszcze
+# na Jinja. Przegląd i formularz zadania zeszły już z tej listy: rysuje je
+# `app.html` plus `main.tsx`. Zostaje inspektor.
 SCREENS = [
-    "task.html",
     "inspect_index.html",
     "inspect_list.html",
     "inspect_record.html",

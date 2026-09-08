@@ -119,10 +119,30 @@ def _started(minutes: int = 2) -> str:
     return (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat()
 
 
+# Pola sterujące zapisem jadą osobno od treści formularza: `db.save` dostaje
+# WYŁĄCZNIE to, co człowiek wpisał w pola, i to na tym stoi rozróżnienie
+# „parser trafił sam" od „poprawione".
+_CONTROL = ("action", "year", "code", "variant", "edited_before", "page")
+
+
 def _post(client, task, **fields):
-    return client.post(f"/task/{task['id']}",
-                       data={"started_at": _started(), **fields},
-                       follow_redirects=False)
+    """Zapis tak, jak wysyła go front: JSON na `/api/task/{id}`."""
+    control = {name: fields.pop(name) for name in _CONTROL if name in fields}
+    return client.post(
+        f"/api/task/{task['id']}",
+        json={
+            "action": control.get("action", "save"),
+            "started_at": _started(),
+            "edited_before": control.get("edited_before") == "1",
+            "scope": {name: control.get(name, "") for name in ("year", "code", "variant")},
+            "fields": fields,
+        },
+    )
+
+
+def _redirect(response) -> str | None:
+    """Dokąd ekran ma iść dalej — `None`, gdy zostaje na zadaniu."""
+    return response.json().get("redirect")
 
 
 def _full(task, **overrides) -> dict:
@@ -198,18 +218,32 @@ def test_przeglad_odrzuca_status_spoza_slownika(client, task):
     assert client.get("/api/overview?status=zatwierdzone").status_code == 400
 
 
-def test_formularz_pokazuje_strukture_kryteriow(client, task):
-    response = client.get(f"/task/{task['id']}")
+def test_zadanie_oddaje_strukture_progow(client, task):
+    """Próg → warunek → zapis równoważny: front dostaje całe drzewo, nie płaską listę."""
+    response = client.get(f"/api/task/{task['id']}")
     assert response.status_code == 200
-    assert "pełne rozwiązanie" in response.text
-    assert "poprawny sposób obliczenia pola" in response.text
-    assert "P = 15² − 3" in response.text
+    body = response.json()
+    (criterion,) = body["task"]["criteria"]
+    assert criterion["label"] == "pełne rozwiązanie"
+    (condition,) = criterion["conditions"]
+    assert condition["description"] == "poprawny sposób obliczenia pola"
+    assert [e["expression"] for e in condition["expressions"]] == ["P = 15² − 3"]
+    # Zegar S8 rusza przy WYDANIU zadania, więc znacznik wychodzi razem z nim.
+    assert body["started_at"]
+
+
+def test_adres_nieistniejacego_zadania_konczy_sie_404(client, task):
+    """Stara zakładka ma dostać 404 od razu, a nie pustą skorupę, która dopiero
+    po chwili powie, że nie ma czego korygować."""
+    assert client.get(f"/task/{task['id'] + 999}").status_code == 404
+    assert client.get(f"/api/task/{task['id'] + 999}").status_code == 404
 
 
 def test_zatwierdzenie_bez_zmian_to_trafienie_parsera(client, con, task):
     response = _post(client, task, action="approve")
 
-    assert response.status_code == 303
+    assert response.status_code == 200
+    assert _redirect(response) == "/next"
     assert _state(con, task["id"])["review_status"] == "approved"
     (event,) = _events(con)
     assert event["action"] == "approve"
@@ -222,7 +256,7 @@ def test_poprawka_daje_status_corrected_choc_przycisk_ten_sam(client, con, task)
     response = _post(client, task, action="approve",
                      **{f"criterion.{task['criterion']}.label": "pełne rozwiązanie zadania"})
 
-    assert response.status_code == 303
+    assert response.status_code == 200
     assert _state(con, task["id"])["review_status"] == "corrected"
     (event,) = _events(con)
     assert event["action"] == "correct"
@@ -265,8 +299,12 @@ def test_puste_pole_wymagane_zatrzymuje_zapis_w_calosci(client, con, task):
     assert not _events(con)
 
 
-def test_formularz_wraca_z_tym_co_czlowiek_wpisal(client, task):
-    """Jedno puste pole wymagane nie ma kasować pozostałych poprawek."""
+def test_odmowa_zapisu_nie_odsyla_rekordu_z_bazy(client, task):
+    """Po odmowie formularz zostaje u człowieka — serwer odsyła same powody.
+
+    Odesłanie tu zadania z bazy nadpisałoby to, co korektor właśnie wpisał;
+    że wpisane wartości zostają na ekranie, pilnuje test frontu.
+    """
     response = _post(
         client, task, action="approve",
         **{f"condition.{task['condition']}.description": "",
@@ -274,7 +312,7 @@ def test_formularz_wraca_z_tym_co_czlowiek_wpisal(client, task):
     )
 
     assert response.status_code == 422
-    assert "napisane i niezapisane" in response.text
+    assert set(response.json()) == {"errors"}
 
 
 def test_wiez_unique_wraca_jako_zdanie_a_nie_stack_trace(client, con, task):
@@ -314,7 +352,8 @@ def test_dodanie_progu_bierze_wolna_punktacje(client, con, task):
     """UNIQUE (task_id, points) znaczy, że nowy próg nie może mieć byle jakiej wartości."""
     response = _post(client, task, action="add:criterion")
 
-    assert response.status_code == 303
+    assert response.status_code == 200
+    assert _redirect(response) is None, "dołożenie wiersza zostawia korektora na zadaniu"
     points = [r["points"] for r in con.execute(
         "SELECT points FROM criterion WHERE task_id = %s ORDER BY points",
         (task["id"],)).fetchall()]
@@ -329,7 +368,8 @@ def test_cofniecie_do_korekty_zeruje_znacznik(client, con, task):
 
     response = _post(client, task, action="reopen")
 
-    assert response.status_code == 303
+    assert response.status_code == 200
+    assert _redirect(response) == f"/task/{task['id']}"
     state = _state(con, task["id"])
     assert state["review_status"] == "pending"
     assert state["reviewed_at"] is None
@@ -346,7 +386,7 @@ def test_pelny_formularz_bez_zmian_to_trafienie_parsera(client, con, task):
     """
     response = _post(client, task, action="approve", **_full(task))
 
-    assert response.status_code == 303, response.text[:400]
+    assert response.status_code == 200, response.text[:400]
     assert _state(con, task["id"])["review_status"] == "approved"
 
 
@@ -356,7 +396,7 @@ def test_usuniecie_progu_zabiera_jego_warunki_i_zapisy(client, con, task):
     response = _post(client, task, action="approve",
                      **_full(task, **{f"delete.criterion.{task['criterion']}": "1"}))
 
-    assert response.status_code == 303, response.text[:400]
+    assert response.status_code == 200, response.text[:400]
     assert _state(con, task["id"])["review_status"] == "corrected"
     assert con.execute("SELECT count(*) AS n FROM criterion").fetchone()["n"] == 0
     assert con.execute("SELECT count(*) AS n FROM criterion_condition"
@@ -376,17 +416,13 @@ def test_poprawka_sprzed_dolozenia_wiersza_nie_znika_z_pomiaru(client, con, task
     więc nie ma prawa zniknąć ze statystyki trafień parsera."""
     added = _post(client, task, action="add:criterion",
                   **_full(task, **{f"criterion.{task['criterion']}.label": "inna"}))
-    assert added.status_code == 303
-    assert "edited_before=1" in added.headers["location"]
+    assert added.status_code == 200
+    assert added.json()["edited_before"] is True
 
     # Druga runda: nic nowego nie zmieniamy, tylko zatwierdzamy.
-    response = client.post(
-        f"/task/{task['id']}",
-        data={"started_at": _started(), "action": "approve", "edited_before": "1"},
-        follow_redirects=False,
-    )
+    response = _post(client, task, action="approve", edited_before="1")
 
-    assert response.status_code == 303
+    assert response.status_code == 200
     assert _state(con, task["id"])["review_status"] == "corrected"
 
 
@@ -461,7 +497,7 @@ def test_wersji_zadania_nie_da_sie_skasowac_formularzem(client, con, task):
     response = _post(client, task, action="approve",
                      **_full(task, **{f"delete.version.{task['version']}": "1"}))
 
-    assert response.status_code == 303
+    assert response.status_code == 200
     assert con.execute("SELECT count(*) AS n FROM task_version").fetchone()["n"] == 1
     # Zignorowane pole nie jest zmiana, wiec status ma zostac trafieniem parsera.
     assert _state(con, task["id"])["review_status"] == "approved"
@@ -470,10 +506,9 @@ def test_wersji_zadania_nie_da_sie_skasowac_formularzem(client, con, task):
 def test_zadanie_z_cudzej_strony_nie_zmienia_korpusu(client, con, task):
     """Ekran nie ma uwierzytelnienia, bo stoi na localhoście — ale to nie znaczy,
     że tylko my możemy do niego wysłać formularz."""
-    response = client.post(f"/task/{task['id']}",
-                           data={"started_at": _started(), "action": "approve"},
-                           headers={"sec-fetch-site": "cross-site"},
-                           follow_redirects=False)
+    response = client.post(f"/api/task/{task['id']}",
+                           json={"action": "approve", "started_at": _started()},
+                           headers={"sec-fetch-site": "cross-site"})
 
     assert response.status_code == 403
     assert _state(con, task["id"])["review_status"] == "pending"
@@ -526,8 +561,8 @@ def test_zapis_nie_gubi_zakresu(client, con, task):
     response = _post(client, task, action="approve", year="2025", variant="100",
                      **_full(task))
 
-    assert response.status_code == 303
-    assert response.headers["location"] == "/next?year=2025&variant=100"
+    assert response.status_code == 200
+    assert _redirect(response) == "/next?year=2025&variant=100"
 
 
 def test_lista_filtruje_po_wariancie(client, task, klucz_z_innego_rocznika):
@@ -590,7 +625,7 @@ def test_reczna_ramka_tnie_wycinek_i_liczy_sie_jako_poprawka(client, con, task, 
     """
     response = _post(client, task, action="approve", **_full(task), **_ramka(zasob))
 
-    assert response.status_code == 303
+    assert response.status_code == 200
     assert (zasob["blob"] / "TEST" / "z20-0.png").exists()
     assert _state(con, task["id"])["review_status"] == "corrected"
     bbox = con.execute("SELECT bbox FROM asset WHERE id = %s",
@@ -612,8 +647,8 @@ def test_przycisk_wytnij_nie_rozstrzyga_zadania(client, con, task, zasob):
     """„Wytnij" to podgląd ramki, nie zatwierdzenie — dziennik ma zostać pusty."""
     response = _post(client, task, action="crop", **_full(task), **_ramka(zasob))
 
-    assert response.status_code == 303
-    assert response.headers["location"].startswith(f"/task/{task['id']}?")
+    assert response.status_code == 200
+    assert _redirect(response) is None, "przycisk Wytnij zostawia korektora przy zadaniu"
     assert (zasob["blob"] / "TEST" / "z20-0.png").exists()
     assert _state(con, task["id"])["review_status"] == "pending"
     assert _events(con) == []
@@ -630,9 +665,9 @@ def test_save_action_keeps_task_open_and_remembers_edit(client, con, task):
     formularz = _full(task, **{f"answer.{task['answer']}.answer": "106"})
     response = _post(client, task, action="save", **formularz)
 
-    assert response.status_code == 303, response.text[:400]
-    assert response.headers["location"].startswith(f"/task/{task['id']}?")
-    assert "edited_before=1" in response.headers["location"]
+    assert response.status_code == 200, response.text[:400]
+    assert _redirect(response) is None
+    assert response.json()["edited_before"] is True
     assert _state(con, task["id"])["review_status"] == "pending"
     assert _events(con) == []
     assert con.execute("SELECT answer FROM model_answer WHERE id = %s",
@@ -651,7 +686,7 @@ def test_runda_wytnij_pamieta_usuniecie(client, con, task, zasob):
     formularz.pop(f"answer.{task['answer']}.answer")
 
     wytnij = _post(client, task, action="crop", **formularz)
-    assert "edited_before=1" in wytnij.headers["location"]
+    assert wytnij.json()["edited_before"] is True
 
     bez_odpowiedzi = _full(task)
     bez_odpowiedzi.pop(f"answer.{task['answer']}.answer")
@@ -672,21 +707,6 @@ def test_wycinek_nie_powstaje_gdy_zapis_sie_wycofuje(client, con, task, zasob):
 
     assert response.status_code == 422
     assert not (zasob["blob"] / "TEST" / "z20-0.png").exists()
-
-
-def test_ramka_wraca_do_formularza_po_bledzie(client, task, zasob):
-    """Po nieudanej walidacji człowiek dostaje z powrotem TO, CO WPISAŁ.
-
-    Odczyt czterech liczb z siatki kosztuje minutę; kasowanie go za cudzą
-    literówkę w innym polu formularza jest karą bez związku z przewinieniem.
-    """
-    response = _post(client, task, action="approve",
-                     **_full(task, **{f"condition.{task['condition']}.description": ""}),
-                     **_ramka(zasob))
-
-    assert response.status_code == 422
-    for pole, wartosc in (("x0", "100"), ("top", "50"), ("x1", "300"), ("bottom", "150")):
-        assert f'name="asset.{zasob["id"]}.{pole}" value="{wartosc}"' in response.text
 
 
 def test_podglad_wycinka_i_strony_zeszytu(client, task, zasob):
@@ -745,23 +765,22 @@ def test_closed_without_criteria_is_the_norm_when_the_key_has_none(client, con, 
 
     Korektor ma zobaczyć kształt dokumentu, a nie szukać po kluczu sekcji,
     której w nim nie ma — inaczej rocznik 2019 kosztuje 90 razy po minucie
-    szukania czegoś, czego nie ma.
+    szukania czegoś, czego nie ma. Rozstrzyga o tym `closed_have_criteria`
+    liczone z DOKUMENTU; zdanie na ekranie dobiera z niego front.
     """
     closed = _zamkniete(con, task, criteria_elsewhere=False)
 
-    response = client.get(f"/task/{closed}")
+    body = client.get(f"/api/task/{closed}").json()
 
-    assert response.status_code == 200
-    assert "norma dokumentu" in response.text
-    assert "dziura" not in response.text
+    assert body["task"]["criteria"] == []
+    assert body["task"]["closed_have_criteria"] is False
 
 
 def test_closed_without_criteria_is_a_gap_when_a_sibling_has_them(client, con, task):
     """Niezgodność wewnątrz klucza znaczy, że parser przegapił sekcję."""
     closed = _zamkniete(con, task, criteria_elsewhere=True)
 
-    response = client.get(f"/task/{closed}")
+    body = client.get(f"/api/task/{closed}").json()
 
-    assert response.status_code == 200
-    assert "dziura" in response.text
-    assert "norma dokumentu" not in response.text
+    assert body["task"]["criteria"] == []
+    assert body["task"]["closed_have_criteria"] is True
