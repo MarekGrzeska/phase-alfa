@@ -38,6 +38,8 @@ TestResults/
 # --- Node ---
 node_modules/
 dist/
+# Paczka frontu ekranu korekty — artefakt buildu, powstaje z `task correction:ui`.
+ingest/correction/static/
 .vite/
 *.tsbuildinfo
 .turbo/

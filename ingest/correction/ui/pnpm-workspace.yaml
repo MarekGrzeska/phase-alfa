@@ -1,0 +1,8 @@
+# Ten katalog jest wlasnym korzeniem pnpm — front narzedzia stoi obok ingestu,
+# a nie w workspace produktowego weba: inny backend, inny cykl zycia.
+
+# Vite wola binarke esbuilda, wiec jego skrypt instalacyjny musi sie wykonac.
+# pnpm 11 blokuje skrypty domyslnie; wpis tutaj (a nie `pnpm approve-builds`)
+# sprawia, ze kazda maszyna instaluje tak samo.
+allowBuilds:
+  esbuild: true

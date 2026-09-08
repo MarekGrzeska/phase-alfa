@@ -1,9 +1,14 @@
-"""Ekran korekty — FastAPI + Jinja2, bez kroku budowania i bez frameworka na froncie.
+"""Ekran korekty — FastAPI, widoki w trakcie migracji z Jinja2 na Reacta.
 
 Narzędzie na trzy tygodnie pracy jednej osoby na localhoście. Reguła stopu
 z Planu Implementacji obowiązuje tu podwójnie: widok jest zrobiony, gdy
 odpowiada na pytanie, dla którego powstał. Każda godzina w stylach tego ekranu
 jest godziną zdjętą z korekty, a to korekta jest ścieżką krytyczną A2.
+
+Front stoi w `ui/` (React + Vite, build do `static/`). Migracja idzie ekranami:
+dziś Reactem jest panel agenta doklejony do stron Jinja, dalej pójdą kolejne
+widoki. Do czasu jej domknięcia oba sposoby renderowania są tu naraz — i to
+jest stan przejściowy, a nie docelowa architektura.
 """
 
 from __future__ import annotations
@@ -16,12 +21,20 @@ from urllib.parse import urlencode
 import psycopg
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from correction import assets, db, inspector, pages, stats
 from pdf import crop as crop_pdf
 
 app = FastAPI(title="Klucz — ekran korekty", docs_url=None, redoc_url=None)
+
+# Front z `ui/` (React) po zbudowaniu — `task correction:ui`. Katalog powstaje
+# dopiero z buildu, więc `check_dir=False`: brak paczki ma zabrać panel agenta,
+# a nie wywalić cały ekran korekty przy starcie.
+STATIC = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=str(STATIC), check_dir=False), name="static")
+
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["STATUS_LABELS"] = db.STATUS_LABELS
 templates.env.globals["TASK_KINDS"] = db.TASK_KINDS

@@ -246,6 +246,7 @@ task test      # architektura, zero-DOM, regresja parsera, więzy schematu
 task db:reset  # baza od zera (kasuje wolumen)
 task ingest    # przebieg parsera (od A2) — klucze po korekcie pomija
 task correction        # ekran korekty: rekord staje się korpusem (od G2.1); /inspect — inspektor danych, tylko odczyt
+task correction:ui     # build frontu ekranu korekty (React → ingest/correction/static/); `task correction` woła go sam
 task correction:report # pomiary S6, S7, S8: stan korekty, mediana czasu, prognoza
 task crops     # wycinki PNG zasobów graficznych; --prune sprząta bloba (G2.4)
 task mathjson  # zapisy równoważne → MathJSON przez Compute Engine (G2.6)
@@ -263,6 +264,7 @@ task bench     # benchmark golden setu (od A3)
 | Ścieżka | Co |
 |---|---|
 | `ingest/` | Python: mirror, parser PDF, migracje schematu, ekran korekty, konwerter MathJSON |
+| `ingest/correction/ui/` | TypeScript: front ekranu korekty (React + Vite), własny korzeń pnpm |
 | `backend/` | C#: modularny monolit, moduły nie widzą się nawzajem |
 | `web/` | TypeScript: `packages/core` bez DOM, `apps/web`, generowany klient OpenAPI |
 | `docs/` | plany implementacji i przeglądy kodu |

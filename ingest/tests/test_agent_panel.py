@@ -1,8 +1,9 @@
-"""Panel agenta w szablonie wspólnym — makieta G-x, bez agenta za nią.
+"""Panel agenta wpięty w strony Jinja — miejsce zaczepienia, nie zachowanie.
 
-Sedno testu nie jest w tym, że panel się renderuje, tylko w tym, że siedzi
-w `base.html`, czyli WSZĘDZIE: na ekranie korekty i w inspektorze. Gdyby ktoś
-wstawił go do jednego widoku, ten test to złapie.
+Sam panel jest w Reakcie i ma własne testy (`correction/ui`, vitest). Tutaj
+sprawdzamy to, czego tamte nie widzą: że każdy ekran narzędzia ma gdzie go
+zamontować i skąd wziąć paczkę. Kontener wpięty do jednego widoku zamiast do
+`base.html` zabrałby agenta inspektorowi i nikt by tego nie zauważył.
 """
 
 from __future__ import annotations
@@ -27,45 +28,32 @@ SCREENS = [
 
 
 @pytest.fixture(scope="module")
-def environment() -> "jinja2.Environment":
-    """Ten sam katalog szablonów co w aplikacji, bez bazy i bez serwera.
-
-    Dane wchodzą jako `Undefined`, bo pytanie brzmi „czy panel jest w układzie",
-    a nie „co pokazuje wiersz inspektora" — na to są testy integracyjne.
-    """
+def environment() -> jinja2.Environment:
+    """Ten sam katalog szablonów co w aplikacji, bez bazy i bez serwera."""
     return jinja2.Environment(
         loader=jinja2.FileSystemLoader(str(TEMPLATES)),
         autoescape=True,
     )
 
 
-def test_panel_renderuje_sie_zwiniety(environment) -> None:
-    """Stan początkowy to szyna, nie rozwinięta kolumna.
-
-    Korektor otwiera to narzędzie po to, żeby patrzeć na skan klucza. Panel,
-    który wita go rozwinięty, zabiera szerokość, o którą nikt nie prosił.
-    """
-    html = environment.get_template("agent_panel.html").render()
-    assert 'id="agent-panel"' in html
-    assert 'data-state="collapsed"' in html
+def test_kontener_i_paczka_sa_w_szablonie_wspolnym(environment) -> None:
+    """Kontener panelu, styl i skrypt — wszystko w `base.html`, nie w widoku."""
+    html = environment.get_template("base.html").render()
+    assert 'id="agent-root"' in html
+    assert '/static/agent-panel.js' in html
+    assert '/static/agent-panel.css' in html
 
 
-def test_pole_wiadomosci_jest_wylaczone(environment) -> None:
-    """Makieta ma wyglądać na niegotową — wysłanie wiadomości nie ma dokąd pójść."""
-    html = environment.get_template("agent_panel.html").render()
-    composer = html[html.index("agent-composer"):]
-    assert composer.count("disabled") >= 2
+def test_kontener_stoi_poza_kolumna_tresci(environment) -> None:
+    """Panel jest kolumną wiersza, a nie elementem przewijanej treści.
 
-
-def test_panel_siedzi_w_szablonie_wspolnym(environment) -> None:
-    """Panel należy do narzędzia, nie do widoku — stąd `base.html`, nie ekran.
-
-    Renderowane bez danych: `base.html` sam ich nie potrzebuje, a to on
-    decyduje o układzie kolumn.
+    Gdyby siedział wewnątrz `.workspace-content`, odjeżdżałby w górę razem
+    ze skanem klucza — a ma stać obok niego.
     """
     html = environment.get_template("base.html").render()
-    assert 'class="workspace"' in html
-    assert 'id="agent-panel"' in html
+    content_end = html.index("</main>")
+    assert html.index('id="agent-root"') > content_end
+    assert html.index('class="workspace"') < content_end
 
 
 @pytest.mark.parametrize("screen", SCREENS)
@@ -73,3 +61,17 @@ def test_kazdy_ekran_dziedziczy_po_base(environment, screen: str) -> None:
     """Ekran poza `base.html` zostałby bez panelu — także ten w inspektorze."""
     source = environment.loader.get_source(environment, screen)[0]
     assert '{% extends "base.html" %}' in source, f"{screen} nie dziedziczy po base.html"
+
+
+def test_aplikacja_wystawia_katalog_paczki() -> None:
+    """`/static` jest zamontowane nawet wtedy, gdy paczki jeszcze nie zbudowano.
+
+    Brak buildu ma zabrać sam panel, a nie wywalić ekran korekty przy starcie —
+    korekta jest ścieżką krytyczną A2, front agenta nie.
+    """
+    pytest.importorskip("fastapi")
+    from correction.app import app
+
+    mounts = [route for route in app.routes if getattr(route, "name", "") == "static"]
+    assert mounts, "aplikacja nie montuje /static"
+    assert mounts[0].path == "/static"
