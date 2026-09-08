@@ -55,6 +55,11 @@ dependencies = [
     # roboczy i komunikaty zostaja w Taskfile. Licencje sprawdzone 4.09.2026.
     "questionary>=2.1.1",
     "rich>=15.0.0",
+    # --- agent (docs/plan-agent-mcp.md) ---
+    # Oficjalny SDK MCP (MIT, sprawdzone 8.09.2026). `<2`, bo `langchain-mcp-adapters`
+    # (M4) wymaga 1.x, a w 2.x `FastMCP` zmienił nazwę i API — jedna wersja dla
+    # serwera i dla klienta agenta, zamiast dwóch SDK w jednym procesie.
+    "mcp>=1.30,<2",
 ]
 
 [project.optional-dependencies]
