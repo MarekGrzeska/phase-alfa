@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Inspektor danych{% endblock %}
+{% block subtitle %}{{ schema.tables|length }} tabel · {{ schema.views|length }} widoki · tylko odczyt{% endblock %}
+
+{% block content %}
+<style>
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+  @media (max-width: 60rem) { .grid2 { grid-template-columns: 1fr; } }
+  .health li { display: grid; grid-template-columns: 4rem 1fr; gap: .8rem; padding: .45rem 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+  .health li:last-child { border-bottom: 0; }
+  .health .n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .health .n.zero { color: var(--ink-2); font-weight: 400; }
+  .health .n.problem { color: var(--crit); }
+  .health .n.info { color: var(--warn); }
+  .health .why { display: block; }
+  ul.health { list-style: none; margin: 0; padding: 0; }
+  .empty td { color: var(--ink-2); }
+</style>
+
+<div class="grid2">
+  <div>
+    <div class="card">
+      <h2>Tabele</h2>
+      <p class="small" style="margin-top:0">
+        Liczby po całej tabeli, nie po korpusie. Klik prowadzi do listy;
+        z listy — do wiersza, jego rodziców, dzieci i strony PDF, z której wyszedł.
+      </p>
+      <table>
+        <thead><tr><th>tabela</th><th class="n">wierszy</th><th>co to</th></tr></thead>
+        <tbody>
+        {% for name, table in schema.tables.items() %}
+          <tr{% if counts[name] == 0 %} class="empty"{% endif %}>
+            <td class="mono"><a href="/inspect/{{ name }}">{{ name }}</a></td>
+            <td class="n">{{ counts[name] }}</td>
+            <td class="small">{{ notes.get(name, '') }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <h3 style="margin-top:1rem">Widoki</h3>
+      <p class="small mono" style="margin:0">
+        {% for v in schema.views %}{{ v }}{% if not loop.last %} · {% endif %}{% endfor %}
+      </p>
+      <p class="small" style="margin:.4rem 0 0">
+        Widoków inspektor nie listuje — <span class="mono">corpus_task</span> to
+        <span class="mono">task</span> z filtrem <span class="mono">review_status</span>,
+        a definicja korpusu ma stać w jednym miejscu.
+      </p>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Zdrowie danych</h2>
+      <p class="small" style="margin-top:0">
+        Te same pytania co <span class="mono">task corpus:report</span>, ale każda
+        liczba prowadzi do listy wierszy, a każdy wiersz — do swojego źródła.
+      </p>
+      <ul class="health">
+      {% for h in health %}
+        <li>
+          <span class="n {{ 'zero' if h.count == 0 else h.check.severity }}">{{ h.count }}</span>
+          <span>
+            <a href="/inspect/health/{{ h.check.key }}">{{ h.check.title }}</a>
+            <span class="tag" style="margin-left:.3rem">{{ 'problem' if h.check.severity == 'problem' else 'info' }}</span>
+            <span class="why small">{{ h.check.why }}</span>
+          </span>
+        </li>
+      {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Kolumny, których nikt nie wypełnia</h2>
+      <p class="small" style="margin-top:0">
+        Schemat je obiecuje, żaden przebieg dziś nie pisze. Licznik mówi, ile
+        wierszy ma wartość nietkniętą — gdy spadnie poniżej 100%, ktoś zaczął.
+      </p>
+      <table>
+        <thead><tr><th>tabela.kolumna</th><th class="n">nietknięte</th><th class="n">wierszy</th></tr></thead>
+        <tbody>
+        {% for e in empty_columns %}
+          <tr>
+            <td class="mono"><a href="/inspect/{{ e.table }}">{{ e.table }}</a>.{{ e.column }}</td>
+            <td class="n">{{ e.untouched }}</td>
+            <td class="n">{{ e.total }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

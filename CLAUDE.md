@@ -245,7 +245,7 @@ task dev       # dotnet watch + vite (od G1.3/G1.4)
 task test      # architektura, zero-DOM, regresja parsera, więzy schematu
 task db:reset  # baza od zera (kasuje wolumen)
 task ingest    # przebieg parsera (od A2) — klucze po korekcie pomija
-task correction        # ekran korekty: rekord staje się korpusem (od G2.1)
+task correction        # ekran korekty: rekord staje się korpusem (od G2.1); /inspect — inspektor danych, tylko odczyt
 task correction:report # pomiary S6, S7, S8: stan korekty, mediana czasu, prognoza
 task crops     # wycinki PNG zasobów graficznych; --prune sprząta bloba (G2.4)
 task mathjson  # zapisy równoważne → MathJSON przez Compute Engine (G2.6)

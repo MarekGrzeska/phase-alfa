@@ -32,6 +32,8 @@ Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 - [`docs/plan-A2-auto.md`](docs/plan-A2-auto.md) — **A2-auto**: korekta korpusu modelem, człowiek na próbce (decyzja MVP z 4.09.2026)
 - [`ingest/README.md`](ingest/README.md) · [`backend/README.md`](backend/README.md) · [`web/README.md`](web/README.md) — jak uruchomić i czego pilnują bramki w każdej z warstw
 - [`docs/decyzje-A2.md`](docs/decyzje-A2.md) — rozstrzygnięcia zapadłe w A2, gotowe do przeniesienia do `DECYZJE.md`
+- [`docs/project-status.html`](docs/project-status.html) — **stan prac na 8.09.2026**: co stoi, czego brakuje i pięć rzeczy w kolejności, w jakiej się opłacają
+- [`docs/database-guide.html`](docs/database-guide.html) — **schemat bazy**: 18 tabel kolumna po kolumnie, źródło każdej wartości i chronologia zapisu od PDF-u do odczytu przez C#
 - [`docs/g1.2-ingest.html`](docs/g1.2-ingest.html) — **G1.2** ingest: co powstało, co osiąga, jak podłączyć się do bazy DBeaverem
 - [`docs/a2-korpus.html`](docs/a2-korpus.html) — **A2** od środka: bramka korekty, osiem klocków, zmierzone liczby i to, co zostało ręką
 - [`docs/a3-ocenianie.html`](docs/a3-ocenianie.html) — **A3** w planie: pipeline pięciu kroków, pięć pytań badawczych, zależności wejściowe
@@ -81,6 +83,8 @@ task test      # testy: architektura, zero-DOM, regresja parsera, więzy schemat
 task menu      # wszystkie polecenia ingestu do wyboru strzałkami, z podglądem komendy
 task ingest    # przebieg parsera (po A2)
 task correction        # ekran korekty — bramka między parserem a korpusem (G2.1)
+                       # ten sam proces serwuje /inspect: każda tabela, każdy wiersz,
+                       # skąd się wziął (strona PDF + wycinek z bloba), zdrowie danych
 task correction:report # pomiary S6, S7, S8: stan korekty, czasy, prognoza
 task crops     # wycinki PNG zasobów graficznych (G2.4)
 task mathjson  # zapisy równoważne → MathJSON (G2.6)
