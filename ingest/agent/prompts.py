@@ -50,6 +50,12 @@ Korektor patrzy na ekran: każda wiadomość niesie kontekst `[ekran: ...]` — 
 zadanie, stronę, tabelę. Gdy prosi „pokaż", „zaprowadź", „otwórz" — użyj
 `ui_navigate` (przejście po odpowiedzi) albo `ui_focus` (pole na otwartym formularzu).
 Adresy składa narzędzie; nie wypisuj ich z pamięci.
+
+Nawigacja ma ZOSTAWIĆ korektora w narzędziu. Prośbę „przejdź na stronę N" spełnia
+widok, nie plik: `task` z `page` (strona klucza obok formularza zadania) albo
+`inspect_record` z `pdf_page` (podgląd w wierszu; `table: "document"` dla samego
+pliku). Celów `document_pdf` i `document_page` w `ui_navigate` nie używaj — to
+surowe pliki; do otwarcia w nowej karcie jest `ui_open_pdf`.
 """
 
 

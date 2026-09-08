@@ -186,6 +186,37 @@ def test_ui_tools_return_ui_events_not_side_effects():
     assert failed
 
 
+def test_navigation_never_leaves_the_app_for_a_raw_file():
+    """„Przejdź na stronę 16" ma zostawić korektora w narzędziu, nie w gołym PNG."""
+    body, failed = call("ui_navigate",
+                        target={"view": "document_page", "document_id": 54, "page": 16})
+    assert not failed
+    assert body["url"] == "/inspect/document/54?_pdfpage=16"
+    assert body["target"] == {"view": "inspect_record", "table": "document", "id": 54,
+                              "pdf_page": 16}
+    assert "surowy plik" in body["note"]
+
+    body, _ = call("ui_navigate", target={"view": "document_pdf", "document_id": 54})
+    assert body["url"] == "/inspect/document/54"
+
+    # Plik w nowej karcie zostaje osobnym narzędziem i dalej wskazuje plik.
+    body, _ = call("ui_open_pdf", document_id=54, page=16)
+    assert body["ui"] == {"action": "open", "url": "/inspect/document/54.pdf#page=16"}
+
+    # Widoki, które MAJĄ podgląd strony w środku ekranu, zostają bez zmian.
+    body, _ = call("ui_navigate", target={"view": "task", "id": 7, "page": 16})
+    assert body["url"] == "/task/7?page=16" and "note" not in body
+
+    body, failed = call("ui_navigate", target={"view": "document_page", "page": 16})
+    assert failed and "document_id" in body
+
+
+def test_ui_views_says_which_targets_are_not_for_navigation():
+    body, _ = call("ui_views")
+    assert body["not_for_navigate"] == ["document_page", "document_pdf"]
+    assert "pdf_page" in body["page_hint"]
+
+
 # ------------------------------------------------------------------ /mcp
 
 def test_mcp_is_served_at_slash_mcp_without_redirect(seeded):
