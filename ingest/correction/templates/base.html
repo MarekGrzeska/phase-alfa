@@ -75,6 +75,7 @@ button.danger { border-color: var(--crit); color: var(--crit); }
 <body>
 <header>
   <h1><a href="/{% if scope_query %}?{{ scope_query }}{% endif %}">Ekran korekty</a></h1>
+  <a class="small" href="/inspect">Inspektor</a>
   <span class="small">{% block subtitle %}{% endblock %}</span>
   <span class="spacer"></span>
   {% block actions %}{% endblock %}

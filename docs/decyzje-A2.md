@@ -132,6 +132,112 @@ O statusie rozstrzyga **porównanie z bazą**, nie deklaracja: trafieniem modelu
 wyłącznie opis z modelu przyjęty bez zmiany. Inaczej S7 dałoby się przekłamać
 kliknięciem.
 
+## Inspektor danych — drugi widok zadania, świadomie w Pythonie (8.09.2026)
+
+`/inspect` w aplikacji ekranu korekty pokazuje każdą tabelę, każdy wiersz, jego
+rodziców i dzieci po kluczach obcych, oraz **źródło w plikach**: stronę PDF z mirrora
+(z ramką `bbox` narysowaną w SVG nad obrazem) i wycinek z bloba. Przeglądarka W2
+ma już widok zadania — to jest dublowanie i jest zamierzone. Inspektor musi widzieć
+`pending` (W2 czyta tylko `corpus_task`), otwierać PDF (C# nie może) i czytać bloba
+lokalnie. Narzędzie badawcze dla jednej osoby, nie funkcja produktu.
+
+Trzy rozstrzygnięcia, które z tego wynikają:
+
+- **Nazwy tabel i kolumn z adresu nigdy nie trafiają do SQL-a.** Allowlista
+  z `information_schema` przy pierwszym żądaniu, identyfikatory przez
+  `sql.Identifier`, wartości filtrów jako parametry. Nieznana tabela → 404,
+  nieznana kolumna → 400, zanim cokolwiek dotknie bazy.
+- **„Źródło" jest wiedzą o kodzie, nie o wierszu.** Etykieta przy kolumnie mówi, który
+  przebieg ją pisze (słownik `SOURCES`, spisany z każdego INSERT/UPDATE w repozytorium).
+  Pochodzenie konkretnego wiersza inspektor podaje osobno i tylko tam, gdzie schemat
+  je niesie: `reviewed_by`, `description_status`, `mathjson_status`, dziennik.
+  Sugerowanie pewności, której schemat nie ma, byłoby gorsze niż jej brak.
+- **Plik wskazany przez bazę, którego nie ma na dysku, to osobny stan.** Nie NULL,
+  nie 404 — komunikat „pliku nie ma w mirrorze" w widoku i osobna kontrola w panelu
+  zdrowia. To jest dokładnie ten błąd danych, po który inspektor powstał.
+
+Panel zdrowia to `corpus:report` jako klikalne listy: każda liczba prowadzi do
+wierszy, każdy wiersz do źródła. Kontrole z filtrem w Pythonie (istnienie pliku)
+są droższe od SQL-a i liczone przy każdym wejściu na `/inspect` — przy 651
+zasobach to ułamek sekundy, przy K6 trzeba będzie cache.
+
+**Filtrowanie i sortowanie** (dołożone tego samego dnia) trzyma się trzech reguł:
+
+- **Filtr stoi przy swojej kolumnie**, w wierszu pod nagłówkami: mały wybór operatora
+  i pole wartości. Kolumny nie wybiera się z listy — wybiera ją miejsce, w którym się
+  pisze. Domyślny operator bierze się z typu: „zawiera" po tekście, równość po liczbie,
+  dacie i kluczu obcym.
+- **Filtruje się samo, po zmianie pola** — i to jest jedyne miejsce w tej aplikacji
+  z JavaScriptem. Ekran korekty nie ma go wcale (dlatego ramkę wpisuje się z siatki
+  zamiast przeciągać myszą) i tak zostaje; inspektor dostaje `onchange="this.form.submit()"`
+  na kontrolce, bo automatycznego wysyłania formularza w samym HTML-u nie ma.
+  `onchange`, a nie `oninput`: przy wpisywaniu zdarzenie leci po opuszczeniu pola albo
+  po Enterze, więc jedno zapytanie na filtr, a nie jedno na literę. Przycisk „Filtruj"
+  zostaje w `<noscript>` — bez JS-a narzędzie dalej działa, tylko z kliknięciem.
+
+  Konsekwencja dla adresu: przepisanie na postać kanoniczną musi zachodzić **także
+  wtedy, gdy wszystkie pola są puste**, czyli gdy filtry właśnie zdjęto. Inaczej
+  wybranie „—" w ostatniej liście zostawiałoby w pasku komplet pustych `op.*`,
+  a „wstecz" wracało do adresu, który niczego nie filtruje.
+- **Kolumna słownikowa daje wybór, nie wpisywanie**, i ma operatory zawężone do `=`,
+  `≠` (plus „pusta"/„niepusta", gdy jest NULL-owalna). Wpisanie `aproved` zamiast
+  `approved` dawałoby pustą listę wyglądającą jak brak danych — a inspektor powstał
+  po to, żeby odróżniać brak danych od błędu.
+
+  Słownikiem jest kolumna z **więzem CHECK** — wartości bierze się wtedy ze
+  **schematu** (`pg_get_constraintdef`, postać `= ANY (ARRAY[…])`), nie z `SELECT
+  DISTINCT`: status, którego dziś nie ma ani w jednym wierszu, wciąż jest legalny
+  i ma dać się wybrać. Poza tym kolumna logiczna oraz taka, której dane wyraźnie
+  się **powtarzają** — bo słownikiem czyni kolumnę powtarzalność, a nie mała liczba
+  wartości: przy trzech wierszach w tabeli każda kolumna wyglądałaby na słownik.
+  Stąd próg (≥20 wierszy, wartości co najmniej czterokrotnie się powtarzają,
+  każda krótsza niż 40 znaków), który zostawia `criterion_condition.description`
+  polem tekstowym, a `exam_form.variant` i `document.kind_source` zamienia w listę.
+
+  Filtr wpisany ręcznie w adresie bywa szerszy niż to, co oferuje wiersz
+  (`?kind__contains=clo`). Taki operator i taka wartość **dokładają się** do list
+  przy renderowaniu — inaczej pierwsze kliknięcie „Filtruj" po cichu zmieniłoby
+  zapytanie, które użytkownik napisał.
+- **Adres jest stanem.** Kanonicznie: `?kolumna=wartość` (równość) albo
+  `?kolumna__operator=wartość`. Stan widoku — `_sort`, `_dir`, `_page`, `_cols` —
+  ma **podkreślnik na początku**, bo bez niego koliduje z nazwami kolumn: `page`
+  istnieje w `task`, `task_version` i `asset`, więc `?page=11` znaczyło „strona 11"
+  i po tej kolumnie nie dało się filtrować w ogóle, a wiersz filtrów wysyłał puste
+  `page=` i cała lista wracała z **422**. Z tego samego powodu stan widoku czyta się
+  z `query_params`, a nie przez parametry funkcji trasy: FastAPI odrzuca `_page=`
+  pustym stringiem, a formularz wysyła puste pola przy każdym wysłaniu.
+  Pole w wierszu filtrów nie
+  umie zmienić swojej nazwy bez JavaScriptu, więc przysyła wartość pod nazwą kolumny,
+  a operator obok, pod `op.<kolumna>` — i dostaje **303 na adres kanoniczny**. Dzięki
+  temu adres z paska da się wkleić w notatce, a „wstecz" nie wraca do wysłanego
+  formularza. Skrót bez operatora zostaje, bo tak wyglądają linki z widoku wiersza
+  do dzieci. Prefiks `op.`, a nie sufiks, bo `kolumna__op` kolidowałoby z kanonicznym
+  `kolumna__operator`.
+- **Porównania idą po typie kolumny, nie po tekście.** `points > 2` ma znaczyć
+  liczbę: `'9' > '10'` jest prawdą dla napisów i fałszem dla liczb. Równość
+  i „zawiera" zostają na `::text`, bo ten sam mechanizm obsługuje wtedy jsonb
+  i tablice. Wartość niepasująca do typu wraca zdaniem przy formularzu, nie
+  pięćsetką — i **z jawnym `rollback()`**, bo odrzucone zapytanie zrywa transakcję
+  i każde następne (choćby podpowiedzi do formularza) wracałoby z „current
+  transaction is aborted".
+- **Filtr odrzucony jest nazwany, nie pomijany.** Nieznana kolumna albo operator
+  wypisuje się nad listą. Filtr, który nie działa, ale wygląda jakby działał,
+  pokazywałby pełną tabelę jako wynik zapytania — to gorsze niż błąd.
+
+Sortowanie dokłada klucz główny jako rozstrzygnięcie remisów: bez tego strona 2
+potrafi powtórzyć wiersze ze strony 1, bo przy równych wartościach PostgreSQL
+nie obiecuje stałej kolejności między zapytaniami.
+
+**Rozmiar strony (25 / 50 / 100, domyślnie 50) zapamiętuje CIASTECZKO**, nie
+`localStorage`: ustawia je serwer przy przekierowaniu, więc wybór przeżywa zamknięcie
+przeglądarki, a ekran nie potrzebuje do tego ani linijki JavaScriptu. `_per` pojawia
+się w adresie tylko po to, żeby trasa zapisała ciasteczko, i **znika po
+przekierowaniu**: rozmiar strony jest ustawieniem przeglądarki, a nie częścią adresu,
+którym się dzieli — link wklejony komuś innemu ma pokazać jego widok, nie mój.
+Zmiana rozmiaru wraca na pierwszą stronę, bo przy 25 na stronie „strona 12" bywa już
+za końcem listy. Wartość spoza listy — w adresie albo podłożona w ciasteczku —
+schodzi do domyślnej, zamiast wywracać zapytanie `LIMIT`-em z bzdury.
+
 ## W2 — co czyta przeglądarka korpusu
 
 **Wyłącznie widok `corpus_task`, nigdy `task`.** Definicja „co jest korpusem" stoi
