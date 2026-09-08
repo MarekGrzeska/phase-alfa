@@ -117,9 +117,17 @@ def check_model(model: str) -> None:
 
 
 def chat_model_for(model: str) -> BaseChatModel:
-    """Model rozmowy — osobna funkcja, żeby testy podstawiły model skryptowany."""
+    """Model rozmowy — osobna funkcja, żeby testy podstawiły model skryptowany.
+
+    `use_responses_api`: modele gpt-5.6 odrzucają narzędzia funkcyjne na
+    `/v1/chat/completions` („Function tools with reasoning_effort are not
+    supported… use /v1/responses"). Przebiegi `verify`/`prefill` tego nie widzą,
+    bo używają structured output bez narzędzi.
+    """
     check_model(model)
-    return llm.chat_model(model)
+    provider, _ = llm.split_model(model)
+    extra = {"use_responses_api": True} if provider == "openai" else {}
+    return llm.chat_model(model, **extra)
 
 
 # ------------------------------------------------------------------ narzędzia

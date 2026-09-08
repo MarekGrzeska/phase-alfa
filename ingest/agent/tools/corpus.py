@@ -132,15 +132,21 @@ def register(mcp: FastMCP) -> None:
             raise ValueError(f"nieznany status {status!r}; znane: {', '.join(db.STATUSES)}")
         if kind and kind not in db.TASK_KINDS:
             raise ValueError(f"nieznany rodzaj {kind!r}; znane: {', '.join(db.TASK_KINDS)}")
-        limit = max(1, min(int(limit), limits.MAX_ROWS))
+        # Sto wierszy to sufit: lista 200 zadań z dziesięcioma kolumnami kosztowała
+        # w jednej turze 190 k tokenów. Liczby zbiorcze robi `db_query` z GROUP BY.
+        limit = max(1, min(int(limit), 100))
         with db.connect() as con, con.cursor() as cur:
             # Rodzaj filtrujemy po stronie Pythona, więc pytamy o zapas wierszy.
             rows = db.list_tasks(cur, status or None, year, code, variant,
                                  limit=limit * (3 if kind else 1))
             if kind:
                 rows = [r for r in rows if r["kind"] == kind][:limit]
-            return {"tasks": limits.jsonable([{**r, "url": _task_url(r["id"])} for r in rows]),
-                    "count": len(rows),
+            compact = [{"id": r["id"], "number": r["number"], "kind": r["kind"],
+                        "max_points": r["max_points"], "review_status": r["review_status"],
+                        "year": r["year"], "code": r["code"], "variants": r["variants"]}
+                       for r in rows]
+            return {"tasks": limits.jsonable(compact),
+                    "count": len(rows), "truncated": len(rows) >= limit,
                     "next_pending": db.next_pending(cur, year, code, variant),
                     "url": urls.build({"view": "overview", "status": status or None,
                                        "scope": {"year": year, "code": code,

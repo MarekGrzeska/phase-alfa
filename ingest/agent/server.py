@@ -15,7 +15,7 @@ import sys
 from mcp.server.fastmcp import FastMCP
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
-from agent.tools import corpus, database, knowledge, navigation, status
+from agent.tools import corpus, database, ingest, knowledge, navigation, status
 
 INSTRUCTIONS = """Narzędzia projektu Klucz (faza alfa): korpus kluczy CKE w PostgreSQL,
 ekran korekty i inspektor na localhoście, przebiegi ingestu.
@@ -42,6 +42,7 @@ def build_server() -> FastMCP:
                   json_response=True, log_level="WARNING")
     database.register(mcp)
     corpus.register(mcp)
+    ingest.register(mcp)
     knowledge.register(mcp)
     status.register(mcp)
     navigation.register(mcp)
