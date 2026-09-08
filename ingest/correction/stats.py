@@ -173,10 +173,13 @@ def collect(cur) -> dict:
     }
 
 
-def agent_lines(measure: dict, rule: str) -> list[str]:
-    """Koszt agenta w panelu — liczba do raportu, nie do wiary (plan agent-MCP, M6)."""
+def agent_lines(measure: dict | None, rule: str) -> list[str]:
+    """Koszt agenta w panelu — liczba do raportu, nie do wiary (plan agent-MCP, M6).
+
+    `None` (liczby złożone bez bazy, jak w testach czystych) daje sekcję „brak rozmów".
+    """
     lines = ["AGENT W EKRANIE KOREKTY", rule]
-    if not measure["models"]:
+    if not measure or not measure["models"]:
         lines.append("  brak rozmów")
         return lines
     for row in measure["models"]:
@@ -263,7 +266,7 @@ def as_text(numbers: dict) -> str:
         "",
         *s7_lines(numbers["s7"], rule),
         "",
-        *agent_lines(numbers["agent"], rule),
+        *agent_lines(numbers.get("agent"), rule),
         "",
         "PROGNOZA",
         rule,
