@@ -1,8 +1,8 @@
 """Baza: schemat z pochodzeniem kolumn, dowolny SELECT tylko do odczytu, inspektor.
 
 Czytanie bez ograniczeń, ale w transakcji `READ ONLY` z limitem czasu i wierszy.
-Zapis surowym SQL-em (`db_execute`) wchodzi w M2 razem z potwierdzeniem —
-tu go celowo nie ma. Nazwy tabel i kolumn idą przez allowlistę inspektora.
+Zapis surowym SQL-em (`db_execute`) tylko po zgodzie człowieka — z podglądem
+liczby wierszy z wycofanej próby. Nazwy tabel i kolumn idą przez allowlistę inspektora.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import psycopg
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
-from agent import limits
+from agent import audit, confirm, limits
 from correction import db, inspector
 from schema import migrate
 
@@ -113,6 +113,40 @@ def register(mcp: FastMCP) -> None:
                 return run_read_only(con, sql, limit)
         except psycopg.Error as exc:
             raise ValueError(friendly_sql_error(exc)) from exc
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True,
+                                          idempotentHint=False, openWorldHint=False),
+              meta={"confirm": True})
+    def db_execute(sql: str, confirmation: int | None = None) -> dict:
+        """Surowy SQL zmieniający dane (INSERT/UPDATE/DELETE/DDL) — WYŁĄCZNIE za zgodą
+        człowieka. Bez `confirmation` wykonuje zapytanie na próbę w wycofanej
+        transakcji, zapisuje prośbę o zgodę z treścią i liczbą dotkniętych wierszy
+        i zwraca ją; nic nie zmienia. Z `confirmation=<id>` po kliknięciu „Wykonaj"
+        wykonuje i zatwierdza. Do zmian w korpusie używaj narzędzi `task_*`, nie tego.
+        """
+        arguments = {"sql": sql}
+        try:
+            with db.connect() as con:
+                if confirmation is None:
+                    with con.cursor() as cur:
+                        cur.execute(f"SET LOCAL statement_timeout = '{STATEMENT_TIMEOUT}'")
+                        cur.execute(sql)
+                        affected = cur.rowcount
+                    con.rollback()
+                    with con.transaction(), con.cursor() as cur:
+                        return confirm.request(
+                            cur, "db_execute", arguments, "Surowy zapis SQL",
+                            f"{sql.strip()}\n-- dotknie wierszy (próba): {affected}")
+                with con.transaction(), con.cursor() as cur:
+                    confirm.consume(cur, int(confirmation), "db_execute", arguments)
+                    cur.execute(f"SET LOCAL statement_timeout = '{STATEMENT_TIMEOUT}'")
+                    cur.execute(sql)
+                    affected = cur.rowcount
+                    audit.record(cur, "db_execute", arguments, {"affected_rows": affected},
+                                 confirmation_id=int(confirmation))
+        except psycopg.Error as exc:
+            raise ValueError(friendly_sql_error(exc)) from exc
+        return {"affected_rows": affected, "confirmation": int(confirmation)}
 
     @mcp.tool(annotations=READ_ONLY)
     def inspect_list(table: str, filters: dict[str, str] | None = None,

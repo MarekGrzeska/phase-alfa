@@ -15,7 +15,7 @@ import sys
 from mcp.server.fastmcp import FastMCP
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
-from agent.tools import database, knowledge, navigation, status
+from agent.tools import corpus, database, knowledge, navigation, status
 
 INSTRUCTIONS = """Narzędzia projektu Klucz (faza alfa): korpus kluczy CKE w PostgreSQL,
 ekran korekty i inspektor na localhoście, przebiegi ingestu.
@@ -23,7 +23,11 @@ ekran korekty i inspektor na localhoście, przebiegi ingestu.
 Zasady: korpusem jest widok `corpus_task`, tabela `task` zawiera też rekordy
 nierozstrzygnięte. Więzy bazy są ostre celowo — rekordu odrzuconego przez więz
 nie wymusza się. Zapis do korpusu wyłącznie narzędziami `task_*`, nigdy SQL-em obok.
-Przed płatnym przebiegiem z `--apply` obowiązuje dry-run na jednym roczniku.
+Narzędzia z `confirm` w metadanych (task_decide, db_execute, zmiany w rekordach
+korpusu) wykonują się dopiero po zgodzie człowieka w panelu: pierwsze wywołanie
+zwraca prośbę `{"confirm": {...}}` — nie jest to błąd; poczekaj na decyzję i wywołaj
+ponownie z `confirmation=<id>`. Przed płatnym przebiegiem z `--apply` obowiązuje
+dry-run na jednym roczniku.
 Zanim wyjaśnisz, jak coś działa, sprawdź w `docs_search` albo `code_search` —
 nie zgaduj. Odpowiadaj po polsku."""
 
@@ -37,6 +41,7 @@ def build_server() -> FastMCP:
     mcp = FastMCP("klucz", instructions=INSTRUCTIONS, streamable_http_path="/",
                   json_response=True, log_level="WARNING")
     database.register(mcp)
+    corpus.register(mcp)
     knowledge.register(mcp)
     status.register(mcp)
     navigation.register(mcp)

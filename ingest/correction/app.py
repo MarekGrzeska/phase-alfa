@@ -25,6 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
+from agent import api as agent_api
 from agent.server import session_manager as mcp_session_manager
 from correction import api, assets, db, inspect_api, inspector, pages
 from pdf import crop as crop_pdf
@@ -75,6 +76,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC), check_dir=False), name="
 
 app.include_router(api.router)
 app.include_router(inspect_api.router)
+app.include_router(agent_api.router)
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["STATUS_LABELS"] = db.STATUS_LABELS
