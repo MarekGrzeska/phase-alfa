@@ -87,6 +87,7 @@ tasks:
       - task: test:python
       - task: test:dotnet
       - task: test:web
+      - task: correction:ui:test
       - task: test:contract
 
   test:python:
@@ -246,9 +247,30 @@ tasks:
   correction:
     desc: Ekran korekty na localhoście (G2.1)
     dir: ingest
+    deps: [correction:ui]
     cmds:
       - cmd: 'echo "Ekran korekty: http://localhost:${CORRECTION_PORT:-8600}"'
       - '{{.PY}} -m uvicorn correction.app:app --host 127.0.0.1 --port ${CORRECTION_PORT:-8600} --reload'
+
+  # Front ekranu korekty: na razie panel agenta jako wyspa Reacta wśród stron
+  # Jinja, docelowo cały ekran. Własny korzeń pnpm, nie workspace weba — inny
+  # backend i inny cykl życia, tak samo jak `ingest/mathjson`.
+  correction:ui:
+    desc: Build frontu ekranu korekty (React) do ingest/correction/static/
+    dir: ingest/correction/ui
+    sources: ['src/**/*', 'package.json', 'vite.config.ts', 'tsconfig.json']
+    generates: ['../static/correction.js', '../static/correction.css']
+    cmds:
+      - pnpm install --frozen-lockfile
+      - pnpm run build
+
+  correction:ui:test:
+    desc: Testy frontu ekranu korekty (vitest)
+    dir: ingest/correction/ui
+    cmds:
+      - pnpm install --frozen-lockfile
+      - pnpm run typecheck
+      - pnpm run test
 
   correction:report:
     desc: Raport korekty (S6, S7, S8) — stan, czasy, prognoza — do data/reports/

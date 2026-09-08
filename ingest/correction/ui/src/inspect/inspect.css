@@ -1,0 +1,65 @@
+/* Styl inspektora — przeniesiony bez zmian z szablonów Jinja, które ten widok
+   zastąpił. Kolory idą ze zmiennych ekranu korekty, więc tryb ciemny działa. */
+
+/* --- z inspect_index.html --- */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+  @media (max-width: 60rem) { .grid2 { grid-template-columns: 1fr; } }
+  .health li { display: grid; grid-template-columns: 4rem 1fr; gap: .8rem; padding: .45rem 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+  .health li:last-child { border-bottom: 0; }
+  .health .n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .health .n.zero { color: var(--ink-2); font-weight: 400; }
+  .health .n.problem { color: var(--crit); }
+  .health .n.info { color: var(--warn); }
+  .health .why { display: block; }
+  ul.health { list-style: none; margin: 0; padding: 0; }
+  .empty td { color: var(--ink-2); }
+
+/* --- z inspect_list.html --- */
+.fbar { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; margin-bottom: .6rem; }
+  .fbar .chip { display: inline-flex; align-items: center; gap: .35rem; border: 1px solid var(--accent);
+                color: var(--accent); border-radius: 3px; padding: .12rem .4rem; font-size: .78rem;
+                font-family: ui-monospace, Consolas, monospace; }
+  .fbar .chip a { text-decoration: none; font-weight: 700; color: var(--crit); }
+  .list { table-layout: auto; }
+  .list td { max-width: 26rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .list th a { text-decoration: none; color: inherit; display: block; }
+  .list th a:hover { color: var(--accent); }
+  .list th.sorted a { color: var(--accent); }
+  .list th .src { text-transform: none; letter-spacing: 0; font-size: .68rem; color: var(--ink-2); font-weight: 400; }
+  /* Wiersz filtrów: pole stoi POD swoją kolumną, więc nie trzeba wybierać nazwy
+     kolumny z listy — wybiera ją miejsce, w którym się pisze. */
+  tr.filters td { padding: .25rem .35rem; border-bottom: 2px solid var(--rule); white-space: nowrap; }
+  tr.filters .cell { display: flex; gap: .15rem; }
+  tr.filters select { padding: .18rem .1rem; font-size: .74rem; width: 2.9rem; }
+  tr.filters select.val { width: auto; max-width: 11rem; font-size: .78rem; padding: .18rem .2rem; }
+  tr.filters input { padding: .18rem .3rem; font-size: .78rem; width: 100%; min-width: 4rem; }
+  tr.filters .on input, tr.filters .on select { border-color: var(--accent); color: var(--accent); }
+  .legend { color: var(--ink-2); font-size: .78rem; margin: .5rem 0 0; }
+  .pager { display: flex; gap: 1rem; align-items: baseline; margin-top: .6rem; }
+
+/* --- z inspect_record.html --- */
+.cols3 { display: grid; grid-template-columns: 1fr 1.1fr; gap: 1rem; align-items: start; }
+  @media (max-width: 64rem) { .cols3 { grid-template-columns: 1fr; } }
+  .rec td.k { font-family: ui-monospace, Consolas, monospace; white-space: nowrap; width: 1%; }
+  .rec td.v { word-break: break-word; }
+  .rec td.s { color: var(--ink-2); white-space: nowrap; width: 1%; font-size: .78rem; }
+  .rec td.s.none { color: var(--crit); }
+  .rec pre { margin: 0; font-size: .8rem; white-space: pre-wrap; max-height: 18rem; overflow: auto; }
+  .null { color: var(--ink-2); font-style: italic; }
+  .notes { border-left: 3px solid var(--accent); padding: .3rem .8rem; margin: 0 0 .8rem; }
+  .notes p { margin: .15rem 0; }
+  .kids li { padding: .3rem 0; border-bottom: 1px solid var(--rule); }
+  .kids li:last-child { border-bottom: 0; }
+  .kids .rows { margin: .2rem 0 0 1rem; font-size: .84rem; }
+  .kids .rows div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pdfnav { display: flex; gap: .8rem; align-items: baseline; flex-wrap: wrap;
+            font-size: .84rem; margin: .5rem 0 .4rem; }
+  .pdfnav .jump { display: inline-flex; gap: .3rem; align-items: baseline; margin: 0; }
+  .pdfnav input { width: 3.2rem; padding: .12rem .3rem; font-size: .82rem; }
+  /* Krawędź dokumentu: odnośnik zostaje w miejscu, ale przestaje prowadzić. */
+  .pdfnav a.off { color: var(--ink-2); pointer-events: none; opacity: .5; }
+  .page-box { position: relative; border: 1px solid var(--rule); background: #fff; }
+  .page-box svg, .page-box img { display: block; width: 100%; height: auto; }
+  .crop img { max-width: 100%; border: 1px solid var(--rule); background: #fff; }
+  .missing { color: var(--crit); }
+  .src-links { display: flex; gap: 1rem; flex-wrap: wrap; margin: .5rem 0; }

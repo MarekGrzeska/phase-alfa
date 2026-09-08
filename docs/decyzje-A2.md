@@ -250,6 +250,45 @@ korpusu są tam treścią, nie szumem.
 **Routing to adres i nic więcej** (`?view=…&form=…&task=…`). Biblioteka routingu
 byłaby zależnością na jeden ekran narzędzia badawczego.
 
+## Front ekranu korekty w Reakcie (8.09.2026) — odwołanie reguły „bez frameworka"
+
+Ekran korekty i inspektor są w całości w Reakcie (`ingest/correction/ui`, Vite,
+build do `static/`). Serwer oddaje jedną skorupę `app.html` z nazwą widoku
+w `data-view` i dane przez `/api/*`.
+
+**To jest odwrócenie wcześniejszego rozstrzygnięcia** („FastAPI + Jinja2, bez
+kroku budowania i bez frameworka na froncie", i „jedyne miejsce z JavaScriptem"
+przy filtrach inspektora). Powód: do ekranu wchodzi agent — okno rozmowy ze
+strumieniem odpowiedzi i markdownem, na tym samym zestawie bibliotek co terminal
+TradingCenter (`react-markdown`, `remark-gfm`, `remend`). Utrzymywanie tego
+w wanilii kosztowałoby więcej niż krok budowania, który i tak jest w repozytorium
+dla `web/`.
+
+Co migracja ZACHOWAŁA, świadomie:
+
+- **Nazwy pól formularza korekty** (`criterion.12.points`, `delete.answer.3`)
+  i to, że niezaznaczonego pola wyboru po prostu nie ma. Rozstrzyga o nich
+  `db.save`, a razem z nimi rozróżnienie „parser trafił sam" od „poprawione" —
+  czyli pomiary S6 i S8. Formularz jest niekontrolowany i wysyła `FormData`.
+- **Adresy list inspektora liczy `ListView`** i odsyła gotowe w `links`.
+  Sklejane na froncie rozjechałyby się przy pierwszej nowej opcji.
+- **Formatowanie wartości** (`format_value`) zostaje w Pythonie: po drodze przez
+  JSON `bbox` i `jsonb` wyglądają tak samo, więc front dostaje gotowy tekst plus
+  rodzaj komórki.
+- **Adres jest stanem widoku**: filtr, strona podglądu PDF, zakres pracy — wszystko
+  dalej w pasku, więc link da się wkleić w notatce, a „wstecz" działa.
+
+Co się zmieniło:
+
+- Postać kanoniczna adresu wraca w `links.canonical` zamiast przez przekierowanie
+  303; front wpisuje ją do paska po odpowiedzi.
+- Rozmiar strony inspektora pamięta `localStorage`, nie ciasteczko — to wybór
+  człowieka po stronie przeglądarki, a nie stan sesji na serwerze.
+- Po nieudanej walidacji serwer odsyła same powody (422 + `errors`), a nie
+  formularz z nałożonymi wartościami: to, co człowiek wpisał, zostaje w przeglądarce.
+
+---
+
 ---
 
 ## Do rozstrzygnięcia przez człowieka — nie da się tego zrobić kodem

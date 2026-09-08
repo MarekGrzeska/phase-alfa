@@ -1,0 +1,148 @@
+/* Panel agenta. Kolory nie są tu własne — biorą się ze zmiennych `base.html`,
+   więc panel zmienia się razem z ekranem korekty, także w trybie ciemnym. */
+
+.agent {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  border-left: 1px solid var(--rule);
+  background: var(--surface);
+  position: relative;
+}
+.agent[data-state="collapsed"] { width: 2.4rem; }
+
+.agent-rail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+.agent-rail:hover { background: var(--ground); }
+.agent-rail .label {
+  writing-mode: vertical-rl;
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.agent-head {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex: 0 0 auto;
+  padding: .55rem .7rem;
+  border-bottom: 1px solid var(--rule);
+}
+.agent-head strong { font-size: .9rem; }
+.agent-head .spacer { flex: 1; }
+.agent-head button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  padding: .2rem .35rem;
+  cursor: pointer;
+}
+.agent-head button:hover { color: var(--ink); background: var(--ground); }
+
+.agent-transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: .8rem .7rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.agent-empty { color: var(--ink-2); font-size: .85rem; }
+.agent-empty p { margin: 0 0 .5rem; }
+
+.agent-turn { display: flex; }
+.agent-turn.operator { justify-content: flex-end; }
+.agent-turn.model { justify-content: flex-start; }
+/* Pytanie korektora w dymku, odpowiedź na pełnej szerokości: w tej odpowiedzi
+   bywa tabela z progami punktowymi, a ta nie mieści się w 85% wąskiej kolumny. */
+.agent-said {
+  margin: 0;
+  max-width: 85%;
+  border-radius: 8px 8px 2px 8px;
+  background: var(--ground);
+  border: 1px solid var(--rule);
+  padding: .35rem .6rem;
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+}
+.agent-waiting { margin: 0; font-size: .85rem; color: var(--ink-2); }
+
+.agent-composer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--rule);
+  padding: .6rem .7rem;
+}
+.agent-composer textarea { font-size: .85rem; }
+.agent-composer .row { display: flex; align-items: center; gap: .5rem; margin-top: .5rem; }
+.agent-composer .row .small { flex: 1; font-size: .8rem; color: var(--ink-2); }
+
+/* Uchwyt leży NA krawędzi, pozycjonowany absolutnie: gdyby zajmował miejsce
+   w układzie, przesuwałby kolumnę, której szerokość mierzy. */
+.agent-resize {
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 6;
+}
+.agent-resize:hover,
+.agent-resize:focus { background: var(--accent); opacity: .4; outline: none; }
+
+/* ------------------------------------------------ treść odpowiedzi (markdown) */
+
+.agent-md { font-size: .85rem; width: 100%; overflow-wrap: anywhere; }
+.agent-md > :first-child { margin-top: 0; }
+.agent-md > :last-child { margin-bottom: 0; }
+.agent-md p { margin: 0 0 .5rem; }
+.agent-md-heading { font-weight: 600; margin: 0 0 .3rem; }
+.agent-md ul, .agent-md ol { margin: 0 0 .5rem; padding-left: 1.2rem; }
+.agent-md li { margin: .1rem 0; }
+.agent-md code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: .78rem;
+  background: var(--ground);
+  border-radius: 3px;
+  padding: .05rem .25rem;
+}
+.agent-md pre {
+  margin: 0 0 .5rem;
+  padding: .5rem;
+  overflow-x: auto;
+  background: var(--ground);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.agent-md pre code { background: none; padding: 0; }
+.agent-md blockquote {
+  margin: 0 0 .5rem;
+  padding-left: .6rem;
+  border-left: 2px solid var(--rule);
+  color: var(--ink-2);
+}
+.agent-md hr { border: 0; border-top: 1px solid var(--rule); margin: .6rem 0; }
+.agent-md a { color: var(--accent); }
+/* Tabela w wąskiej kolumnie przewija się we własnym pudełku, zamiast rozpychać panel. */
+.agent-md-scroll { overflow-x: auto; margin: 0 0 .5rem; }
+.agent-md table { border-collapse: collapse; width: 100%; font-size: .78rem; }
+.agent-md th, .agent-md td {
+  border: 1px solid var(--rule);
+  padding: .2rem .35rem;
+  text-align: left;
+}

@@ -1,10 +1,7 @@
-<!doctype html>
-<html lang="pl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Ekran korekty{% endblock %} · Klucz</title>
-<style>
+/* Styl ekranu korekty. Jedno źródło dla stron Jinja i dla widoków Reacta —
+   dopóki migracja trwa, oba renderują ten sam ekran i muszą wyglądać tak samo.
+   Wcześniej te reguły siedziały w `base.html`; przeniesione bez zmian. */
+
 /* Tyle stylu, ile trzeba, żeby dało się czytać kryteria obok skanu strony.
    Reguła stopu z Planu Implementacji: widok jest zrobiony, gdy odpowiada
    na pytanie, dla którego powstał. */
@@ -25,6 +22,19 @@ body {
   margin: 0; background: var(--ground); color: var(--ink);
   font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
+/* Ekran to wiersz: treść i panel agenta obok siebie. Przewija się kolumna
+   treści, nie strona — inaczej panel odjeżdżałby w górę razem ze skanem.
+   `min-width: 0` jest tu konieczne: domyślne `min-width: auto` elementu
+   flex to jego treść, więc bez tego tabela inspektora nie oddałaby
+   szerokości przy rozwijaniu panelu. */
+.workspace { display: flex; height: 100vh; }
+.workspace-content {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+/* `display: contents`, bo kolumną wiersza ma być panel z Reacta, a nie pusty
+   kontener, w którym on siedzi — inaczej szerokość ustawia się nie temu. */
+#agent-root { display: contents; }
 a { color: var(--accent); }
 header {
   display: flex; gap: 1rem; align-items: baseline; flex-wrap: wrap;
@@ -70,24 +80,3 @@ button.danger { border-color: var(--crit); color: var(--crit); }
 .metrics { display: flex; gap: 1.6rem; flex-wrap: wrap; }
 .metric b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .metric span { font-size: .75rem; color: var(--ink-2); }
-</style>
-</head>
-<body>
-<header>
-  <h1><a href="/{% if scope_query %}?{{ scope_query }}{% endif %}">Ekran korekty</a></h1>
-  <a class="small" href="/inspect">Inspektor</a>
-  <span class="small">{% block subtitle %}{% endblock %}</span>
-  <span class="spacer"></span>
-  {% block actions %}{% endblock %}
-</header>
-<main>
-{% if errors %}
-<div class="errors">
-  <strong>Nie zapisano — popraw i spróbuj ponownie:</strong>
-  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
-</div>
-{% endif %}
-{% block content %}{% endblock %}
-</main>
-</body>
-</html>

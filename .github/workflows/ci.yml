@@ -205,7 +205,7 @@ jobs:
         run: dotnet test backend/Klucz.sln --configuration Release --no-build
 
   web:
-    name: typecheck (zero-DOM) + vitest
+    name: typecheck (zero-DOM) + vitest (web i front korekty)
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -242,6 +242,23 @@ jobs:
       # (bez Vite i bez Reacta), a `apps/web` ma sie faktycznie zbudowac do dist.
       - name: Build
         run: pnpm -C web -r build
+
+      # Front ekranu korekty ma wlasny korzen pnpm (inny backend, inny cykl zycia),
+      # wiec `pnpm -C web -r` go NIE widzi — bez tych krokow jego testy nie chodzily
+      # w CI wcale, a zielony przebieg nic o nim nie mowil.
+      - name: Zaleznosci frontu korekty
+        run: pnpm -C ingest/correction/ui install --frozen-lockfile
+
+      - name: Typecheck frontu korekty
+        run: pnpm -C ingest/correction/ui run typecheck
+
+      - name: Testy frontu korekty
+        run: pnpm -C ingest/correction/ui run test
+
+      # Build osobno: paczka jest artefaktem, ktorego `task correction` wymaga do
+      # uruchomienia ekranu — build padajacy dopiero na maszynie to zly moment.
+      - name: Build frontu korekty
+        run: pnpm -C ingest/correction/ui run build
 
   contract:
     name: dryf OpenAPI
