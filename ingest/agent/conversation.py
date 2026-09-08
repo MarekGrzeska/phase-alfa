@@ -97,6 +97,36 @@ def usage(cur, session_id: int) -> dict[str, Any]:
     return limits.jsonable(cur.fetchone())
 
 
+def totals(cur) -> dict:
+    """Koszt agenta do raportów: sesje, tury, tokeny i dolary per model, wywołania narzędzi."""
+    from correction import llm
+
+    cur.execute(
+        """SELECT s.model,
+                  count(DISTINCT s.id) AS sessions,
+                  count(m.id) FILTER (WHERE m.role = 'agent') AS turns,
+                  coalesce(sum(m.input_tokens), 0) AS input_tokens,
+                  coalesce(sum(m.output_tokens), 0) AS output_tokens
+           FROM agent_session s LEFT JOIN agent_message m ON m.session_id = s.id
+           GROUP BY s.model ORDER BY s.model"""
+    )
+    rows = []
+    for row in cur.fetchall():
+        spend = llm.Spend(model=row["model"], input_tokens=int(row["input_tokens"]),
+                          output_tokens=int(row["output_tokens"]))
+        rows.append({**limits.jsonable(row), "usd": round(spend.dollars, 4)})
+    cur.execute("SELECT count(*) AS n, count(*) FILTER (WHERE is_error) AS errors "
+                "FROM agent_tool_call")
+    calls = cur.fetchone()
+    cur.execute("SELECT count(*) FILTER (WHERE decision = 'accept') AS accepted, "
+                "count(*) FILTER (WHERE decision = 'reject') AS rejected, "
+                "count(*) FILTER (WHERE decision IS NULL) AS pending FROM agent_confirmation")
+    decisions = cur.fetchone()
+    return {"models": rows, "usd": round(sum(r["usd"] for r in rows), 4),
+            "tool_calls": int(calls["n"]), "tool_errors": int(calls["errors"]),
+            "confirmations": limits.jsonable(decisions)}
+
+
 def pending_confirmations(cur, session_id: int) -> list[dict]:
     cur.execute(
         """SELECT id, tool, arguments, title, preview, cost_usd, created_at

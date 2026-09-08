@@ -30,6 +30,7 @@ Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 - [`docs/plan-A1.md`](docs/plan-A1.md) — szczegółowy plan implementacji **G1.1–G1.5** (kamień A1)
 - [`docs/plan-A2.md`](docs/plan-A2.md) — szczegółowy plan implementacji **G2.1–G2.7 + W2** (kamień A2)
 - [`docs/plan-A2-auto.md`](docs/plan-A2-auto.md) — **A2-auto**: korekta korpusu modelem, człowiek na próbce (decyzja MVP z 4.09.2026)
+- [`docs/plan-agent-mcp.md`](docs/plan-agent-mcp.md) — **agent w ekranie korekty**: serwer MCP jako jedyny rejestr narzędzi, zapis do korpusu za zgodą człowieka, przebiegi ingestu w tle, nawigacja po ekranie (M1–M6, 8.09.2026)
 - [`ingest/README.md`](ingest/README.md) · [`backend/README.md`](backend/README.md) · [`web/README.md`](web/README.md) — jak uruchomić i czego pilnują bramki w każdej z warstw
 - [`docs/decyzje-A2.md`](docs/decyzje-A2.md) — rozstrzygnięcia zapadłe w A2, gotowe do przeniesienia do `DECYZJE.md`
 - [`docs/project-status.html`](docs/project-status.html) — **stan prac na 8.09.2026**: co stoi, czego brakuje i pięć rzeczy w kolejności, w jakiej się opłacają
@@ -85,7 +86,12 @@ task ingest    # przebieg parsera (po A2)
 task correction        # ekran korekty — bramka między parserem a korpusem (G2.1)
                        # ten sam proces serwuje /inspect: każda tabela, każdy wiersz,
                        # skąd się wziął (strona PDF + wycinek z bloba), zdrowie danych
-task correction:report # pomiary S6, S7, S8: stan korekty, czasy, prognoza
+                       # oraz panel agenta: model luna/terra/sol do wyboru (AGENT_MODEL,
+                       # klucz w .env); bez klucza panel jest makietą
+task correction:report # pomiary S6, S7, S8: stan korekty, czasy, prognoza; koszt agenta
+task mcp       # serwer MCP narzędzi projektu po stdio (Claude Code / Desktop):
+               #   claude mcp add --transport stdio klucz -- task mcp
+               # po HTTP: http://127.0.0.1:8600/mcp, gdy działa `task correction`
 task crops     # wycinki PNG zasobów graficznych (G2.4)
 task mathjson  # zapisy równoważne → MathJSON (G2.6)
 task prefill   # podpowiedzi LLM do ekranu korekty — ręcznie, płatne (G2.5.1)

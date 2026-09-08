@@ -420,3 +420,20 @@ nie do wiary.
   `create_agent`, `HumanInTheLoopMiddleware` i `load_mcp_tools` sprawdzić w tych
   wersjach w pierwszej godzinie M4, zanim powstanie cokolwiek, co od nich zależy.
   Gdy API się różni — przerwanie zrobić wprost przez `interrupt()` w narzędziu.
+
+## Dziennik wykonania
+
+| Data | Klocek | Wynik |
+|---|---|---|
+| 8.09 | M1 | serwer MCP (`ingest/agent/server.py`), 20 narzędzi odczytu; `task mcp` po stdio sprawdzony ręcznym handshake; `/mcp` jako trasa z gołym ASGI (Mount dawał 307); menedżer sesji w cyklu życia aplikacji |
+| 8.09 | M2 | migracja 0010; zgoda jako cecha narzędzia (`confirm.py`); narzędzia korpusu przez `db.save`/`db.decide`; `db_execute` z próbą w wycofanej transakcji; więz `used_at` poprawiony po czerwonym teście (`=` przepuszczało NULL) |
+| 8.09 | M4 | pętla `create_agent` + klient MCP in-memory; **interceptor z `interrupt()` zamiast `HumanInTheLoopMiddleware`** — podgląd zgody liczą narzędzia, a nie pętla; rozmowa w bazie; SSE; testy z modelem skryptowanym |
+| 8.09 | M5 | panel na żywo: wybór modelu, chipy narzędzi, karty zgody, nawigacja po `done`, historia po wczytaniu strony; makieta zostaje bez klucza; 78 testów frontu |
+| 8.09 | smoke | pierwsza tura z luna: 6 wywołań narzędzi (w tym samonaprawa po błędnym SQL), 100 kawałków strumienia, $0,039 — za drogo przez `task_find` na 201 wierszach → sufit 100 i podpowiedź w promptcie; **Responses API** konieczne dla gpt-5.6 z narzędziami |
+| 8.09 | M3 | narzędzia `ingest_*` z `CATALOG`, przebiegi w tle z rejestrem w bazie; kod wyjścia NTSTATUS ze znakiem |
+| 8.09 | M6 | koszt agenta w `correction:report` i `corpus:report`; README, CLAUDE.md, `.env.example`, `decyzje-A2.md`, sekcja w `ingest-overview.html` |
+
+Odstępstwa od planu: `mcp` przypięty do `<2` (adaptery LangChaina wymagają 1.x);
+`langgraph-checkpoint-postgres` nie dodany — stan grafu w pamięci procesu, historia
+z bazy; przerwanie w toku po restarcie przepada i panel mówi to wprost.
+Do zrobienia poza planem: przegląd kodu w `docs/review/` i próbka ludzka z panelem.

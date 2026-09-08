@@ -434,3 +434,37 @@ Reguła z G2.3.1: po każdej poprawce parsera idzie przebieg kontrolny wszystkic
 łapie to w dwie minuty — w ekranie korekty ta sama regresja kosztuje dzień. Zrzut
 trzyma liczniki **i skróty treści**, bo sama liczba kryteriów nie odróżnia „tyle samo
 progów" od „tyle samo progów o innym tekście".
+
+## Agent w ekranie korekty (plan `docs/plan-agent-mcp.md`)
+
+Panel po prawej stronie ekranu korekty i inspektora to agent z dostępem do bazy,
+dokumentacji i przebiegów ingestu. Wszystko, co umie, jest **narzędziem MCP**
+w jednym rejestrze (`ingest/agent/server.py`) — ten sam zestaw dostaje Claude Code:
+
+```bash
+task mcp                                                     # stdio
+claude mcp add --transport stdio klucz -- task mcp           # w Claude Code
+claude mcp add --transport http klucz http://127.0.0.1:8600/mcp   # gdy stoi `task correction`
+```
+
+| Grupa | Narzędzia | Zasada |
+|---|---|---|
+| baza | `db_schema`, `db_query`, `inspect_list`, `inspect_record`, `db_health`, `db_migrations` | odczyt bez ograniczeń w transakcji READ ONLY (15 s, 200 wierszy, jawne `truncated`) |
+| korpus | `task_get`, `task_find`, `task_save`, `task_add_row`, `task_decide`, `asset_frame`, `asset_describe`, `task_page_image` | zapis wyłącznie przez `db.save`/`db.decide`; rekord w korpusie i rozstrzygnięcie — po zgodzie |
+| surowy SQL | `db_execute` | tylko po zgodzie, z liczbą wierszy z wycofanej próby |
+| ingest | `ingest_<zadanie>` z katalogu `task menu`, `job_status`, `job_log`, `job_list`, `job_cancel` | przebieg w tle (`agent_job`, log w `data/reports/jobs/`); płatne i kasujące po zgodzie |
+| wiedza i stan | `docs_search`, `docs_read`, `code_search`, `code_read`, `explain_column`, `explain_check`, `project_status`, `report_list`, `report_read` | indeks sekcji z `docs/`, `CLAUDE.md`, `DECYZJE.md`; kod bez `.env`, `data/`, `.venv` |
+| nawigacja | `ui_navigate`, `ui_focus`, `ui_open_pdf`, `ui_views` | adresy składa `agent/urls.py`; panel przechodzi po zakończeniu odpowiedzi |
+
+**Zgoda człowieka jest cechą narzędzia.** Narzędzie z `confirm` w metadanych zwraca
+prośbę `{"confirm": {...}}`; wykonuje się dopiero z `confirmation=<id>` po kliknięciu
+„Wykonaj" w panelu (`/api/agent/confirmations`), z tymi samymi argumentami i raz.
+W rozmowie interceptor wywołań zamienia to na `interrupt` grafu LangGraph, więc panel
+wznawia dokładnie ten krok. Klient z terminala przechodzi tę samą bramkę.
+
+**Model** wybiera się w panelu (`luna` / `terra` / `sol`); domyślny z `AGENT_MODEL`.
+Rozmowy, wywołania i tokeny leżą w bazie (migracja 0010) — koszt agenta stoi
+w `task correction:report` i `task corpus:report`. Bez klucza API panel jest makietą.
+
+Testy bez modelu: `tests/test_agent_*.py` (model skryptowany, prawdziwe narzędzia,
+świeża baza); front: `ingest/correction/ui/src/agent/*.test.ts*`.

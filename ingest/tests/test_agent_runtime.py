@@ -268,3 +268,23 @@ def test_json_helpers():
     assert runtime.parse_json("[1]") is None
     assert runtime.parse_json("nie json") is None
     assert json.loads(json.dumps({"x": 1})) == {"x": 1}
+
+
+# ------------------------------------------------------------------ raporty
+
+def test_reports_carry_agent_cost(con, session):
+    """Koszt agenta jest liczbą do raportu — po turze musi stać w obu raportach."""
+    from correction import stats
+    from reports import corpus
+
+    model = scripted(saying("Cześć."))
+    collect(runtime.run_turn(session, "hej", None, chat_model=model))
+    with con.cursor() as cur:
+        numbers = stats.collect(cur)
+    agent = numbers["agent"]
+    assert agent["models"][0]["model"] == "openai:gpt-5.6-terra"
+    assert agent["models"][0]["turns"] >= 1 and agent["usd"] > 0
+    text = stats.as_text(numbers)
+    assert "AGENT W EKRANIE KOREKTY" in text and "openai:gpt-5.6-terra" in text
+    with psycopg.connect(os.environ["DATABASE_URL"]) as plain:
+        assert "AGENT W EKRANIE KOREKTY" in corpus.build(plain)

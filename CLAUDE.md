@@ -183,6 +183,10 @@ PDF z cke.gov.pl
 
 Wyjątek świadomy: ekran korekty (`ingest/correction/`) to lokalne narzędzie na
 localhost, obsługiwane przez Pythona — edytuje rekordy, **zanim** staną się korpusem.
+Ten sam wyjątek obejmuje agenta w panelu ekranu (`ingest/agent/`): pisze do korpusu
+**wyłącznie** przez `db.save`/`db.decide` (narzędzia `task_*`), nigdy SQL-em obok,
+a rozstrzygnięcia i surowy SQL wykonuje dopiero po zgodzie człowieka w panelu.
+Rekord rozstrzygnięty przez agenta niesie `reviewed_by = 'agent'` (migracja 0010).
 
 ---
 
@@ -247,7 +251,9 @@ task db:reset  # baza od zera (kasuje wolumen)
 task ingest    # przebieg parsera (od A2) — klucze po korekcie pomija
 task correction        # ekran korekty: rekord staje się korpusem (od G2.1); /inspect — inspektor danych, tylko odczyt
 task correction:ui     # build frontu ekranu korekty (React → ingest/correction/static/); `task correction` woła go sam
-task correction:report # pomiary S6, S7, S8: stan korekty, mediana czasu, prognoza
+task correction:report # pomiary S6, S7, S8: stan korekty, mediana czasu, prognoza; koszt agenta
+task mcp       # serwer MCP narzędzi projektu po stdio — `claude mcp add --transport stdio klucz -- task mcp`;
+               # ten sam rejestr stoi pod http://127.0.0.1:8600/mcp, gdy działa `task correction`
 task crops     # wycinki PNG zasobów graficznych; --prune sprząta bloba (G2.4)
 task mathjson  # zapisy równoważne → MathJSON przez Compute Engine (G2.6)
 task prefill   # podpowiedzi LLM do ekranu korekty — RĘCZNIE i płatnie (G2.5.1)
@@ -265,6 +271,7 @@ task bench     # benchmark golden setu (od A3)
 |---|---|
 | `ingest/` | Python: mirror, parser PDF, migracje schematu, ekran korekty, konwerter MathJSON |
 | `ingest/correction/ui/` | TypeScript: CAŁY front ekranu korekty i inspektora (React + Vite), własny korzeń pnpm |
+| `ingest/agent/` | Python: serwer MCP (jeden rejestr narzędzi: baza, korpus, ingest, wiedza, nawigacja), pętla agenta, rozmowy w bazie; plan w `docs/plan-agent-mcp.md` |
 | `backend/` | C#: modularny monolit, moduły nie widzą się nawzajem |
 | `web/` | TypeScript: `packages/core` bez DOM, `apps/web`, generowany klient OpenAPI |
 | `docs/` | plany implementacji i przeglądy kodu |
