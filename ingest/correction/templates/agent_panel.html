@@ -1,0 +1,208 @@
+{# Panel agenta — na razie sama makieta: okno czatu bez agenta za nim.
+
+   Kolumna shellu, a nie nakładka: rozwinięty panel ZWĘŻA treść korekty
+   zamiast ją zasłaniać. Skan klucza i formularz muszą zostać widoczne,
+   bo pytanie do agenta zadaje się o to, co się właśnie ogląda.
+
+   Zwinięty jest szyną na całą wysokość — cały pasek jest przyciskiem,
+   więc nie da się go przeoczyć przy żadnej szerokości okna. #}
+<style>
+  .agent {
+    display: flex; flex-direction: column; flex: 0 0 auto;
+    border-left: 1px solid var(--rule); background: var(--surface);
+    position: relative;
+  }
+  .agent[data-state="collapsed"] { width: 2.4rem; }
+  /* Szerokość rozwiniętego panelu siedzi w zmiennej, bo ustawia ją człowiek
+     przeciągnięciem uchwytu, a takiej liczby nie da się zapisać w klasie. */
+  .agent[data-state="expanded"] { width: var(--agent-width, 24rem); }
+  .agent[data-state="collapsed"] .agent-body { display: none; }
+  .agent[data-state="expanded"] .agent-rail { display: none; }
+
+  .agent-rail {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: .5rem; padding: 0;
+    border: 0; border-radius: 0; background: transparent; color: var(--accent);
+  }
+  .agent-rail:hover { background: var(--ground); }
+  .agent-rail .label {
+    writing-mode: vertical-rl; font-size: .72rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-2);
+  }
+
+  .agent-body { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+  .agent-head {
+    display: flex; align-items: center; gap: .5rem; flex: 0 0 auto;
+    padding: .55rem .7rem; border-bottom: 1px solid var(--rule);
+  }
+  .agent-head strong { font-size: .9rem; }
+  .agent-head .spacer { flex: 1; }
+  .agent-head button {
+    border: 0; background: transparent; color: var(--ink-2); padding: .2rem .35rem;
+  }
+  .agent-head button:hover { color: var(--ink); background: var(--ground); }
+
+  .agent-transcript { flex: 1; min-height: 0; overflow-y: auto; padding: .8rem .7rem; }
+  .agent-empty { color: var(--ink-2); font-size: .85rem; }
+  .agent-empty p { margin: 0 0 .5rem; }
+
+  .agent-composer {
+    flex: 0 0 auto; border-top: 1px solid var(--rule); padding: .6rem .7rem;
+  }
+  .agent-composer textarea { font-size: .85rem; }
+  .agent-composer .row {
+    display: flex; align-items: center; gap: .5rem; margin-top: .5rem;
+  }
+  .agent-composer .row .small { flex: 1; }
+
+  /* Uchwyt leży NA krawędzi, pozycjonowany absolutnie: gdyby zajmował miejsce
+     w układzie, przesuwałby kolumnę, której szerokość mierzy. */
+  .agent-resize {
+    position: absolute; top: 0; left: -3px; width: 6px; height: 100%;
+    cursor: col-resize; z-index: 6;
+  }
+  .agent-resize:hover, .agent-resize:focus { background: var(--accent); opacity: .4; outline: none; }
+  .agent[data-state="collapsed"] .agent-resize { display: none; }
+
+  /* Wąskie okno: panel zjada zbyt dużą część ekranu korekty, więc rozwinięty
+     zachowuje się jak szuflada nad treścią zamiast ją dociskać do zera. */
+  @media (max-width: 60rem) {
+    .agent[data-state="expanded"] { width: min(var(--agent-width, 24rem), 85vw); }
+  }
+</style>
+
+<aside id="agent-panel" class="agent" data-state="collapsed" aria-label="Agent">
+  <div class="agent-resize" role="separator" aria-orientation="vertical"
+       aria-label="Zmien szerokosc panelu agenta" tabindex="0"></div>
+
+  <button type="button" class="agent-rail" data-agent-open
+          aria-expanded="false" aria-controls="agent-panel" title="Otwórz panel agenta">
+    <span class="label">Agent</span>
+    <span aria-hidden="true">‹</span>
+  </button>
+
+  <div class="agent-body">
+    <div class="agent-head">
+      <strong>Agent</strong>
+      <span class="tag">makieta</span>
+      <span class="spacer"></span>
+      <button type="button" data-agent-close aria-expanded="true"
+              aria-controls="agent-panel" title="Zwiń panel agenta">›</button>
+    </div>
+
+    <div class="agent-transcript">
+      <div class="agent-empty">
+        <p>Tu pojawi się rozmowa z agentem.</p>
+        <p>Na razie panel jest pusty — agenta jeszcze nie podłączono.</p>
+      </div>
+    </div>
+
+    <form class="agent-composer" onsubmit="return false">
+      <textarea rows="2" disabled
+                placeholder="Agent jeszcze nie odpowiada"
+                aria-label="Wiadomość do agenta"></textarea>
+      <div class="row">
+        <span class="small">Enter wysyła · Shift+Enter nowa linia</span>
+        <button type="submit" class="primary" disabled>Wyślij</button>
+      </div>
+    </form>
+  </div>
+</aside>
+
+<script>
+(function () {
+  var panel = document.getElementById("agent-panel");
+  if (!panel) return;
+
+  var STATE_KEY = "correction.agentPanel.state.v1";
+  var WIDTH_KEY = "correction.agentPanel.width.v1";
+  var MIN_WIDTH = 280;
+  var DEFAULT_WIDTH = 384;
+
+  // Pamięć, która rzuca wyjątkiem (tryb prywatny, zablokowane ciasteczka),
+  // nie ma prawa zatrzymać ekranu korekty — panel wtedy po prostu nie pamięta.
+  function readStored(key) {
+    try { return window.localStorage.getItem(key); } catch (error) { return null; }
+  }
+  function writeStored(key, value) {
+    try { window.localStorage.setItem(key, value); } catch (error) { /* trudno */ }
+  }
+
+  function maxWidth() {
+    return Math.max(MIN_WIDTH, Math.round(window.innerWidth * 0.6));
+  }
+  function clampWidth(width) {
+    return Math.min(Math.max(width, MIN_WIDTH), maxWidth());
+  }
+
+  function applyWidth(width) {
+    var next = clampWidth(width);
+    panel.style.setProperty("--agent-width", next + "px");
+    writeStored(WIDTH_KEY, String(next));
+    var handle = panel.querySelector(".agent-resize");
+    if (handle) handle.setAttribute("aria-valuenow", String(next));
+    return next;
+  }
+
+  function setExpanded(expanded) {
+    panel.dataset.state = expanded ? "expanded" : "collapsed";
+    writeStored(STATE_KEY, expanded ? "expanded" : "collapsed");
+    var openButton = panel.querySelector("[data-agent-open]");
+    var closeButton = panel.querySelector("[data-agent-close]");
+    if (openButton) openButton.setAttribute("aria-expanded", String(expanded));
+    if (closeButton) closeButton.setAttribute("aria-expanded", String(expanded));
+    // Ognisko wędruje na przycisk, który po zmianie stanu jest widoczny —
+    // inaczej klawiatura zostaje na elemencie schowanym przez `display: none`.
+    var target = expanded ? closeButton : openButton;
+    if (target && document.activeElement !== document.body) target.focus();
+  }
+
+  var storedWidth = Number(readStored(WIDTH_KEY));
+  applyWidth(Number.isFinite(storedWidth) && storedWidth > 0 ? storedWidth : DEFAULT_WIDTH);
+  // Stan bez ogniskowania czegokolwiek: to jest odtworzenie ustawienia
+  // z poprzedniej strony, a nie reakcja na kliknięcie.
+  panel.dataset.state = readStored(STATE_KEY) === "expanded" ? "expanded" : "collapsed";
+
+  var openButton = panel.querySelector("[data-agent-open]");
+  var closeButton = panel.querySelector("[data-agent-close]");
+  if (openButton) openButton.addEventListener("click", function () { setExpanded(true); });
+  if (closeButton) closeButton.addEventListener("click", function () { setExpanded(false); });
+
+  // Szerokość wybrana w szerokim oknie nie jest szerokością w wąskim.
+  window.addEventListener("resize", function () {
+    applyWidth(Number(readStored(WIDTH_KEY)) || DEFAULT_WIDTH);
+  });
+
+  var handle = panel.querySelector(".agent-resize");
+  if (!handle) return;
+  handle.setAttribute("aria-valuemin", String(MIN_WIDTH));
+
+  var dragging = false;
+  handle.addEventListener("pointerdown", function (event) {
+    dragging = true;
+    if (handle.setPointerCapture) handle.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+  handle.addEventListener("pointermove", function (event) {
+    if (!dragging) return;
+    // Od prawej krawędzi okna, nie z przyrostu: panel jest ostatnią kolumną,
+    // więc jego szerokość JEST tą odległością, a przyrost dryfowałby o to,
+    // co przy ostatniej klatce zjadło ograniczenie.
+    applyWidth(window.innerWidth - event.clientX);
+  });
+  function stopDragging() { dragging = false; }
+  handle.addEventListener("pointerup", stopDragging);
+  handle.addEventListener("pointercancel", stopDragging);
+
+  handle.addEventListener("keydown", function (event) {
+    var step = event.shiftKey ? 64 : 16;
+    var current = panel.getBoundingClientRect().width;
+    if (event.key === "ArrowLeft") applyWidth(current + step);
+    else if (event.key === "ArrowRight") applyWidth(current - step);
+    else if (event.key === "Home") applyWidth(MIN_WIDTH);
+    else if (event.key === "End") applyWidth(maxWidth());
+    else return;
+    event.preventDefault();
+  });
+})();
+</script>

@@ -25,6 +25,16 @@ body {
   margin: 0; background: var(--ground); color: var(--ink);
   font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
+/* Ekran to wiersz: treść i panel agenta obok siebie. Przewija się kolumna
+   treści, nie strona — inaczej panel odjeżdżałby w górę razem ze skanem.
+   `min-width: 0` jest tu konieczne: domyślne `min-width: auto` elementu
+   flex to jego treść, więc bez tego tabela inspektora nie oddałaby
+   szerokości przy rozwijaniu panelu. */
+.workspace { display: flex; height: 100vh; }
+.workspace-content {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+  overflow-y: auto;
+}
 a { color: var(--accent); }
 header {
   display: flex; gap: 1rem; align-items: baseline; flex-wrap: wrap;
@@ -73,6 +83,8 @@ button.danger { border-color: var(--crit); color: var(--crit); }
 </style>
 </head>
 <body>
+<div class="workspace">
+<div class="workspace-content">
 <header>
   <h1><a href="/{% if scope_query %}?{{ scope_query }}{% endif %}">Ekran korekty</a></h1>
   <a class="small" href="/inspect">Inspektor</a>
@@ -89,5 +101,10 @@ button.danger { border-color: var(--crit); color: var(--crit); }
 {% endif %}
 {% block content %}{% endblock %}
 </main>
+</div>
+{# Poza kolumną treści i wspólny dla wszystkich ekranów: panel należy do
+   narzędzia, nie do widoku, więc przeżywa przejście na następne zadanie. #}
+{% include "agent_panel.html" %}
+</div>
 </body>
 </html>
