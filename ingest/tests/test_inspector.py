@@ -94,8 +94,12 @@ def seeded(con) -> dict:
                     "mathjson_status, mathjson_error) VALUES (%s, 'P = 2x', 1, 'failed', "
                     "'nieznany znak') RETURNING id", (condition,))
         expression = cur.fetchone()["id"]
+        cur.execute("INSERT INTO rule (marking_scheme_id, kind, content, position) "
+                    "VALUES (%s, 'calculator', 'Kalkulator niedozwolony.', 1) RETURNING id",
+                    (key,))
+        rule = cur.fetchone()["id"]
     return {"key": key, "paper": paper, "task": task, "version": version, "asset": asset,
-            "criterion": criterion, "expression": expression}
+            "criterion": criterion, "expression": expression, "rule": rule}
 
 
 # ------------------------------------------------------------- allowlista
@@ -483,6 +487,77 @@ def test_missing_file_is_named_not_hidden(client, seeded):
     body = client.get(f"/inspect/task/{seeded['task']}").text
     assert "Pliku nie ma w mirrorze" in body
     assert client.get(f"/inspect/document/{seeded['key']}.pdf").status_code == 404
+
+
+# ------------------------------------------------------- podgląd stron PDF
+
+def test_pdf_viewer_starts_on_the_page_of_the_record(con, seeded):
+    with con.cursor() as cur:
+        sch = inspector.schema(cur)
+        task = inspector.provenance(cur, "task", inspector.get_row(
+            cur, sch, "task", seeded["task"]))
+        rule_like = inspector.provenance(cur, "requirement", {"id": 1})
+    assert inspector.viewed_page(None, task) == 11
+    # Rekord bez własnej strony (reguła, wymaganie) zaczyna od pierwszej.
+    assert inspector.viewed_page(None, rule_like) == 1
+
+
+def test_pdf_viewer_page_comes_from_the_url_and_is_clamped(con, seeded):
+    with con.cursor() as cur:
+        sch = inspector.schema(cur)
+        source = inspector.provenance(cur, "task", inspector.get_row(
+            cur, sch, "task", seeded["task"]))
+    assert source.document_pages == 30
+    assert inspector.viewed_page("3", source) == 3
+    # Poza dokumentem: przycięcie do zakresu, a nie pusta ramka po literówce.
+    assert inspector.viewed_page("999", source) == 30
+    for raw in ("0", "-2", "abc", ""):
+        assert inspector.viewed_page(raw, source) == source.page
+
+
+@pytest.fixture
+def mirrored(monkeypatch, tmp_path, seeded) -> dict:
+    """Puste PDF-y pod ścieżkami, które trzyma baza — podgląd renderuje się naprawdę."""
+    pypdf = pytest.importorskip("pypdf")
+    folder = tmp_path / "nope"
+    folder.mkdir()
+    for name, count in (("OMAP-100-2505-zasady.pdf", 30), ("OMAP-100-2505.pdf", 20)):
+        writer = pypdf.PdfWriter()
+        for _ in range(count):
+            writer.add_blank_page(width=595, height=842)
+        with (folder / name).open("wb") as handle:
+            writer.write(handle)
+    monkeypatch.setenv("MIRROR_ROOT", str(tmp_path))
+    return seeded
+
+
+def test_pdf_viewer_navigation_is_rendered(client, mirrored):
+    body = client.get(f"/inspect/task/{mirrored['task']}").text
+    assert "_pdfpage=10" in body and "_pdfpage=12" in body     # poprzednia i następna
+    assert 'name="_pdfpage" value="11"' in body                # skok wprost
+    assert "z 30" in body
+
+    body = client.get(f"/inspect/task/{mirrored['task']}?_pdfpage=1").text
+    # Na krawędzi dokumentu odnośnik zostaje, ale przestaje prowadzić.
+    assert 'class="off"' in body
+    assert "wróć do strony rekordu (11)" in body
+
+    # Reguła nie ma własnej strony — podgląd zaczyna od pierwszej i da się przewijać.
+    body = client.get(f"/inspect/rule/{mirrored['rule']}").text
+    assert 'name="_pdfpage" value="1"' in body
+    assert "_pdfpage=2" in body
+    assert "wróć do strony rekordu" not in body
+
+
+def test_frame_is_drawn_only_on_its_own_page(client, mirrored):
+    """Ramka na cudzej stronie wisiałaby w powietrzu i kłamała o położeniu zasobu."""
+    own = client.get(f"/inspect/asset/{mirrored['asset']}?_pdfpage=9").text
+    assert "<svg viewBox" in own
+    assert "rect x=" in own
+
+    other = client.get(f"/inspect/asset/{mirrored['asset']}?_pdfpage=3").text
+    assert "<svg viewBox" not in other
+    assert "ramka jest na stronie 9" in other
 
 
 # ------------------------------------------------------------- zdrowie

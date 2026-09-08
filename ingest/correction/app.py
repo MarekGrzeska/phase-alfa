@@ -522,11 +522,14 @@ def inspect_record(request: Request, table: str, row_id: int) -> HTMLResponse:
         row = inspector.get_row(cur, sch, table, row_id)
         if row is None:
             raise HTTPException(404, f"nie ma wiersza {table} #{row_id}")
+        source = inspector.provenance(cur, table, row)
         return templates.TemplateResponse(
             request, "inspect_record.html",
             {"table": meta, "row": row, "note": inspector.TABLE_NOTES.get(table, ""),
              "row_notes": inspector.row_provenance(table, row),
              "parents": inspector.parents_of(sch, table, row),
              "children": inspector.children_of(cur, sch, table, row),
-             "source": inspector.provenance(cur, table, row), "scope_query": ""},
+             "source": source,
+             "pdf_page": inspector.viewed_page(request.query_params.get("_pdfpage"), source),
+             "scope_query": ""},
         )

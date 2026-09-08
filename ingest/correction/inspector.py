@@ -867,7 +867,7 @@ def provenance(cur, table: str, row: dict) -> Provenance:
     if table == "document":
         _fill_document(p, row)
         p.page = 1
-        p.note = "cały plik; miniatura to strona 1"
+        p.note = "cały plik — podgląd otwiera się na pierwszej stronie"
     elif table == "task":
         _fill_document(p, _document(cur, row["marking_scheme_id"]))
         p.page = row.get("page")
@@ -887,7 +887,8 @@ def provenance(cur, table: str, row: dict) -> Provenance:
         _fill_asset(cur, p, row)
     elif table == "rule":
         _fill_document(p, _document(cur, row["marking_scheme_id"]))
-        p.note = "reguła całego arkusza — nie ma numeru strony; sekcja „Uwagi ogólne” klucza"
+        p.note = ("reguła całego arkusza — nie ma numeru strony; sekcji „Uwagi ogólne”"
+                  " szuka się przewijając klucz")
     elif table == "exam_form":
         cur.execute(
             """SELECT d.id, d.path, d.kind, fd.role FROM exam_form_document fd
@@ -953,6 +954,19 @@ def _fill_asset(cur, p: Provenance, row: dict) -> None:
     if p.note is None:
         p.note = ("ramka w punktach PDF nad stroną zeszytu; obok wycinek z bloba — "
                   "gdy się nie zgadzają, ramkę zmieniono po ostatnim cięciu")
+
+
+def viewed_page(raw: str | None, source: Provenance) -> int:
+    """Strona pokazywana w podglądzie: z adresu, inaczej ta z rekordu, inaczej pierwsza.
+
+    Numer jedzie pod `_pdfpage`, a nie `page`: `page` jest KOLUMNĄ w trzech tabelach
+    i raz już zabrało nazwę parametrowi widoku. Wartość spoza dokumentu przycina się
+    do jego zakresu, zamiast pokazywać pustą ramkę po literówce w adresie.
+    """
+    page = int(raw) if raw and raw.isdigit() and int(raw) > 0 else (source.page or 1)
+    if source.document_pages:
+        page = min(page, source.document_pages)
+    return max(page, 1)
 
 
 def page_size(relative_path: str, page: int) -> tuple[float, float] | None:

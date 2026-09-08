@@ -22,6 +22,12 @@
   .kids li:last-child { border-bottom: 0; }
   .kids .rows { margin: .2rem 0 0 1rem; font-size: .84rem; }
   .kids .rows div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pdfnav { display: flex; gap: .8rem; align-items: baseline; flex-wrap: wrap;
+            font-size: .84rem; margin: .5rem 0 .4rem; }
+  .pdfnav .jump { display: inline-flex; gap: .3rem; align-items: baseline; margin: 0; }
+  .pdfnav input { width: 3.2rem; padding: .12rem .3rem; font-size: .82rem; }
+  /* Krawędź dokumentu: odnośnik zostaje w miejscu, ale przestaje prowadzić. */
+  .pdfnav a.off { color: var(--ink-2); pointer-events: none; opacity: .5; }
   .page-box { position: relative; border: 1px solid var(--rule); background: #fff; }
   .page-box svg, .page-box img { display: block; width: 100%; height: auto; }
   .crop img { max-width: 100%; border: 1px solid var(--rule); background: #fff; }
@@ -116,30 +122,52 @@
           {% if source.page %} · strona {{ source.page }}{% if source.document_pages %} z {{ source.document_pages }}{% endif %}{% endif %}
         </p>
         {% if source.file_exists %}
+          {% set last = source.document_pages %}
           <div class="src-links small">
             <a href="/inspect/document/{{ source.document_id }}.pdf" target="_blank">⬇ otwórz PDF</a>
-            {% if source.page %}<a href="/inspect/document/{{ source.document_id }}/page/{{ source.page }}.png" target="_blank">⤢ strona jako PNG</a>{% endif %}
+            <a href="/inspect/document/{{ source.document_id }}.pdf#page={{ pdf_page }}" target="_blank">otwórz na stronie {{ pdf_page }}</a>
+            <a href="/inspect/document/{{ source.document_id }}/page/{{ pdf_page }}.png" target="_blank">⤢ sama strona jako PNG</a>
           </div>
-          {% if source.page %}
-            <div class="page-box">
-            {% if source.bbox and source.page_size %}
-              {# viewBox w PUNKTACH PDF — ramka z bazy nakłada się bez przeliczania #}
-              <svg viewBox="0 0 {{ source.page_size[0] }} {{ source.page_size[1] }}" role="img"
-                   aria-label="strona {{ source.page }} z ramką zasobu">
-                <image href="/inspect/document/{{ source.document_id }}/page/{{ source.page }}.png"
-                       width="{{ source.page_size[0] }}" height="{{ source.page_size[1] }}"></image>
-                <rect x="{{ source.bbox[0] }}" y="{{ source.bbox[1] }}"
-                      width="{{ source.bbox[2] - source.bbox[0] }}" height="{{ source.bbox[3] - source.bbox[1] }}"
-                      fill="rgba(200,50,40,.12)" stroke="#c0392b" stroke-width="2"></rect>
-              </svg>
-            {% else %}
-              <img src="/inspect/document/{{ source.document_id }}/page/{{ source.page }}.png"
-                   alt="strona {{ source.page }}" loading="lazy">
+
+          {# Numer strony jest stanem WIDOKU, więc siedzi w adresie — przewijanie
+             odnośnikami, bez JavaScriptu, tak samo jak podgląd w ekranie korekty. #}
+          <div class="pdfnav">
+            <a class="{{ 'off' if pdf_page <= 1 }}"
+               href="?_pdfpage={{ pdf_page - 1 }}">← poprzednia</a>
+            <form method="get" class="jump">
+              <label>strona
+                <input name="_pdfpage" value="{{ pdf_page }}" size="3" inputmode="numeric"></label>
+              {% if last %}z {{ last }}{% endif %}
+            </form>
+            <a class="{{ 'off' if last and pdf_page >= last }}"
+               href="?_pdfpage={{ pdf_page + 1 }}">następna →</a>
+            {% if source.page and pdf_page != source.page %}
+              <a href="?_pdfpage={{ source.page }}">wróć do strony rekordu ({{ source.page }})</a>
             {% endif %}
-            </div>
-            {% if source.bbox %}
-              <p class="small mono" style="margin:.4rem 0 0">bbox = [{{ source.bbox|map('round', 1)|join(', ') }}] pt</p>
-            {% endif %}
+          </div>
+
+          <div class="page-box">
+          {% if source.bbox and source.page_size and pdf_page == source.page %}
+            {# viewBox w PUNKTACH PDF — ramka z bazy nakłada się bez przeliczania.
+               Rysuje się WYŁĄCZNIE na swojej stronie: na innej wisiałaby w powietrzu. #}
+            <svg viewBox="0 0 {{ source.page_size[0] }} {{ source.page_size[1] }}" role="img"
+                 aria-label="strona {{ pdf_page }} z ramką zasobu">
+              <image href="/inspect/document/{{ source.document_id }}/page/{{ pdf_page }}.png"
+                     width="{{ source.page_size[0] }}" height="{{ source.page_size[1] }}"></image>
+              <rect x="{{ source.bbox[0] }}" y="{{ source.bbox[1] }}"
+                    width="{{ source.bbox[2] - source.bbox[0] }}" height="{{ source.bbox[3] - source.bbox[1] }}"
+                    fill="rgba(200,50,40,.12)" stroke="#c0392b" stroke-width="2"></rect>
+            </svg>
+          {% else %}
+            <img src="/inspect/document/{{ source.document_id }}/page/{{ pdf_page }}.png"
+                 alt="strona {{ pdf_page }}" loading="lazy">
+          {% endif %}
+          </div>
+          {% if source.bbox %}
+            <p class="small mono" style="margin:.4rem 0 0">
+              bbox = [{{ source.bbox|map('round', 1)|join(', ') }}] pt
+              {%- if pdf_page != source.page %} — ramka jest na stronie {{ source.page }}{% endif %}
+            </p>
           {% endif %}
         {% else %}
           <p class="missing">Pliku nie ma w mirrorze pod tą ścieżką. To nie jest NULL —
