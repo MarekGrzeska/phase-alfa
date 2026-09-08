@@ -102,27 +102,35 @@ def seeded(con) -> dict:
             "criterion": criterion, "expression": expression, "rule": rule}
 
 
+# Widok rysuje React, więc pytamy o DANE. Skorupa strony sprawdza tylko tyle,
+# czy adres w ogóle prowadzi do istniejącej tabeli.
+def _list(client, table: str, query: str = "") -> dict:
+    response = client.get(f"/api/inspect/{table}" + (f"?{query}" if query else ""))
+    assert response.status_code == 200, response.text[:200]
+    return response.json()
+
+
 # ------------------------------------------------------------- allowlista
 
 def test_unknown_table_is_404_before_any_sql(client, seeded):
     for name in ("nope", "task;DROP TABLE task", "pg_catalog", "corpus_task"):
         assert client.get(f"/inspect/{name}").status_code == 404, name
+        assert client.get(f"/api/inspect/{name}").status_code == 404, name
 
 
 def test_unknown_filter_is_named_not_silently_dropped(client, seeded):
     """Filtr, który nie działa, ale wygląda jakby działał, jest gorszy od błędu."""
-    body = client.get("/inspect/task?nope=1").text
-    assert "pominięty" in body and "nope" in body
-    body = client.get("/inspect/task?number__nieznany=16").text
-    assert "pominięty" in body
-    assert client.get("/inspect/task?review_status=pending").status_code == 200
+    errors = " ".join(_list(client, "task", "nope=1")["errors"])
+    assert "pominięty" in errors and "nope" in errors
+    assert "pominięty" in " ".join(_list(client, "task", "number__nieznany=16")["errors"])
+    assert _list(client, "task", "review_status=pending")["errors"] == []
 
 
 def test_filter_matches_exactly_by_text(client, seeded):
-    body = client.get(f"/inspect/criterion?task_id={seeded['task']}").text
-    assert f"/inspect/criterion/{seeded['criterion']}" in body
-    assert "1 wierszy" in body
-    assert "0 wierszy" in client.get("/inspect/criterion?task_id=999999").text
+    body = _list(client, "criterion", f"task_id={seeded['task']}")
+    assert body["total"] == 1
+    assert [row["key"] for row in body["rows"]] == [seeded["criterion"]]
+    assert _list(client, "criterion", "task_id=999999")["total"] == 0
 
 
 # ------------------------------------------------------------- filtry
@@ -134,8 +142,7 @@ def test_operators(client, con, seeded):
                     (seeded["key"],))
 
     def rows(query: str) -> int:
-        body = client.get(f"/inspect/task?{query}").text
-        return int(body.split(" wierszy")[0].rsplit(" ", 1)[-1])
+        return _list(client, "task", query)["total"]
 
     assert rows("max_points__gt=2") == 1
     assert rows("max_points__gte=2") == 2
@@ -154,72 +161,51 @@ def test_numeric_comparison_is_not_textual(client, con, seeded):
     with con.cursor() as cur:
         cur.execute("INSERT INTO task (marking_scheme_id, number, position, max_points, kind) "
                     "VALUES (%s, '18', 18, 9, 'open_short')", (seeded["key"],))
-    body = client.get("/inspect/task?max_points__gt=10").text
-    assert "0 wierszy" in body
+    assert _list(client, "task", "max_points__gt=10")["total"] == 0
 
 
 def test_bad_filter_value_is_a_sentence_not_a_500(client, seeded):
-    response = client.get("/inspect/task?max_points__gt=abc")
-    assert response.status_code == 200
-    assert "nie pasuje do typu kolumny" in response.text
+    body = _list(client, "task", "max_points__gt=abc")
+    assert "nie pasuje do typu kolumny" in " ".join(body["errors"])
+    assert body["rows"] == []
 
 
-def test_filter_row_redirects_to_canonical_url(client, seeded):
-    """Wiersz filtrów przysyła wartość i operator osobno; adres ma zostać kanoniczny."""
-    response = client.get("/inspect/task?op.review_status=eq&review_status=pending",
-                          follow_redirects=False)
-    assert response.status_code == 303
-    assert response.headers["location"] == "/inspect/task?review_status=pending"
+def test_filter_row_gets_a_canonical_url_back(client, seeded):
+    """Wiersz filtrów przysyła wartość i operator osobno; adres ma wrócić kanoniczny.
 
-    response = client.get("/inspect/task?op.max_points=gte&max_points=2&op.kind=eq&kind=open_short",
-                          follow_redirects=False)
-    assert response.headers["location"] == "/inspect/task?max_points__gte=2&kind=open_short"
+    Postać kanoniczną liczy serwer i odsyła w `links.canonical` — front wpisuje ją
+    w pasek adresu, żeby dało się ją skopiować, a „wstecz" nie wracał do wysłanego
+    formularza.
+    """
+    def canonical(query: str) -> str:
+        return _list(client, "task", query)["links"]["canonical"]
+
+    assert canonical("op.review_status=eq&review_status=pending") == (
+        "/inspect/task?review_status=pending")
+    assert canonical("op.max_points=gte&max_points=2&op.kind=eq&kind=open_short") == (
+        "/inspect/task?max_points__gte=2&kind=open_short")
 
     # Puste pola pozostałych kolumn nie zostawiają po sobie filtru.
-    response = client.get("/inspect/task?op.number=contains&number=&op.kind=eq&kind=open_short",
-                          follow_redirects=False)
-    assert response.headers["location"] == "/inspect/task?kind=open_short"
+    assert canonical("op.number=contains&number=&op.kind=eq&kind=open_short") == (
+        "/inspect/task?kind=open_short")
 
     # Operator bez wartości działa przy pustym polu — na tym polega „∅".
-    response = client.get("/inspect/task?op.review_model=null&review_model=",
-                          follow_redirects=False)
-    assert response.headers["location"] == "/inspect/task?review_model__null="
+    assert canonical("op.review_model=null&review_model=") == (
+        "/inspect/task?review_model__null=")
 
     # Sortowanie i szerokość widoku przeżywają filtrowanie.
-    response = client.get("/inspect/task?_sort=number&_dir=desc&_cols=all&op.kind=eq&kind=closed",
-                          follow_redirects=False)
-    assert response.headers["location"] == (
+    assert canonical("_sort=number&_dir=desc&_cols=all&op.kind=eq&kind=closed") == (
         "/inspect/task?kind=closed&_sort=number&_dir=desc&_cols=all")
 
-    # Sam formularz bez żadnej wartości nie przekierowuje w kółko.
-    assert client.get("/inspect/task?op.number=contains&number=",
-                      follow_redirects=False).status_code == 303
-    assert client.get("/inspect/task?number=16").status_code == 200
 
-
-def test_every_submit_lands_on_a_canonical_url(client, seeded):
-    """Filtrowanie chodzi po `onchange`, więc adres musi się czyścić także po ZDJĘCIU filtru.
-
-    Bez tego wybranie „—" w ostatniej liście zostawiałoby w pasku komplet pustych
-    `op.*`, a przycisk „wstecz" wracał do adresu, który niczego nie filtruje.
-    """
+def test_cleared_filter_row_leaves_a_clean_url(client, seeded):
+    """Filtrowanie chodzi po zmianie pola, więc adres musi się czyścić także po ZDJĘCIU
+    filtru — inaczej wybranie „—" w ostatniej liście zostawiałoby w pasku komplet
+    pustych `op.*`, a „wstecz" wracał do adresu, który niczego nie filtruje."""
     cleared = "op.kind=eq&kind=&op.review_status=eq&review_status="
-    response = client.get(f"/inspect/task?{cleared}", follow_redirects=False)
-    assert response.status_code == 303
-    assert response.headers["location"] == "/inspect/task"
-
-    response = client.get(f"/inspect/task?_sort=number&_dir=desc&{cleared}",
-                          follow_redirects=False)
-    assert response.headers["location"] == "/inspect/task?_sort=number&_dir=desc"
-
-
-def test_filter_row_submits_itself_without_a_button(client, seeded):
-    body = client.get("/inspect/task").text
-    row = body.split('<tr class="filters">')[1].split("</tr>")[0]
-    # Każda kontrolka wiersza filtrów wysyła formularz sama.
-    assert row.count('onchange="this.form.submit()"') == row.count("<select") + row.count("<input")
-    # Przycisk zostaje wyłącznie dla przeglądarki bez JS-a.
-    assert "<noscript><button>Filtruj</button></noscript>" in row
+    assert _list(client, "task", cleared)["links"]["canonical"] == "/inspect/task"
+    assert _list(client, "task", f"_sort=number&_dir=desc&{cleared}")["links"]["canonical"] == (
+        "/inspect/task?_sort=number&_dir=desc")
 
 
 # ------------------------------------------------------------- rozmiar strony
@@ -235,58 +221,48 @@ def many_tasks(con, seeded) -> int:
         return cur.fetchone()["n"]
 
 
-def test_page_size_choice_lands_in_a_cookie(client, many_tasks):
-    def rows_on_page(response) -> int:
-        body = response.text.split("<tbody>")[1].split("</tbody>")[0]
-        return body.count('<tr>')
+def test_page_size_comes_from_the_url(client, many_tasks):
+    """Rozmiar strony jest wyborem człowieka; pamięta go front, stosuje serwer."""
+    assert len(_list(client, "task")["rows"]) == inspector.PER_PAGE
 
-    assert rows_on_page(client.get("/inspect/task")) == inspector.PER_PAGE
-
-    response = client.get("/inspect/task?_per=25", follow_redirects=False)
-    assert response.status_code == 303
-    # Rozmiar strony jest ustawieniem przeglądarki, więc znika z adresu.
-    assert response.headers["location"] == "/inspect/task"
-    assert response.cookies[inspector.PER_PAGE_COOKIE] == "25"
-
-    # Klient trzyma ciasteczko, więc kolejne wejścia bez `_per` też mają 25.
-    assert rows_on_page(client.get("/inspect/task")) == 25
-    assert rows_on_page(client.get("/inspect/task?kind=closed")) == 25
-    assert rows_on_page(client.get("/inspect/task?_page=2")) == 25
-
-    client.get("/inspect/task?_per=100")
-    assert rows_on_page(client.get("/inspect/task")) == 100
-    client.cookies.clear()
-    assert rows_on_page(client.get("/inspect/task")) == inspector.PER_PAGE
+    chosen = _list(client, "task", "_per=25")
+    assert chosen["view"]["per_page"] == 25
+    assert len(chosen["rows"]) == 25
+    assert len(_list(client, "task", "_per=25&kind=closed")["rows"]) == 25
+    assert len(_list(client, "task", "_per=100")["rows"]) == 100
 
 
 def test_page_size_outside_the_list_falls_back_to_default(client, many_tasks):
     for raw in ("7", "0", "-25", "abc", "", "999999"):
         assert inspector.per_page_or_default(raw) == inspector.PER_PAGE
-    # Także wtedy, gdy ktoś podłoży bzdurę w ciasteczku.
-    client.cookies.set(inspector.PER_PAGE_COOKIE, "7")
-    body = client.get("/inspect/task").text.split("<tbody>")[1].split("</tbody>")[0]
-    assert body.count("<tr>") == inspector.PER_PAGE
-    client.cookies.clear()
+    # Także wtedy, gdy ktoś podłoży bzdurę w adresie.
+    assert _list(client, "task", "_per=7")["view"]["per_page"] == inspector.PER_PAGE
 
 
 def test_page_size_change_returns_to_the_first_page(client, many_tasks):
     """Przy 25 na stronie „strona 4" bywa już za końcem listy."""
-    response = client.get("/inspect/task?_page=4&_per=100", follow_redirects=False)
-    assert response.headers["location"] == "/inspect/task"
+    links = _list(client, "task", "_page=4&_per=25")["links"]
+    assert links["per"]["100"] == "/inspect/task?_per=100"
 
 
 def test_page_count_follows_the_chosen_size(client, many_tasks):
-    client.get("/inspect/task?_per=25")
-    assert f"z {-(-many_tasks // 25)}" in client.get("/inspect/task").text
-    client.get("/inspect/task?_per=100")
-    assert f"z {-(-many_tasks // 100)}" in client.get("/inspect/task").text
-    client.cookies.clear()
+    """Liczbę stron front liczy z `total` i `per_page` — obie mają być prawdziwe."""
+    for per_page in (25, 100):
+        body = _list(client, "task", f"_per={per_page}")
+        assert body["total"] == many_tasks
+        assert body["view"]["per_page"] == per_page
+        assert len(body["rows"]) == min(per_page, many_tasks)
 
 
-def test_filter_row_keeps_filters_from_hidden_columns(client, seeded):
-    """Filtr po kolumnie spoza widoku jedzie w polu ukrytym, więc nie znika."""
-    body = client.get("/inspect/task?position__gte=1").text
-    assert 'name="position__gte" value="1"' in body
+def test_filter_from_a_hidden_column_still_filters(client, seeded):
+    """Filtr po kolumnie spoza widoku działa i zostaje w stanie widoku.
+
+    Że jedzie dalej w polu ukrytym wiersza filtrów, pilnuje test frontu — tu
+    chodzi o to, że serwer go widzi i stosuje.
+    """
+    body = _list(client, "task", "position__gte=1")
+    assert [f["param"] for f in body["view"]["filters"]] == ["position__gte"]
+    assert body["total"] == 1
 
 
 # ------------------------------------------------------- kolumny słownikowe
@@ -369,15 +345,14 @@ def test_filter_from_url_survives_a_narrower_offer(con, seeded):
     assert inspector.offer(described["kind"], None) is described["kind"]
 
 
-def test_dictionary_column_renders_a_select_not_an_input(client, seeded):
-    body = client.get("/inspect/task").text
-    cell = body.split('name="op.review_status"')[1].split("</td>")[0]
-    assert '<select name="review_status"' in cell
-    assert '<input name="review_status"' not in cell
-    for value in ("pending", "approved", "corrected", "rejected"):
-        assert f'<option value="{value}"' in cell
+def test_dictionary_column_is_offered_as_a_list_not_typing(client, seeded):
+    """Kolumna słownikowa daje wybór z listy — literówka w statusie dawałaby pustą
+    listę i wyglądała jak brak danych."""
+    described = _list(client, "task")["described"]["review_status"]
+    assert described["is_enum"] is True
+    assert described["options"] == ["pending", "approved", "corrected", "rejected"]
     # Operatory zawężone: po statusie nie szuka się fragmentu.
-    assert 'value="contains"' not in body.split('name="op.review_status"')[1].split("</select>")[0]
+    assert "contains" not in described["operators"]
 
 
 # ------------------------------------------------------------- sortowanie
@@ -391,19 +366,12 @@ def test_sorting_changes_order_and_survives_filters(client, con, seeded):
         by_points = [r["id"] for r in cur.fetchall()]
 
     def ids(query: str) -> list[int]:
-        body = client.get(f"/inspect/task?{query}").text
-        seen, out = set(), []
-        for chunk in body.split('/inspect/task/')[1:]:
-            found = chunk.split('"')[0]
-            if found.isdigit() and int(found) not in seen:
-                seen.add(int(found))
-                out.append(int(found))
-        return out
+        return [row["key"] for row in _list(client, "task", query)["rows"]]
 
     assert ids("_sort=max_points&_dir=asc") == by_points
     assert ids("_sort=max_points&_dir=desc") == by_points[::-1]
     # Sortowanie po kolumnie spoza tabeli jest ignorowane, nie wywala listy.
-    assert client.get("/inspect/task?_sort=nope").status_code == 200
+    assert _list(client, "task", "_sort=nope")["view"]["sort"] is None
     # Filtr i sortowanie działają razem.
     assert ids("kind=closed&_sort=max_points&_dir=desc") == [
         t for t in by_points[::-1] if t != seeded["task"]]
@@ -437,26 +405,27 @@ def test_suggestions_only_for_low_cardinality_columns(con, seeded):
 
 
 def test_composite_key_table_has_no_record_view(client, seeded):
-    assert client.get("/inspect/exam_form_document/1").status_code == 404
-    assert client.get("/inspect/exam_form_document").status_code == 200
+    assert client.get("/api/inspect/exam_form_document/1").status_code == 404
+    assert client.get("/api/inspect/exam_form_document").status_code == 200
 
 
 # ------------------------------------------------------------- nawigacja
 
 def test_record_links_parents_and_children(client, seeded):
-    body = client.get(f"/inspect/task/{seeded['task']}").text
-    assert f"/inspect/document/{seeded['key']}" in body            # rodzic
-    assert f"/inspect/criterion?task_id={seeded['task']}" in body   # dziecko: lista
-    assert f"/inspect/criterion/{seeded['criterion']}" in body      # dziecko: wiersz
-    assert f"/task/{seeded['task']}" in body                        # skok do korekty
+    body = client.get(f"/api/inspect/task/{seeded['task']}").json()
+    assert any(p["url"] == f"/inspect/document/{seeded['key']}" for p in body["parents"])
+    criteria = next(c for c in body["children"] if c["table"] == "criterion")
+    assert criteria["url"] == f"/inspect/criterion?task_id={seeded['task']}"
+    assert [r["url"] for r in criteria["rows"]] == [f"/inspect/criterion/{seeded['criterion']}"]
 
 
 def test_record_shows_column_sources_and_row_provenance(client, seeded):
-    body = client.get(f"/inspect/task/{seeded['task']}").text
-    assert "nierozstrzygnięte — poza korpusem" in body
-    assert "ekran · verify" in body
-    body = client.get(f"/inspect/condition_expression/{seeded['expression']}").text
-    assert "konwerter odmówił: nieznany znak" in body
+    body = client.get(f"/api/inspect/task/{seeded['task']}").json()
+    assert "nierozstrzygnięte — poza korpusem" in " ".join(body["row_notes"])
+    assert any("ekran · verify" in column["source"] for column in body["columns"])
+    expression = client.get(
+        f"/api/inspect/condition_expression/{seeded['expression']}").json()
+    assert "konwerter odmówił: nieznany znak" in " ".join(expression["row_notes"])
 
 
 # ------------------------------------------------------------- źródło w plikach
@@ -484,8 +453,10 @@ def test_asset_provenance_points_at_paper_with_bbox(con, seeded):
 
 
 def test_missing_file_is_named_not_hidden(client, seeded):
-    body = client.get(f"/inspect/task/{seeded['task']}").text
-    assert "Pliku nie ma w mirrorze" in body
+    """Baza wskazuje plik, którego dysk nie ma — to nie jest NULL i nie ma zniknąć."""
+    body = client.get(f"/api/inspect/task/{seeded['task']}").json()
+    assert body["source"]["document_id"] == seeded["key"]
+    assert body["source"]["file_exists"] is False
     assert client.get(f"/inspect/document/{seeded['key']}.pdf").status_code == 404
 
 
@@ -531,45 +502,48 @@ def mirrored(monkeypatch, tmp_path, seeded) -> dict:
     return seeded
 
 
-def test_pdf_viewer_navigation_is_rendered(client, mirrored):
-    body = client.get(f"/inspect/task/{mirrored['task']}").text
-    assert "_pdfpage=10" in body and "_pdfpage=12" in body     # poprzednia i następna
-    assert 'name="_pdfpage" value="11"' in body                # skok wprost
-    assert "z 30" in body
+def test_pdf_viewer_starts_where_the_record_is(client, mirrored):
+    """Podgląd otwiera się na stronie rekordu, a numer strony jedzie w adresie."""
+    body = client.get(f"/api/inspect/task/{mirrored['task']}").json()
+    assert body["pdf_page"] == 11
+    assert body["source"]["document_pages"] == 30
+    assert client.get(f"/api/inspect/task/{mirrored['task']}?_pdfpage=1"
+                      ).json()["pdf_page"] == 1
 
-    body = client.get(f"/inspect/task/{mirrored['task']}?_pdfpage=1").text
-    # Na krawędzi dokumentu odnośnik zostaje, ale przestaje prowadzić.
-    assert 'class="off"' in body
-    assert "wróć do strony rekordu (11)" in body
-
-    # Reguła nie ma własnej strony — podgląd zaczyna od pierwszej i da się przewijać.
-    body = client.get(f"/inspect/rule/{mirrored['rule']}").text
-    assert 'name="_pdfpage" value="1"' in body
-    assert "_pdfpage=2" in body
-    assert "wróć do strony rekordu" not in body
+    # Reguła nie ma własnej strony — podgląd zaczyna od pierwszej.
+    assert client.get(f"/api/inspect/rule/{mirrored['rule']}").json()["pdf_page"] == 1
 
 
-def test_frame_is_drawn_only_on_its_own_page(client, mirrored):
-    """Ramka na cudzej stronie wisiałaby w powietrzu i kłamała o położeniu zasobu."""
-    own = client.get(f"/inspect/asset/{mirrored['asset']}?_pdfpage=9").text
-    assert "<svg viewBox" in own
-    assert "rect x=" in own
+def test_frame_travels_with_its_page_number(client, mirrored):
+    """Ramka na cudzej stronie wisiałaby w powietrzu i kłamała o położeniu zasobu.
 
-    other = client.get(f"/inspect/asset/{mirrored['asset']}?_pdfpage=3").text
-    assert "<svg viewBox" not in other
-    assert "ramka jest na stronie 9" in other
+    Serwer podaje ramkę, jej stronę i rozmiar strony; rysuje ją front — i tylko
+    wtedy, gdy oglądana strona jest tą właściwą. Pilnuje tego test frontu.
+    """
+    body = client.get(f"/api/inspect/asset/{mirrored['asset']}?_pdfpage=9").json()
+    assert body["source"]["page"] == 9
+    assert body["source"]["bbox"] == [0.0, 0.0, 595.0, 842.0]
+    assert body["source"]["page_size"] is not None
+
+    other = client.get(f"/api/inspect/asset/{mirrored['asset']}?_pdfpage=3").json()
+    assert other["pdf_page"] == 3
+    assert other["source"]["page"] == 9
 
 
 # ------------------------------------------------------------- zdrowie
 
 def test_health_counts_and_lists(client, seeded):
-    index = client.get("/inspect").text
-    assert "Zdrowie danych" in index
-    assert "/inspect/health/asset_full_page" in index
-    body = client.get("/inspect/health/asset_full_page").text
-    assert f"/inspect/asset/{seeded['asset']}" in body
-    body = client.get("/inspect/health/expression_failed").text
-    assert "nieznany znak" in body
+    index = client.get("/api/inspect").json()
+    assert any(check["key"] == "asset_full_page" for check in index["health"])
+
+    body = client.get("/api/inspect/health/asset_full_page").json()
+    assert any(cell["link"] == f"/inspect/asset/{seeded['asset']}"
+               for row in body["rows"] for cell in row)
+
+    body = client.get("/api/inspect/health/expression_failed").json()
+    assert "nieznany znak" in " ".join(cell["full"] for row in body["rows"] for cell in row)
+
+    assert client.get("/api/inspect/health/nope").status_code == 404
     assert client.get("/inspect/health/nope").status_code == 404
 
 
@@ -591,32 +565,34 @@ def test_column_named_like_a_view_param_is_filterable(client, con, seeded):
         cur.execute("INSERT INTO task (marking_scheme_id, number, position, max_points, "
                     "kind, page) VALUES (%s, '17', 17, 1, 'closed', 12)", (seeded["key"],))
 
-    body = client.get("/inspect/task?page=11").text
-    assert "· 1 wierszy" in body
-    assert "· 2 wierszy" in client.get("/inspect/task?page__gte=11").text
+    assert _list(client, "task", "page=11")["total"] == 1
+    assert _list(client, "task", "page__gte=11")["total"] == 2
 
     # Puste pole `page` z wiersza filtrów nie jest już numerem strony.
-    response = client.get("/inspect/asset?op.page=eq&page=")
-    assert response.status_code == 200
+    assert _list(client, "asset", "op.page=eq&page=")["view"]["page"] == 1
 
     # Stan widoku jedzie pod nazwami z podkreślnikiem i nie miesza się z kolumną.
-    body = client.get("/inspect/task?page=11&_sort=page&_dir=desc").text
-    assert "· 1 wierszy" in body
-    assert 'name="_sort" value="page"' in body
+    body = _list(client, "task", "page=11&_sort=page&_dir=desc")
+    assert body["total"] == 1
+    assert body["view"]["sort"] == "page"
 
 
 def test_filter_row_of_every_table_submits_cleanly(client, seeded):
     """Wysłanie pustego wiersza filtrów nie ma prawa wywrócić żadnej tabeli."""
-    import re
     from urllib.parse import urlencode
 
     for table in ("task", "asset", "document", "task_version", "correction_event",
                   "condition_expression", "criterion", "rule", "exam_form"):
         for query in ("", "_cols=all"):
-            body = client.get(f"/inspect/{table}?{query}").text
-            row = body.split('<tr class="filters">')[1].split("</tr>")[0]
-            fields = re.findall(r'<(?:select|input) name="([^"]+)"', row)
-            sent = urlencode([(name, "") for name in fields])
-            response = client.get(f"/inspect/{table}?{query}&{sent}",
-                                  follow_redirects=False)
-            assert response.status_code in (200, 303), f"{table} {query}: {response.status_code}"
+            body = _list(client, table, query)
+            # Tak wygląda pusty wiersz filtrów: dla każdej widocznej kolumny
+            # operator i wartość, obie puste.
+            fields = []
+            for column in body["visible"]:
+                offer = body["described"].get(column)
+                if offer is not None:
+                    fields.append((f"{body['operator_prefix']}{column}", ""))
+                    fields.append((column, ""))
+            sent = urlencode(fields)
+            response = client.get(f"/api/inspect/{table}?{query}&{sent}")
+            assert response.status_code == 200, f"{table} {query}: {response.status_code}"

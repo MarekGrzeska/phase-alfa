@@ -4,6 +4,9 @@ import { createRoot } from "react-dom/client";
 import { AgentPanel } from "./agent/AgentPanel";
 import { Overview } from "./overview/Overview";
 import { TaskForm } from "./task/TaskForm";
+import { InspectHealth, InspectIndex } from "./inspect/InspectIndex";
+import { InspectList } from "./inspect/InspectList";
+import { InspectRecord } from "./inspect/InspectRecord";
 import "./app/screen.css";
 import "./agent/panel.css";
 
@@ -14,6 +17,10 @@ import "./agent/panel.css";
 const VIEWS = {
   overview: Overview,
   task: TaskForm,
+  inspect: InspectIndex,
+  inspectHealth: InspectHealth,
+  inspectList: InspectList,
+  inspectRecord: InspectRecord,
 };
 
 const page = document.getElementById("root");

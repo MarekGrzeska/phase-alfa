@@ -264,7 +264,7 @@ task bench     # benchmark golden setu (od A3)
 | Ścieżka | Co |
 |---|---|
 | `ingest/` | Python: mirror, parser PDF, migracje schematu, ekran korekty, konwerter MathJSON |
-| `ingest/correction/ui/` | TypeScript: front ekranu korekty (React + Vite), własny korzeń pnpm |
+| `ingest/correction/ui/` | TypeScript: CAŁY front ekranu korekty i inspektora (React + Vite), własny korzeń pnpm |
 | `backend/` | C#: modularny monolit, moduły nie widzą się nawzajem |
 | `web/` | TypeScript: `packages/core` bez DOM, `apps/web`, generowany klient OpenAPI |
 | `docs/` | plany implementacji i przeglądy kodu |
