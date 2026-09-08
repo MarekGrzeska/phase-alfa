@@ -35,6 +35,7 @@ Tory równoległe: **F** (formalności — CKE, PARP), **G** (mini golden set),
 - [`docs/decyzje-A2.md`](docs/decyzje-A2.md) — rozstrzygnięcia zapadłe w A2, gotowe do przeniesienia do `DECYZJE.md`
 - [`docs/project-status.html`](docs/project-status.html) — **stan prac na 8.09.2026**: co stoi, czego brakuje i pięć rzeczy w kolejności, w jakiej się opłacają
 - [`docs/database-guide.html`](docs/database-guide.html) — **schemat bazy**: 18 tabel kolumna po kolumnie, źródło każdej wartości i chronologia zapisu od PDF-u do odczytu przez C#
+- [`docs/agent-mcp.html`](docs/agent-mcp.html) — **agent i narzędzia MCP od środka**: jeden rejestr 54 narzędzi, bramka zgody człowieka, pętla z przerwaniem grafu i pełna treść system promptu
 - [`docs/g1.2-ingest.html`](docs/g1.2-ingest.html) — **G1.2** ingest: co powstało, co osiąga, jak podłączyć się do bazy DBeaverem
 - [`docs/a2-korpus.html`](docs/a2-korpus.html) — **A2** od środka: bramka korekty, osiem klocków, zmierzone liczby i to, co zostało ręką
 - [`docs/a3-ocenianie.html`](docs/a3-ocenianie.html) — **A3** w planie: pipeline pięciu kroków, pięć pytań badawczych, zależności wejściowe

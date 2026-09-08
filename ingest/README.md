@@ -437,6 +437,9 @@ progów" od „tyle samo progów o innym tekście".
 
 ## Agent w ekranie korekty (plan `docs/plan-agent-mcp.md`)
 
+Opis techniczny od środka — rejestr narzędzi, bramka zgody, pętla, system prompt —
+stoi w [`docs/agent-mcp.html`](../docs/agent-mcp.html).
+
 Panel po prawej stronie ekranu korekty i inspektora to agent z dostępem do bazy,
 dokumentacji i przebiegów ingestu. Wszystko, co umie, jest **narzędziem MCP**
 w jednym rejestrze (`ingest/agent/server.py`) — ten sam zestaw dostaje Claude Code:

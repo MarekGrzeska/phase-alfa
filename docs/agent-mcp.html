@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent i narzędzia MCP od środka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600;700&display=swap">
+
+<style>
+  :root {
+    --paper:      #f7f8fa;
+    --surface:    #ffffff;
+    --sunk:       #eef1f5;
+    --ink:        #12181f;
+    --ink-soft:   #4a5563;
+    --ink-faint:  #78838f;
+    --rule:       #c9d2dc;
+    --rule-soft:  #e2e8ef;
+    --seal:       #1b4d8f;
+    --seal-soft:  #e8eff8;
+    --mark:       #c0392b;
+    --mark-soft:  #fbeceb;
+    --done:       #2e7d63;
+    --done-soft:  #e7f2ee;
+    --amber:      #9a6b12;
+    --amber-soft: #f8f0dc;
+
+    --col: 68ch;
+    --wide: 64rem;
+
+    --face-display: "Spectral", "Georgia", "Times New Roman", serif;
+    --face-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --face-mono: "IBM Plex Mono", "Consolas", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #10151b;
+      --surface:   #161d26;
+      --sunk:      #1b232e;
+      --ink:       #e4e9ef;
+      --ink-soft:  #a9b4c0;
+      --ink-faint: #7b8794;
+      --rule:      #2f3b49;
+      --rule-soft: #232c37;
+      --seal:      #7fb0e8;
+      --seal-soft: #1a2735;
+      --mark:      #ef8378;
+      --mark-soft: #2c1d1d;
+      --done:      #63c3a1;
+      --done-soft: #16271f;
+      --amber:     #e0b35a;
+      --amber-soft:#2b2414;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #10151b;
+    --surface:   #161d26;
+    --sunk:      #1b232e;
+    --ink:       #e4e9ef;
+    --ink-soft:  #a9b4c0;
+    --ink-faint: #7b8794;
+    --rule:      #2f3b49;
+    --rule-soft: #232c37;
+    --seal:      #7fb0e8;
+    --seal-soft: #1a2735;
+    --mark:      #ef8378;
+    --mark-soft: #2c1d1d;
+    --done:      #63c3a1;
+    --done-soft: #16271f;
+    --amber:     #e0b35a;
+    --amber-soft:#2b2414;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--face-body);
+    font-size: clamp(1rem, 0.96rem + 0.2vw, 1.075rem);
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 1.25rem 6rem;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--wide); margin: 0 auto; }
+  .col { max-width: var(--col); }
+
+  /* ------------------------------------------------------------ nagłówek */
+  .masthead { padding: 4rem 0 2.25rem; border-bottom: 2px solid var(--ink); margin-bottom: 2.5rem; }
+  .eyebrow {
+    font-family: var(--face-mono); font-size: 0.75rem; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--seal); margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--face-display); font-weight: 700;
+    font-size: clamp(2.3rem, 1.5rem + 3.4vw, 3.9rem); line-height: 1.04;
+    letter-spacing: -0.02em; text-wrap: balance; margin: 0 0 1.25rem;
+  }
+  .standfirst { font-size: clamp(1.08rem, 1rem + 0.4vw, 1.28rem); line-height: 1.55; color: var(--ink-soft); max-width: 56ch; margin: 0; }
+  .stamp {
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-family: var(--face-mono); font-size: 0.78rem;
+    letter-spacing: 0.04em; color: var(--ink-faint); margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--rule-soft);
+  }
+
+  /* ------------------------------------------------------------ spis */
+  nav.toc { margin: 0 0 3.5rem; }
+  nav.toc ol {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1px;
+    background: var(--rule); border: 1px solid var(--rule);
+  }
+  nav.toc li { background: var(--surface); }
+  nav.toc a {
+    display: grid; grid-template-columns: 2.2rem 1fr; gap: 0.6rem; align-items: baseline;
+    padding: 0.75rem 1rem; color: var(--ink); text-decoration: none; font-size: 0.93rem; line-height: 1.35;
+  }
+  nav.toc a:hover, nav.toc a:focus-visible { background: var(--seal-soft); outline: none; }
+  nav.toc a .n { font-family: var(--face-mono); font-size: 0.75rem; color: var(--seal); font-weight: 600; }
+
+  /* ------------------------------------------------------------ sekcje */
+  section { margin: 0 0 4.5rem; scroll-margin-top: 1.5rem; }
+  h2 {
+    font-family: var(--face-display); font-weight: 600;
+    font-size: clamp(1.6rem, 1.25rem + 1.4vw, 2.2rem); line-height: 1.15;
+    letter-spacing: -0.015em; text-wrap: balance; margin: 0 0 0.4rem;
+  }
+  h3 { font-family: var(--face-body); font-weight: 600; font-size: 1.05rem; line-height: 1.35; margin: 0 0 0.4rem; }
+  h4 { font-family: var(--face-mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin: 1.4rem 0 0.5rem; }
+  .kicker {
+    font-family: var(--face-mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 1.6rem;
+  }
+  p { margin: 0 0 1.05rem; }
+  ul, ol { margin: 0 0 1.05rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.35rem; }
+  strong { font-weight: 600; }
+  em { font-style: normal; color: var(--seal); font-weight: 500; }
+  a { color: var(--seal); }
+
+  code, .mono { font-family: var(--face-mono); font-size: 0.87em; }
+  code { background: var(--sunk); border-radius: 3px; padding: 0.1em 0.34em; }
+  pre {
+    font-family: var(--face-mono); font-size: 0.83rem; line-height: 1.55;
+    background: var(--sunk); border: 1px solid var(--rule-soft); padding: 0.9rem 1.1rem;
+    overflow-x: auto; margin: 0.6rem 0 1.2rem; white-space: pre;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre.prompt { white-space: pre-wrap; max-height: 34rem; overflow-y: auto; }
+
+  /* ------------------------------------------------------------ przepływ */
+  .flow { list-style: none; margin: 2.25rem 0 0; padding: 0; display: grid; gap: 0; counter-reset: step; }
+  .flow li {
+    display: grid; grid-template-columns: 3.2rem 1fr; gap: 1rem; position: relative;
+    padding: 0 0 1.4rem;
+  }
+  .flow li::before {
+    counter-increment: step; content: counter(step);
+    font-family: var(--face-mono); font-weight: 600; font-size: 0.85rem;
+    width: 2.2rem; height: 2.2rem; display: grid; place-items: center;
+    background: var(--seal); color: var(--surface); border-radius: 50%;
+    position: relative; z-index: 1;
+  }
+  .flow li::after {
+    content: ""; position: absolute; left: 1.1rem; top: 2.2rem; bottom: 0; width: 2px; background: var(--rule);
+  }
+  .flow li:last-child::after { display: none; }
+  .flow li.gate::before { background: var(--mark); }
+  .flow .box { background: var(--surface); border: 1px solid var(--rule); padding: 0.9rem 1.1rem; }
+  .flow .box .name { font-weight: 600; }
+  .flow .box .cmd { font-family: var(--face-mono); font-size: 0.8rem; color: var(--seal); margin-left: 0.5rem; }
+  .flow .box p { margin: 0.3rem 0 0; font-size: 0.93rem; color: var(--ink-soft); max-width: 66ch; }
+  .flow .io {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; margin-top: 0.55rem;
+    font-family: var(--face-mono); font-size: 0.76rem; color: var(--ink-faint);
+  }
+  .flow .io b { font-weight: 600; color: var(--ink-soft); }
+
+  /* ------------------------------------------------------------ etap */
+  .stage { background: var(--surface); border: 1px solid var(--rule); padding: 1.6rem 1.5rem; margin-top: 1.75rem; }
+  .stage > .head { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; align-items: baseline; border-bottom: 1px solid var(--rule-soft); padding-bottom: 0.8rem; margin-bottom: 1.1rem; }
+  .stage > .head h3 { font-family: var(--face-display); font-size: 1.35rem; font-weight: 600; margin: 0; }
+  .stage > .head .files { font-family: var(--face-mono); font-size: 0.78rem; color: var(--ink-faint); }
+  .stage p, .stage li { max-width: 68ch; }
+  .stage .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); margin: 1rem 0 1.2rem; }
+  .stage .facts div { background: var(--sunk); padding: 0.7rem 0.9rem; font-size: 0.88rem; line-height: 1.45; }
+  .stage .facts div b { display: block; font-family: var(--face-mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 0.2rem; }
+  .warn { border-left: 3px solid var(--amber); background: var(--amber-soft); padding: 0.7rem 1rem; margin: 0.9rem 0 1.1rem; font-size: 0.93rem; }
+  .warn b { color: var(--amber); }
+  .note { border-left: 3px solid var(--seal); background: var(--seal-soft); padding: 0.7rem 1rem; margin: 0.9rem 0 1.1rem; font-size: 0.93rem; }
+  .stop { border-left: 3px solid var(--mark); background: var(--mark-soft); padding: 0.7rem 1rem; margin: 0.9rem 0 1.1rem; font-size: 0.93rem; }
+  .stop b { color: var(--mark); }
+
+  /* ------------------------------------------------------------ tabele */
+  .ledger-wrap { overflow-x: auto; margin: 1.25rem 0 1.5rem; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: 0.9rem; }
+  caption {
+    caption-side: top; text-align: left; font-family: var(--face-mono); font-size: 0.72rem;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); padding: 0.9rem 1rem 0.6rem;
+  }
+  th, td { padding: 0.55rem 1rem; text-align: left; vertical-align: top; }
+  thead th {
+    font-family: var(--face-mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-faint); border-bottom: 1px solid var(--rule); white-space: nowrap;
+  }
+  tbody tr + tr td { border-top: 1px solid var(--rule-soft); }
+  tbody th.group {
+    font-family: var(--face-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--seal); background: var(--seal-soft); border-top: 1px solid var(--rule);
+  }
+  td.num { font-family: var(--face-mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  td code { white-space: nowrap; }
+
+  .tag {
+    font-family: var(--face-mono); font-size: 0.66rem; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 0.22rem 0.45rem; white-space: nowrap; display: inline-block;
+  }
+  .tag.done { background: var(--done-soft); color: var(--done); }
+  .tag.open { background: var(--mark-soft); color: var(--mark); }
+  .tag.plain { background: var(--seal-soft); color: var(--seal); }
+  .tag.warn { background: var(--amber-soft); color: var(--amber); }
+
+  /* ------------------------------------------------------------ liczby */
+  .figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 1.75rem; }
+  .fig { background: var(--surface); padding: 1.3rem 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .fig .big { font-family: var(--face-mono); font-weight: 600; font-size: clamp(1.7rem, 1.3rem + 1.3vw, 2.3rem); line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--seal); }
+  .fig .lede { font-weight: 600; font-size: 0.93rem; }
+  .fig .note-s { font-size: 0.84rem; line-height: 1.45; color: var(--ink-soft); }
+  .fig.is-done .big { color: var(--done); }
+  .fig.is-open .big { color: var(--mark); }
+
+  /* ------------------------------------------------------------ słownik */
+  dl.gloss { display: grid; grid-template-columns: 11rem 1fr; gap: 0.5rem 1.2rem; margin: 1.5rem 0 0; }
+  dl.gloss dt { font-weight: 600; font-size: 0.95rem; font-family: var(--face-mono); }
+  dl.gloss dd { margin: 0; font-size: 0.95rem; max-width: 62ch; }
+  @media (max-width: 34rem) {
+    dl.gloss { grid-template-columns: 1fr; }
+    .flow li { grid-template-columns: 2.6rem 1fr; }
+  }
+  :focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Projekt Klucz · faza alfa · warstwa <code>ingest/agent/</code></p>
+  <h1>Agent i narzędzia MCP od środka</h1>
+  <p class="standfirst">Jak zbudowany jest agent w ekranie korekty: jeden rejestr 54 narzędzi obsługujący trzy wejścia, bramka zgody człowieka wpisana w protokół, pętla z przerwaniem grafu, i dokładna treść system promptu, którą model widzi przy każdej rozmowie.</p>
+  <div class="stamp">
+    <span>stan na 8.09.2026</span>
+    <span>źródło: kod w <code>phase-alfa/ingest/agent/</code></span>
+    <span>plan: <a href="plan-agent-mcp.md">docs/plan-agent-mcp.md</a></span>
+    <span>klocki M1–M6</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Spis treści">
+  <ol>
+    <li><a href="#czym"><span class="n">01</span><span>Czym jest ten agent i gdzie stoi</span></a></li>
+    <li><a href="#architektura"><span class="n">02</span><span>Jeden rejestr, trzy wejścia</span></a></li>
+    <li><a href="#narzedzie"><span class="n">03</span><span>Anatomia narzędzia od strony modelu</span></a></li>
+    <li><a href="#rejestr"><span class="n">04</span><span>Rejestr: wszystkie 54 narzędzia</span></a></li>
+    <li><a href="#zgoda"><span class="n">05</span><span>Bramka zgody człowieka</span></a></li>
+    <li><a href="#petla"><span class="n">06</span><span>Pętla agenta i strumień zdarzeń</span></a></li>
+    <li><a href="#prompt"><span class="n">07</span><span>System prompt, co do znaku</span></a></li>
+    <li><a href="#nawigacja"><span class="n">08</span><span>Nawigacja i kontekst ekranu</span></a></li>
+    <li><a href="#przebiegi"><span class="n">09</span><span>Przebiegi ingestu w tle</span></a></li>
+    <li><a href="#limity"><span class="n">10</span><span>Limity, koszt, cennik</span></a></li>
+    <li><a href="#testy"><span class="n">11</span><span>Testy: czego pilnują</span></a></li>
+    <li><a href="#uruchomienie"><span class="n">12</span><span>Uruchomienie i podłączenie</span></a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ 01 -->
+<section id="czym">
+  <h2>Czym jest ten agent i gdzie stoi</h2>
+  <p class="kicker">granica warstw · localhost · bramka do korpusu</p>
+  <div class="col">
+    <p>Agent to panel po prawej stronie ekranu korekty i inspektora. Odpowiada na pytania o korpus, tłumaczy jak co działa, przenosi korektora na właściwą stronę narzędzia, poprawia rekordy i uruchamia przebiegi ingestu. Wszystko, co umie, jest <strong>narzędziem MCP</strong> — nie ma ani jednej zdolności dostępnej tylko z panelu.</p>
+    <p>Siedzi w <code>ingest/</code>, czyli w warstwie Pythona, i to jest świadome: <em>C# nigdy go nie widzi.</em> Obowiązuje ten sam wyjątek od granicy warstw, którym jest sam ekran korekty — lokalne narzędzie na 127.0.0.1, edytujące rekordy <strong>zanim</strong> staną się korpusem.</p>
+    <p>Trzy reguły, na których stoi całość, i które warto mieć w głowie czytając resztę:</p>
+    <ul>
+      <li><strong>Zapis do korpusu tylko przez <code>db.save</code> i <code>db.decide</code></strong> — tę samą drogę, którą idzie formularz człowieka i przebieg <code>task verify</code>. Więc status wychodzi z porównania z bazą, więzy odrzucają śmieci agenta tak samo jak śmieci parsera, a dziennik <code>correction_event</code> zapisuje się sam.</li>
+      <li><strong>Trzeci autor rozstrzygnięć ma nazwę w schemacie</strong>: <code>task.reviewed_by = 'agent'</code> (migracja 0010, po <code>human</code> i <code>model</code>). Powrót do stanu sprzed agenta to jeden <code>UPDATE</code>, nie archeologia.</li>
+      <li><strong>Zgoda człowieka jest cechą narzędzia</strong>, nie logiką panelu. Rozstrzygnięcie, zmiana rekordu już w korpusie, surowy SQL i płatny przebieg wykonują się dopiero po kliknięciu — także wtedy, gdy narzędzie woła Claude Code z terminala.</li>
+    </ul>
+  </div>
+
+  <div class="figures">
+    <div class="fig"><span class="big">54</span><span class="lede">narzędzia w rejestrze</span><span class="note-s">baza, korpus, ingest, wiedza, stan, nawigacja</span></div>
+    <div class="fig"><span class="big">3</span><span class="lede">wejścia, jeden kod</span><span class="note-s">stdio · HTTP <code>/mcp</code> · klient in-memory</span></div>
+    <div class="fig"><span class="big">2707</span><span class="lede">linii w <code>ingest/agent/</code></span><span class="note-s">plus 1135 linii testów Pythona i pięć plików testów frontu</span></div>
+    <div class="fig is-done"><span class="big">10</span><span class="lede">migracji schematu</span><span class="note-s">0010 dokłada pięć tabel agenta i rozszerza dwa więzy</span></div>
+  </div>
+</section>
+
+<!-- ============================================================ 02 -->
+<section id="architektura">
+  <h2>Jeden rejestr, trzy wejścia</h2>
+  <p class="kicker">agent w panelu jest klientem MCP jak każdy inny</p>
+  <div class="col">
+    <p>Narzędzia to zwykłe funkcje Pythona z adnotacjami typów, zarejestrowane w jednym <code>FastMCP</code> o nazwie <code>klucz</code> (<code>agent/server.py</code>). Schemat argumentów SDK wyprowadza z sygnatury, opis z docstringa. Ten sam obiekt serwera obsługuje trzy transporty:</p>
+  </div>
+
+  <pre><code>przeglądarka (127.0.0.1:8600)
+  ┌─ widok (Overview / TaskForm / Inspect*)     ┌─ AgentPanel ─────────────────┐
+  │  adres = stan widoku                        │ POST /api/agent/…/messages   │
+  │  window.location.assign(url) ◄──────────────│  ← SSE: token · tool_call ·  │
+  └─────────────────────────────────────────────┴──  tool_result · ui · confirm ┘
+                        │ kontekst ekranu: view, task_id, page, table, row_id
+                        ▼
+correction.app (FastAPI, lifespan)
+  /api/agent/*  ──► agent.runtime ──► create_agent(model, tools, checkpointer)
+                        │                    │  tools = load_mcp_tools(session)
+                        │                    ▼
+                        │        klient MCP in-memory ──┐
+  /mcp   (streamable HTTP, trasa ASGI) ─────────────────┤   agent.server
+  task mcp (stdio: Claude Code / Desktop) ──────────────┘   jeden FastMCP
+                                                              │
+        ┌───────────┬───────────┬───────────┬─────────────────┼───────────┐
+        ▼           ▼           ▼           ▼                 ▼           ▼
+   tools/       tools/      tools/      tools/            tools/     agent/urls.py
+   database     corpus      ingest      knowledge         status     (adresy ekranu)
+   inspector    db.save     CATALOG →   docs/ + kod       raporty
+   READ ONLY    db.decide   proces w tle</code></pre>
+
+  <div class="stage">
+    <div class="head"><h3>Dlaczego jeden rejestr, a nie „narzędzia panelu" osobno</h3><span class="files">agent/server.py</span></div>
+    <div class="col">
+      <p>Gdyby panel miał własny zestaw funkcji, a serwer MCP swój, po dwóch tygodniach byłyby to dwa różne zestawy — i żadne z nich nie byłoby przetestowane w obu drogach. Tutaj agent w panelu <strong>jest klientem MCP</strong>: łączy się z tym samym obiektem serwera przez transport in-memory z SDK (<code>mcp.shared.memory</code>). Skutek: co działa w panelu, działa z terminala, i odwrotnie. Ten sam <code>db_query</code> odpowiada na pytanie zadane w przeglądarce i na wywołanie z Claude Code.</p>
+      <div class="facts">
+        <div><b>stdio</b><code>task mcp</code> → <code>python -m agent.server</code>. Protokół idzie standardowym wyjściem, więc żadne narzędzie nie ma prawa nic wypisać <code>print</code>em; log serwera podniesiony do <code>WARNING</code>.</div>
+        <div><b>HTTP</b>Trasa <code>/mcp</code> w aplikacji ekranu korekty. Menedżer sesji powstaje w cyklu życia aplikacji.</div>
+        <div><b>in-memory</b><code>create_connected_server_and_client_session(server)</code> — bez gniazd, bez serializacji po sieci, ten sam kod narzędzi.</div>
+      </div>
+      <h4>dwie pułapki, które to kosztowało</h4>
+      <ul>
+        <li><strong>Gotowa aplikacja Starlette z SDK poszła do kosza.</strong> Zamontowana przez <code>app.mount("/mcp", …)</code> odpowiadała przekierowaniem <code>307</code> na <code>/mcp/</code>, za którym klient MCP nie idzie. Zamiast niej stoi trasa z gołym ASGI (<code>McpEndpoint</code>), a menedżer sesji i ochrona przed DNS rebinding zostają te same.</li>
+        <li><strong><code>StreamableHTTPSessionManager.run()</code> wolno wywołać raz na instancję.</strong> Aplikacja ekranu startuje w jednym procesie wiele razy (każdy moduł testów stawia własnego <code>TestClient</code>), więc menedżer powstaje <em>w cyklu życia</em> przez fabrykę <code>agent.server.session_manager()</code>, a nie jako singleton przy imporcie. Bez tego 73 testy padały na „can only be called once per instance".</li>
+      </ul>
+      <h4>zależności i wersje</h4>
+      <p>Wszystkie MIT, sprawdzone 8.09.2026: <code>mcp 1.30.0</code> (przypięte do <code>&lt;2</code>, bo w 2.x <code>FastMCP</code> zmienił nazwę na <code>MCPServer</code>, a <code>langchain-mcp-adapters</code> wymaga 1.x), <code>langchain 1.3.17</code>, <code>langgraph 1.2.11</code>, <code>langchain-mcp-adapters 0.3.2</code>. Jedno SDK obsługuje i serwer, i klienta agenta.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section id="narzedzie">
+  <h2>Anatomia narzędzia od strony modelu</h2>
+  <p class="kicker">docstring jest interfejsem, adnotacje są kontraktem</p>
+  <div class="col">
+    <p>Narzędzie definiuje się dekoratorem. Nazwa po angielsku, bo trafia do protokołu; opis po polsku, bo czyta go model i człowiek w liście narzędzi:</p>
+  </div>
+
+  <pre><code>@mcp.tool(annotations=READ_ONLY)
+def db_query(sql: str, limit: int = limits.MAX_ROWS) -> dict:
+    """Dowolne zapytanie SQL tylko do odczytu (SELECT, WITH, EXPLAIN) na bazie korpusu.
+
+    Transakcja READ ONLY, limit czasu 15 s, najwyżej `limit` wierszy (domyślnie 200)
+    — wynik ucięty ma `truncated: true`. Korpus to widok `corpus_task`; tabela `task`
+    zawiera też rekordy nierozstrzygnięte. Schemat: `db_schema`.
+    """</code></pre>
+
+  <div class="col">
+    <p>Do klienta jedzie z tego pełna definicja. Tak wygląda <code>ui_navigate</code> tak, jak widzi go model:</p>
+  </div>
+
+  <pre><code>{
+  "name": "ui_navigate",
+  "annotations": { "readOnlyHint": true, "destructiveHint": false, "openWorldHint": false },
+  "inputSchema": {
+    "type": "object",
+    "properties": { "target": { "type": "object", "additionalProperties": true } },
+    "required": ["target"]
+  }
+}</code></pre>
+
+  <div class="stage">
+    <div class="head"><h3>Adnotacje i metadane — po co model ma o nich wiedzieć</h3><span class="files">mcp.types.ToolAnnotations · meta</span></div>
+    <div class="col">
+      <ul>
+        <li><code>readOnlyHint: true</code> — narzędzie niczego nie zmienia. Dostaje je 26 z 54 narzędzi; klient może je wołać bez pytania.</li>
+        <li><code>destructiveHint: true</code> — dokładnie cztery: <code>db_execute</code>, <code>ingest_db_reset</code>, <code>job_cancel</code>, <code>task_decide</code>. Ostrzeżenie widoczne w każdym kliencie MCP, nie tylko w naszym panelu.</li>
+        <li><code>openWorldHint: true</code> — narzędzia <code>ingest_*</code>, bo uruchamiają proces, który sięga poza bazę (mirror CKE, API modelu, Docker).</li>
+        <li><code>meta: {"confirm": true}</code> — <strong>nasze</strong> pole, nie z protokołu: znaczy „to narzędzie chodzi przez bramkę zgody". Nosi je 13 narzędzi. Panel po nim rozpoznaje, że wynik <code>{"confirm": …}</code> nie jest błędem, tylko prośbą. Narzędzia <code>ingest_*</code> noszą w <code>meta</code> także nazwę zadania z Taskfile i grupę z menu.</li>
+      </ul>
+      <div class="note">Wszystkie narzędzia zwracają <strong>słownik</strong>, nigdy goły tekst. Kształt jest przewidywalny: dane, <code>url</code> tam, gdzie istnieje odpowiednik w ekranie, <code>truncated</code> przy cięciu, <code>hint</code> z podpowiedzią, co zrobić dalej. Jedyny wyjątek to <code>task_page_image</code>, które oddaje obraz strony klucza jako treść obrazkową plus słownik z numerem strony.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 04 -->
+<section id="rejestr">
+  <h2>Rejestr: wszystkie 54 narzędzia</h2>
+  <p class="kicker">stan wprost z <code>tools/list</code>, nie z pamięci autora</p>
+  <div class="col">
+    <p>Poniżej pełna lista tak, jak ją zwraca serwer. Kolumna <em>bramka</em> mówi, czy narzędzie czeka na zgodę człowieka; <code>tylko odczyt</code> to narzędzia z <code>readOnlyHint</code>.</p>
+  </div>
+
+  <div class="ledger-wrap">
+    <table>
+      <caption>rejestr narzędzi serwera „klucz" · 8.09.2026</caption>
+      <thead>
+        <tr><th>Narzędzie</th><th>Argumenty</th><th>Bramka</th><th>Co robi</th></tr>
+      </thead>
+      <tbody>
+        <tr><th class="group" colspan="4">baza — <code>tools/database.py</code></th></tr>
+        <tr><td><code>db_schema</code></td><td><code>table</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Tabele, kolumny, typy, klucze obce, wartości <code>CHECK</code> i <strong>kto pisze każdą kolumnę</strong> (parser, ładowarka, ekran, <code>verify</code>, nikt).</td></tr>
+        <tr><td><code>db_query</code></td><td><code>sql</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Dowolny SELECT/WITH/EXPLAIN w transakcji <code>READ ONLY</code>, limit 15 s i 200 wierszy.</td></tr>
+        <tr><td><code>db_execute</code></td><td><code>sql</code>, <code>confirmation</code></td><td><span class="tag open">zgoda</span></td><td>Surowy zapis SQL. Bez zgody wykonuje próbę w wycofanej transakcji i pokazuje liczbę wierszy, które zmieni.</td></tr>
+        <tr><td><code>inspect_list</code></td><td><code>table</code>, <code>filters</code>, <code>sort</code>, <code>direction</code>, <code>page</code>, <code>per_page</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Lista wierszy z filtrami inspektora; filtr po nieznanej kolumnie wraca w <code>rejected</code>, nie znika po cichu.</td></tr>
+        <tr><td><code>inspect_record</code></td><td><code>table</code>, <code>id</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Wiersz z rodzicami, dziećmi i pochodzeniem: plik PDF, strona, wycinek, czy pliki są na dysku.</td></tr>
+        <tr><td><code>db_health</code></td><td><code>key</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Jedenaście kontroli zdrowia danych: liczby albo wiersze jednej kontroli.</td></tr>
+        <tr><td><code>db_migrations</code></td><td>—</td><td><span class="tag plain">tylko odczyt</span></td><td>Które migracje weszły, których brakuje, czy sumy SHA się zgadzają.</td></tr>
+
+        <tr><th class="group" colspan="4">korpus — <code>tools/corpus.py</code> · zapis wyłącznie tędy</th></tr>
+        <tr><td><code>task_get</code></td><td><code>id</code>, <code>page</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Zadanie w kształcie formularza korekty plus <code>field_names</code>: nazwy pól, którymi się je potem zapisuje.</td></tr>
+        <tr><td><code>task_find</code></td><td><code>status</code>, <code>year</code>, <code>code</code>, <code>variant</code>, <code>kind</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Zadania w zakresie, zwięźle, najwyżej 100 wierszy; <code>next_pending</code> wskazuje pierwsze do pracy.</td></tr>
+        <tr><td><code>task_save</code></td><td><code>id</code>, <code>fields</code>, <code>confirmation</code></td><td><span class="tag warn">zgoda w korpusie</span></td><td>Zapis pól formularza przez <code>db.save</code>. Rekord <code>pending</code> idzie od razu; rekord już w korpusie wymaga zgody.</td></tr>
+        <tr><td><code>task_add_row</code></td><td><code>id</code>, <code>what</code>, <code>parent</code>, <code>confirmation</code></td><td><span class="tag warn">zgoda w korpusie</span></td><td>Nowy próg, warunek albo zapis równoważny; treść ustawia się potem przez <code>task_save</code>.</td></tr>
+        <tr><td><code>task_decide</code></td><td><code>id</code>, <code>action</code>, <code>reasons</code>, <code>confirmation</code></td><td><span class="tag open">zgoda zawsze</span></td><td><code>approve</code> / <code>reject</code> / <code>reopen</code> przez <code>db.decide</code>, z <code>actor='agent'</code> i nazwą modelu w dzienniku.</td></tr>
+        <tr><td><code>asset_frame</code></td><td><code>asset_id</code>, <code>box</code>, <code>page</code>, <code>confirmation</code></td><td><span class="tag warn">zgoda w korpusie</span></td><td>Ramka wycinka w punktach PDF; tnie PNG tą samą funkcją co „Wytnij" w formularzu.</td></tr>
+        <tr><td><code>asset_describe</code></td><td><code>asset_id</code>, <code>description</code>, <code>approve</code>, <code>confirmation</code></td><td><span class="tag warn">zgoda w korpusie</span></td><td>Alt-text rysunku; statusy jak w formularzu (<code>auto</code> → <code>approved</code> / <code>corrected</code>), czyli pomiar S7.</td></tr>
+        <tr><td><code>task_page_image</code></td><td><code>id</code>, <code>page</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Strona klucza jako PNG — model wielomodalny może na nią spojrzeć.</td></tr>
+
+        <tr><th class="group" colspan="4">ingest — <code>tools/ingest.py</code> · 21 narzędzi z katalogu <code>task menu</code> plus obsługa przebiegów</th></tr>
+        <tr><td><code>ingest_setup</code>, <code>ingest_up</code>, <code>ingest_down</code>, <code>ingest_migrate</code>, <code>ingest_migrate_status</code></td><td><code>confirmation</code></td><td>—</td><td>Środowisko i schemat: sprawdzenie narzędzi, Docker, migracje.</td></tr>
+        <tr><td><code>ingest_db_reset</code></td><td><code>confirmation</code></td><td><span class="tag open">zgoda</span></td><td>Baza od zera. Podgląd mówi wprost, że kasuje korpus <em>oraz</em> dane Azurite.</td></tr>
+        <tr><td><code>ingest_mirror</code></td><td>8 flag mirrora</td><td>—</td><td>Zwózka PDF-ów z cke.gov.pl, idempotentna.</td></tr>
+        <tr><td><code>ingest_ingest</code></td><td>10 flag parsera</td><td>—</td><td>Parser kluczy OMAP → Postgres; klucze po korekcie pomija.</td></tr>
+        <tr><td><code>ingest_parser_snapshot</code>, <code>ingest_crops</code>, <code>ingest_mathjson</code>, <code>ingest_mathjson_setup</code></td><td>flagi z menu</td><td>—</td><td>Regresja parsera bez bazy, wycinki PNG, konwersja MathJSON.</td></tr>
+        <tr><td><code>ingest_verify</code>, <code>ingest_prefill</code>, <code>ingest_describe</code>, <code>ingest_frame</code></td><td><code>year</code>, <code>variant</code>, <code>model</code>, <code>limit</code>, <code>apply</code>/<code>batch</code>, <code>report</code></td><td><span class="tag open">zgoda, płatne</span></td><td>Przebiegi z żywym modelem. Podgląd zgody niesie linię polecenia; przy <code>--apply</code> przypomnienie o dry-runie.</td></tr>
+        <tr><td><code>ingest_golden_generate</code>, <code>ingest_golden_grade</code></td><td>flagi golden setu</td><td><span class="tag open">zgoda, płatne</span></td><td>Odpowiedzi ucznia (model A) i ich ocena (model B).</td></tr>
+        <tr><td><code>ingest_corpus_report</code>, <code>ingest_correction_report</code>, <code>ingest_test_python</code></td><td><code>report</code>, <code>copy_to_docs</code></td><td>—</td><td>Raporty kompletności i korekty, testy warstwy Pythona.</td></tr>
+        <tr><td><code>job_status</code>, <code>job_log</code>, <code>job_list</code></td><td><code>id</code>, <code>tail</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Stan przebiegu, ogon logu, lista przebiegów.</td></tr>
+        <tr><td><code>job_cancel</code></td><td><code>id</code></td><td>—</td><td>Przerywa przebieg uruchomiony w tym procesie serwera.</td></tr>
+
+        <tr><th class="group" colspan="4">wiedza i stan — <code>tools/knowledge.py</code>, <code>tools/status.py</code></th></tr>
+        <tr><td><code>docs_search</code></td><td><code>query</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Szukanie po sekcjach dokumentów: plany, przewodnik po bazie, <code>CLAUDE.md</code>, <code>DECYZJE.md</code>, know-how parsera.</td></tr>
+        <tr><td><code>docs_read</code>, <code>docs_list</code></td><td><code>doc</code>, <code>heading</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Pełna sekcja dokumentu; spis dokumentów z nagłówkami.</td></tr>
+        <tr><td><code>code_search</code>, <code>code_read</code></td><td><code>pattern</code>, <code>glob</code>, <code>path</code>, <code>start</code>, <code>end</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Grep i odczyt źródeł repozytorium; <code>.env</code>, <code>data/</code>, <code>.venv</code>, lockfile poza zasięgiem.</td></tr>
+        <tr><td><code>explain_column</code>, <code>explain_check</code></td><td><code>table</code>, <code>column</code>, <code>key</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Kto pisze kolumnę i co o niej mówi przewodnik; po co istnieje kontrola i co zrobić z trafieniami.</td></tr>
+        <tr><td><code>project_status</code></td><td>—</td><td><span class="tag plain">tylko odczyt</span></td><td>Gałąź i commit, środowisko (klucze API jako „jest / nie ma"), migracje, statusy zadań, kto rozstrzygnął korpus, S6′/S7/S8′, zdrowie, ostatnie raporty.</td></tr>
+        <tr><td><code>report_list</code>, <code>report_read</code></td><td><code>name</code>, <code>tail</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Raporty z <code>data/reports/</code>.</td></tr>
+
+        <tr><th class="group" colspan="4">nawigacja — <code>tools/navigation.py</code></th></tr>
+        <tr><td><code>ui_navigate</code></td><td><code>target</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Adres widoku ekranu albo inspektora; panel przechodzi po zakończeniu odpowiedzi.</td></tr>
+        <tr><td><code>ui_focus</code></td><td><code>field</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Podświetla i przewija do pola formularza na otwartej stronie zadania.</td></tr>
+        <tr><td><code>ui_open_pdf</code></td><td><code>document_id</code>, <code>page</code></td><td><span class="tag plain">tylko odczyt</span></td><td>PDF z mirrora w nowej karcie, opcjonalnie na stronie.</td></tr>
+        <tr><td><code>ui_views</code></td><td>—</td><td><span class="tag plain">tylko odczyt</span></td><td>Spis widoków z parametrami plus lista celów, które <em>nie</em> są do nawigacji.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note"><strong>Skąd bierze się 21 narzędzi ingestu:</strong> nie z ręcznej listy, tylko z <code>cli.app.CATALOG</code> — katalogu, na którym stoi <code>task menu</code>. Nowa pozycja w menu jest nową akcją agenta bez dopisywania czegokolwiek, a flagi składa to samo <code>build_args</code>, którego używa menu. Akcje <code>foreground</code> (<code>correction</code>, <code>db:psql</code>, <code>menu</code>) są wyłączone: serwer nie uruchamia serwera, a konsola nie ma z kim rozmawiać. Test porównuje rejestr z katalogiem w obie strony.</div>
+</section>
+
+<!-- ============================================================ 05 -->
+<section id="zgoda">
+  <h2>Bramka zgody człowieka</h2>
+  <p class="kicker">protokół dwóch wywołań · jedna bramka na wszystkie wejścia</p>
+  <div class="col">
+    <p>Najważniejsza decyzja projektowa całego agenta: zgoda nie jest okienkiem w panelu, tylko <strong>warunkiem wykonania wpisanym w narzędzie</strong>. Panel jest tylko miejscem, w którym człowiek klika.</p>
+  </div>
+
+  <ol class="flow">
+    <li>
+      <div class="box">
+        <span class="name">Model woła narzędzie bez <code>confirmation</code></span>
+        <p>Narzędzie liczy podgląd (dla <code>db_execute</code> — próba w transakcji, która zostaje wycofana; dla <code>task_decide</code> — stan i powody; dla przebiegu — linia polecenia), zakłada wiersz w <code>agent_confirmation</code> i zwraca <code>{"confirm": {"id", "title", "preview", "cost_usd", "how"}}</code>. <strong>Nic się nie zmieniło.</strong></p>
+        <div class="io"><span><b>zapis:</b> żaden</span><span><b>wynik:</b> prośba, nie błąd</span></div>
+      </div>
+    </li>
+    <li class="gate">
+      <div class="box">
+        <span class="name">Człowiek decyduje w panelu</span>
+        <p>Karta zgody pokazuje tytuł, podgląd w <code>&lt;pre&gt;</code> i dwa przyciski. <code>POST /api/agent/confirmations/{id}</code> zapisuje <code>decision</code> i <code>decided_at</code>. Do decyzji pole pisania zostaje wolne — można najpierw dopytać agenta, co właściwie chce zrobić.</p>
+        <div class="io"><span><b>tabela:</b> agent_confirmation</span><span><b>wartownik:</b> sec-fetch-site</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="box">
+        <span class="name">Narzędzie woła się drugi raz, z <code>confirmation=&lt;id&gt;</code></span>
+        <p><code>confirm.consume</code> sprawdza pod <code>FOR UPDATE</code> cztery rzeczy: czy zgoda dotyczy <em>tego</em> narzędzia, czy argumenty są <strong>dokładnie</strong> te same (porównanie <code>jsonb</code> po kanonicznej postaci), czy nie została już zużyta i czy decyzja to <code>accept</code>. Każdy inny stan to błąd z powodem po polsku. Dopiero potem leci zapis.</p>
+        <div class="io"><span><b>jednorazowość:</b> used_at</span><span><b>odmowa:</b> „człowiek odrzucił — nie ponawiaj"</span></div>
+      </div>
+    </li>
+  </ol>
+
+  <div class="stage">
+    <div class="head"><h3>Czego to nie przepuszcza</h3><span class="files">agent/confirm.py · schema/migrations/0010_agent.sql</span></div>
+    <div class="col">
+      <ul>
+        <li><strong>Podmiany argumentów.</strong> Zgoda na <code>UPDATE</code> jednego wiersza nie przepuści innego zapytania — argumenty są przedmiotem zgody, nie sama nazwa narzędzia.</li>
+        <li><strong>Drugiego użycia.</strong> Ta sama zgoda wykonuje się raz; kolejne wywołanie mówi „zostało już wykorzystane".</li>
+        <li><strong>Wejścia od tyłu.</strong> Klient z terminala nie ma panelu, ale też nie ma obejścia: prośba ląduje w tej samej tabeli i czeka na kliknięcie w ekranie korekty. Nie ma flagi „wykonaj bez pytania".</li>
+        <li><strong>Więzu w bazie.</strong> <code>CHECK (used_at IS NULL OR decision IS NOT DISTINCT FROM 'accept')</code>. Pierwsza wersja miała zwykłe <code>=</code>, co przy <code>decision IS NULL</code> daje <code>NULL</code> — a <code>NULL</code> w <code>CHECK</code> znaczy „przechodzi". Test zobaczył to na czerwono, zanim ktokolwiek zdążył na tym polegać.</li>
+      </ul>
+      <h4>co doszło w migracji 0010</h4>
+      <div class="facts">
+        <div><b>więzy</b><code>task.reviewed_by</code> i <code>correction_event.actor</code> przyjmują <code>'agent'</code> obok <code>'human'</code> i <code>'model'</code>.</div>
+        <div><b>agent_session</b>Jedna rozmowa: model, tytuł, ekran, z którego wystartowała.</div>
+        <div><b>agent_message</b>Historia z tokenami wejścia i wyjścia oraz wywołaniami narzędzi w turze.</div>
+        <div><b>agent_confirmation</b>Prośba, argumenty, podgląd, decyzja, moment zużycia.</div>
+        <div><b>agent_tool_call</b>Dziennik wywołań: narzędzie, argumenty, skrót wyniku, czy błąd, która zgoda.</div>
+        <div><b>agent_job</b>Przebieg w tle: polecenie, pid, ścieżka logu, kod wyjścia.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 06 -->
+<section id="petla">
+  <h2>Pętla agenta i strumień zdarzeń</h2>
+  <p class="kicker">przerwanie grafu zamiast drugiego czatu</p>
+  <div class="col">
+    <p>Pętla to <code>create_agent</code> z LangChaina 1.x (<code>agent/runtime.py</code>): model z <code>llm.chat_model</code>, narzędzia z <code>load_mcp_tools</code> na sesji in-memory, checkpointer w pamięci procesu. Wątek grafu to identyfikator sesji, więc rozmowa ma ciągłość między turami.</p>
+    <p>Sztuczka, na której stoi zgoda w rozmowie: <strong>interceptor wywołań MCP</strong>, nie gotowe middleware. <code>HumanInTheLoopMiddleware</code> z LangChaina pytałoby o zgodę na podstawie samego wywołania — a podgląd („to zmieni 1 wiersz", „to kosztuje $3") potrafi policzyć tylko narzędzie, po zajrzeniu do bazy. Więc kolejność jest odwrotna: narzędzie wykonuje się <em>na próbę</em>, zwraca prośbę, a interceptor zamienia ją na <code>interrupt()</code> grafu.</p>
+  </div>
+
+  <pre><code>class ConfirmInterceptor:
+    async def __call__(self, request, handler):
+        call_id = getattr(request.runtime, "tool_call_id", None)
+        asked = PENDING_CONFIRMS.get(call_id)          # pamięć po id wywołania
+        if asked is None:
+            result = await handler(request)            # pierwsze przejście
+            asked = parse_json(text_of(result))
+            if not asked or "confirm" not in asked:
+                return result                          # zwykłe narzędzie — koniec
+            PENDING_CONFIRMS[call_id] = asked
+        decision = interrupt({...})                    # graf staje; panel dostaje `confirm`
+        if decision.get("decision") != "accept":
+            return ToolMessage(..., status="error")    # odmowa wraca do modelu
+        return await handler(request.override(         # wykonanie za zgodą
+            args={**request.args, "confirmation": asked["confirm"]["id"]}))</code></pre>
+
+  <div class="warn"><b>Dlaczego pamięć po <code>tool_call_id</code>:</b> graf po wznowieniu wykonuje węzeł <strong>od początku</strong>, więc bez niej narzędzie zostałoby zawołane na próbę drugi raz i założyłoby drugą prośbę o zgodę. Test sprawdza wprost, że po pełnym cyklu w <code>agent_confirmation</code> jest dokładnie jeden wiersz.</div>
+
+  <div class="stage">
+    <div class="head"><h3>Zdarzenia, które widzi panel</h3><span class="files">agent/api.py · text/event-stream</span></div>
+    <div class="col">
+      <dl class="gloss">
+        <dt>token</dt><dd>Kawałek odpowiedzi. Panel domyka niedokończony markdown w locie (<code>remend</code>), więc niedomknięte <code>**</code> jest pogrubieniem od pierwszej klatki.</dd>
+        <dt>tool_call</dt><dd>Nazwa i argumenty. W rozmowie staje się chipem z rozwijanym wynikiem.</dd>
+        <dt>tool_result</dt><dd>Skrót wyniku plus flaga błędu; jeśli wynik nosi <code>ui</code>, leci osobne zdarzenie.</dd>
+        <dt>ui</dt><dd><code>navigate</code> (przejście po <code>done</code>), <code>focus</code> (podświetlenie pola), <code>open</code> (nowa karta).</dd>
+        <dt>confirm</dt><dd>Prośba o zgodę z podglądem — karta z przyciskami.</dd>
+        <dt>usage</dt><dd>Tokeny wejścia i wyjścia oraz koszt tury policzony cennikiem <code>llm.PRICING</code>.</dd>
+        <dt>done</dt><dd><code>finished</code> albo <code>waiting</code> — to drugie znaczy „graf stoi na przerwaniu".</dd>
+        <dt>error</dt><dd>Powód po polsku. Wyjątki z grupy zadań anyio są rozpakowywane, żeby komunikat nie zginął w <code>ExceptionGroup</code>.</dd>
+      </dl>
+      <h4>co zostaje w bazie po turze</h4>
+      <p>Wiadomość korektora, każda wiadomość modelu z tokenami i listą wywołań, wynik każdego wywołania w <code>agent_tool_call</code> (z identyfikatorem zgody, jeśli była). Po restarcie serwera panel odtwarza rozmowę z bazy. Stan grafu żyje tylko w procesie, więc <strong>przerwanie w toku po restarcie przepada</strong> — panel mówi to wprost („ta rozmowa na nic nie czeka"), zamiast wznawiać coś, czego nie ma.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>Wybór modelu jest cechą sesji</h3><span class="files">agent/runtime.py · AGENT_MODELS</span></div>
+    <div class="col">
+      <p>Trzy pozycje do wyboru w nagłówku panelu: <code>openai:gpt-5.6-luna</code>, <code>-terra</code>, <code>-sol</code>. Wybór zapisuje się w <code>agent_session.model</code>, a zmiana zakłada nową rozmowę — historia z jednego modelu nie miesza się z drugim, a koszt liczy się per model. Domyślny bierze się z <code>AGENT_MODEL</code> w <code>.env</code>. Model spoza listy odrzuca <code>POST /api/agent/sessions</code> z 400, także gdy jest w cenniku.</p>
+      <div class="warn"><b>Pułapka, którą złapał pierwszy przebieg z żywym modelem:</b> gpt-5.6 odrzuca narzędzia funkcyjne na <code>/v1/chat/completions</code> — „Function tools with reasoning_effort are not supported… use /v1/responses". Stąd <code>use_responses_api=True</code> dla dostawcy <code>openai</code>. Przebiegi <code>verify</code> i <code>prefill</code> tego nie widzą, bo używają structured output bez narzędzi.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 07 -->
+<section id="prompt">
+  <h2>System prompt, co do znaku</h2>
+  <p class="kicker">3974 znaki · trzy części · migawka liczona raz na sesję</p>
+  <div class="col">
+    <p>Prompt składa się z trzech części zszywanych w <code>prompts.system_prompt()</code>: stałego opisu projektu i zasad, wygenerowanego spisu widoków ekranu, oraz migawki stanu bazy. Migawka powstaje <strong>raz na sesję</strong> — prompt ma być stały, żeby dostawca mógł go cache'ować, a agent znał liczby bez wydawania tury na pytanie o nie.</p>
+    <p>Pierwsza część, dosłownie:</p>
+  </div>
+
+  <pre class="prompt"><code>Jesteś agentem projektu Klucz (faza alfa) — pomocnikiem korektora
+w ekranie korekty i inspektorze danych. Odpowiadasz po polsku, zwięźle, w markdown.
+
+Projekt: korpus zasad oceniania (kluczy) egzaminu ósmoklasisty z matematyki (CKE),
+sparsowanych z PDF-ów do PostgreSQL, żeby silnik oceniania (C#) mógł oceniać
+odpowiedzi uczniów według kryteriów. Warstwy: `ingest/` (Python: mirror PDF, parser,
+migracje, ekran korekty, przebiegi LLM), `backend/` (C#: czyta gotową strukturę,
+NIGDY nie parsuje PDF-a), `web/` (React). Kontraktem jest schemat bazy.
+
+Słownik: task = zadanie, task_version = wersja (bliźniak X/Y), model_answer =
+odpowiedź wzorcowa (zadania zamknięte), criterion = próg punktowy, criterion_condition
+= warunek progu (LUB), condition_expression = zapis równoważny, asset = wycinek
+graficzny, rule = „Uwagi ogólne" arkusza, document = PDF, exam_form = forma arkusza,
+requirement = wymaganie podstawy programowej, marking_scheme = klucz, paper = zeszyt.
+
+Bramka: parser produkuje kandydatów (`review_status = 'pending'`); korpusem jest
+WIDOK `corpus_task` (`approved` — parser trafił sam, `corrected` — poprawione).
+Kto rozstrzygnął, niesie `task.reviewed_by` (human / model / agent). Plan A2-auto:
+wariant 100 rozstrzygnął model (`task verify`), człowiek sprawdza próbkę.
+
+Zasady, których pilnujesz:
+- Więzy bazy są ostre celowo (np. UNIQUE (task_id, points)). Rekordu odrzuconego
+  przez więz nie wymuszasz — poprawiasz dane albo mówisz, że to robota dla człowieka.
+- Zapis do korpusu wyłącznie narzędziami `task_*` / `asset_*`; `db_execute` tylko
+  do rzeczy spoza korpusu, zawsze za zgodą człowieka.
+- Narzędzia z potwierdzeniem zatrzymują rozmowę do decyzji człowieka w panelu.
+  Nie dopytuj „czy na pewno" — panel to zrobi; po prostu wywołaj narzędzie.
+- Przed płatnym przebiegiem z `--apply` obowiązuje dry-run na jednym roczniku.
+- Zanim wyjaśnisz, jak coś działa, sprawdź w `docs_search` / `docs_read` /
+  `code_search` / `code_read`. Nie zgaduj i nie wymyślaj liczb — weź je z narzędzi.
+- Duże wyniki są przycinane (`truncated: true`) — wtedy zawęź zapytanie.
+- Liczby zbiorcze licz w `db_query` (GROUP BY), nie przez wyliczanie wierszy.
+  Rocznik i wariant siedzą na dokumencie klucza: `JOIN document d ON
+  d.id = t.marking_scheme_id`, potem `d.year`, `d.variants` (lista po przecinku).
+- Przebiegi ingestu (`ingest_*`) biegną w tle: po uruchomieniu sprawdzaj `job_status`
+  i `job_log`, a po końcu czytaj raport z `report_read`, zamiast czekać w rozmowie.
+
+Korektor patrzy na ekran: każda wiadomość niesie kontekst `[ekran: ...]` — widok,
+zadanie, stronę, tabelę. Gdy prosi „pokaż", „zaprowadź", „otwórz" — użyj
+`ui_navigate` (przejście po odpowiedzi) albo `ui_focus` (pole na otwartym formularzu).
+Adresy składa narzędzie; nie wypisuj ich z pamięci.
+
+Nawigacja ma ZOSTAWIĆ korektora w narzędziu. Prośbę „przejdź na stronę N" spełnia
+widok, nie plik: `task` z `page` (strona klucza obok formularza zadania) albo
+`inspect_record` z `pdf_page` (podgląd w wierszu; `table: "document"` dla samego
+pliku). Celów `document_pdf` i `document_page` w `ui_navigate` nie używaj — to
+surowe pliki; do otwarcia w nowej karcie jest `ui_open_pdf`.</code></pre>
+
+  <div class="col">
+    <p>Druga część powstaje z <code>urls.VIEWS</code>, więc nowy widok w budowniczym adresów pojawia się w promptcie sam:</p>
+  </div>
+
+  <pre><code>Widoki ekranu (cele `ui_navigate`):
+- `overview` — przegląd korekty: liczby, lista zadań w zakresie (`scope`, `status`)
+- `next` — pierwsze nierozstrzygnięte zadanie w zakresie (`scope`)
+- `task` — formularz korekty zadania (`id`, opcjonalnie `page` klucza, `scope`)
+- `inspect` — spis tabel inspektora ze zdrowiem danych
+- `inspect_list` — lista wierszy tabeli (`table`, `filters`, `sort`, `direction`, `page`, `all_columns`)
+- `inspect_record` — wiersz tabeli z pochodzeniem (`table`, `id`, opcjonalnie `pdf_page`)
+- `health` — lista wierszy jednej kontroli zdrowia (`key`)
+- `document_pdf` — cały PDF z mirrora (`document_id`, opcjonalnie `page`)
+- `document_page` — strona PDF jako PNG (`document_id`, `page`)</code></pre>
+
+  <div class="col">
+    <p>Trzecia część to migawka. Ta jest z 8.09.2026, prosto z bazy deweloperskiej:</p>
+  </div>
+
+  <pre><code>Stan na start rozmowy (migawka; świeże liczby daje `project_status`):
+- gałąź feat/agent-m1, commit 70e1669 2026-09-08 fix(stats): raport tekstowy bez klucza agent
+- migracje 10/10
+- zadania: pending 1277, approved 133, corrected 26, rejected 0
+- korpus rozstrzygnęli: model (openai:gpt-5.6-terra): 159; unsure: 0
+- kontrole z problemami: asset_full_page=53, asset_without_crop=46, expression_failed=98
+- zasoby: 651 (ramka 598, wycinek 605)</code></pre>
+
+  <div class="note">Migawka jest <strong>skrótem</strong>, nie źródłem prawdy — mówi o sobie sama, że świeże liczby daje <code>project_status</code>. Dzięki temu agent nie zaczyna każdej rozmowy od dwóch wywołań na rozpoznanie sytuacji, a jednocześnie nie powtarza liczby, która zdążyła się zmienić.</div>
+</section>
+
+<!-- ============================================================ 08 -->
+<section id="nawigacja">
+  <h2>Nawigacja i kontekst ekranu</h2>
+  <p class="kicker">adresy składa Python · przejście po zakończeniu odpowiedzi</p>
+  <div class="col">
+    <p>Ekran korekty ma routing po stronie serwera, więc „zaprowadź mnie do zadania 42" to zwykłe przejście na adres. Adresów <strong>nie skleja model</strong> — składa je jedno miejsce w Pythonie (<code>agent/urls.py</code>), a cel przychodzi strukturą:</p>
+  </div>
+
+  <pre><code>ui_navigate({"view": "inspect_list", "table": "task",
+             "filters": {"kind": "open_short", "review_status": "pending"}})
+        → /inspect/task?kind=open_short&amp;review_status=pending
+
+ui_navigate({"view": "task", "id": 42, "page": 7, "scope": {"year": 2025}})
+        → /task/42?page=7&amp;year=2025</code></pre>
+
+  <div class="col">
+    <p>Powód jest prosty: model pomyliłby <code>_sort</code> z <code>sort</code> albo składnię filtra, a taki adres wygląda jak działający i pokazuje pełną tabelę zamiast wyniku. Osobny test porównuje każdy adres z budowniczego z trasami w <code>correction/app.py</code>, więc adres bez trasy nie przejdzie przez bramkę CI.</p>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>Nawigacja ma zostawić korektora w narzędziu</h3><span class="files">tools/navigation.py · FILE_VIEWS</span></div>
+    <div class="col">
+      <p>Pierwsza wersja miała dziurę widoczną dopiero w użyciu. Na prośbę „przejdź na stronę 16" agent wołał cel <code>document_page</code> — technicznie poprawnie, bo taka trasa istnieje. Tylko że ta trasa oddaje <strong>surowy PNG</strong>: przeglądarka wychodziła z aplikacji do gołego obrazka, bez panelu, bez przewijania stron, bez czegokolwiek dookoła.</p>
+      <p>Teraz <code>ui_navigate</code> zamienia taki cel na najbliższy widok w aplikacji — wiersz dokumentu w inspektorze, który ma podgląd strony z przewijaniem:</p>
+      <pre><code>ui_navigate({"view": "document_page", "document_id": 54, "page": 16})
+        → /inspect/document/54?_pdfpage=16
+        + note: "Cel wskazywał surowy plik, który wyprowadza korektora z ekranu…"</code></pre>
+      <p>Właściwe cele dla prośby o stronę zostają dwa: <code>task</code> z <code>page</code> (strona klucza obok formularza zadania) i <code>inspect_record</code> z <code>pdf_page</code> (podgląd w wierszu). Plik w nowej karcie ma osobne narzędzie, <code>ui_open_pdf</code> — tam wyjście z aplikacji jest tym, o co się prosi. <code>ui_views</code> wymienia cele, które nie są do nawigacji, a ta sama reguła stoi w promptcie.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>Skąd agent wie, na co patrzy korektor</h3><span class="files">ui/src/agent/screenContext.ts</span></div>
+    <div class="col">
+      <p>Panel i widok to <strong>osobne korzenie Reacta</strong> i nie dzielą stanu, więc kontekst czyta się z tego, co widzą oba: adresu i atrybutu <code>data-view</code> na skorupie strony. Z każdą wiadomością jedzie linia przed treścią pytania:</p>
+      <pre><code>[ekran: view=task, path=/task/42, query=?page=7, task_id=42, page=7]
+
+Ile progów ma to zadanie?</code></pre>
+      <p>Dzięki temu „to zadanie" znaczy zadanie 42, a nie „które zadanie?". Kontekst zapisuje się też w <code>agent_session.screen</code> — wiadomo, z którego ekranu rozmowa wystartowała.</p>
+      <h4>dlaczego przejście dopiero po zakończeniu odpowiedzi</h4>
+      <p>Przeładowanie strony w połowie strumienia urwałoby odpowiedź. Panel pokazuje więc chip z adresem od razu, a <code>window.location.assign</code> wykonuje po zdarzeniu <code>done</code>. Rozmowa jest w bazie, więc po wczytaniu nowej strony panel odtwarza ją z <code>GET /api/agent/sessions/{id}</code> i wygląda to jak jedna ciągła sesja. To także powód, dla którego rozmowa <em>musi</em> żyć na serwerze, a nie w <code>localStorage</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 09 -->
+<section id="przebiegi">
+  <h2>Przebiegi ingestu w tle</h2>
+  <p class="kicker">proces, log w pliku, rejestr w bazie</p>
+  <div class="col">
+    <p>Przebieg ingestu trwa minuty albo godziny, więc nie może blokować rozmowy. <code>ingest_*</code> uruchamia <code>task &lt;nazwa&gt; -- &lt;flagi&gt;</code> jako proces potomny i wraca natychmiast z numerem przebiegu. Rejestr jest w <code>agent_job</code>, wyjście w <code>data/reports/jobs/&lt;data&gt;-&lt;zadanie&gt;.log</code>.</p>
+    <p>Podział jest celowy: <strong>rejestr w bazie, log na dysku</strong>. Ekran korekty chodzi z <code>--reload</code>, więc proces serwera restartuje się przy każdej zmianie pliku; przebieg ma to przeżyć i nie zniknąć z listy.</p>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>Cztery szczegóły, które sprawiają, że to działa na Windows</h3><span class="files">agent/jobs.py</span></div>
+    <div class="col">
+      <ul>
+        <li><strong>Osobna grupa procesów</strong> (<code>CREATE_NEW_PROCESS_GROUP</code>, na POSIX <code>start_new_session</code>). Anulowanie trafia w przebieg, nie w serwer, a na Windows tylko grupa przyjmuje <code>CTRL_BREAK</code>.</li>
+        <li><strong><code>PYTHONIOENCODING=utf-8</code> do procesu potomnego.</strong> Bez tego proces przechwycony przez rodzica pisze w kodowaniu konsoli (cp1250) i polskie znaki w logu rozsypują dekodowanie — pułapka spisana w <code>CLAUDE.md</code>.</li>
+        <li><strong>Kod wyjścia ze znakiem.</strong> Windows oddaje NTSTATUS bez znaku (<code>CTRL_BREAK</code> to <code>0xC000013A</code>), a kolumna jest 32-bitowa ze znakiem. Pierwsza wersja kończyła się „integer out of range" przy anulowaniu.</li>
+        <li><strong>Stan <code>unknown</code>, nie <code>finished</code>.</strong> Przebieg uruchomiony przed restartem serwera nie ma już uchwytu procesu. Zamiast zgadywać, że skończył, narzędzie mówi wprost: stan znany tylko z logu, pid taki i taki, zatrzymaj ręcznie jeśli trzeba.</li>
+      </ul>
+      <div class="note">Płatne przebiegi (<code>verify</code>, <code>prefill</code>, <code>describe</code>, <code>frame</code>, golden set) i kasujące (<code>db:reset</code>) idą przez bramkę zgody, a podgląd niesie dokładną linię polecenia. Gdy w argumentach jest <code>--apply</code>, podgląd dokłada przypomnienie reguły z 4.09: najpierw dry-run na jednym roczniku. Ta reguła kosztowała $1,38 i wykryła błąd systematyczny parsera na 1346 zadaniach.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 10 -->
+<section id="limity">
+  <h2>Limity, koszt, cennik</h2>
+  <p class="kicker">kontekst modelu nie jest miejscem na 1436 wierszy</p>
+  <div class="col">
+    <p>Każde narzędzie przycina wynik, i <strong>zawsze mówi, że przyciął</strong>. Obcięta prawda bez flagi jest gorsza niż błąd, bo model traktuje ją jak całość i liczy na niej dalej.</p>
+  </div>
+
+  <div class="ledger-wrap">
+    <table>
+      <caption>limity z <code>agent/limits.py</code> i <code>tools/database.py</code></caption>
+      <thead><tr><th>Limit</th><th class="num">Wartość</th><th>Po co</th></tr></thead>
+      <tbody>
+        <tr><td>wierszy w odpowiedzi</td><td class="num">200</td><td>Pytanie o liczbę nie jest pytaniem o listę; zbiorcze liczby robi <code>GROUP BY</code>.</td></tr>
+        <tr><td>wierszy w <code>task_find</code></td><td class="num">100</td><td>Sufit obniżony po pierwszym przebiegu na żywo — patrz niżej.</td></tr>
+        <tr><td>znaków w tekście</td><td class="num">8 000</td><td>Sekcja dokumentu albo raport; dalej trzeba podać <code>heading</code>.</td></tr>
+        <tr><td>znaków w komórce</td><td class="num">400</td><td>Treść kryterium bywa akapitem; tabela ma zostać czytelna.</td></tr>
+        <tr><td>linii kodu naraz</td><td class="num">400</td><td><code>code_read</code> z <code>start</code> i <code>end</code>.</td></tr>
+        <tr><td>czas zapytania</td><td class="num">15 s</td><td><code>statement_timeout</code> — agent dzieli bazę z ekranem korekty.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>Pierwsza tura z żywym modelem, rachunek do obejrzenia</h3><span class="files">smoke 8.09.2026 · openai:gpt-5.6-luna</span></div>
+    <div class="col">
+      <p>Pytanie: „ile zadań czeka na rozstrzygnięcie w roczniku 2025 i które z nich są otwarte?". Przebieg: <code>task_find</code> → <code>db_query</code> (błąd: „column <code>year</code> does not exist") → <code>db_schema</code> na <code>task</code> i <code>document</code> → poprawiony <code>db_query</code> z <code>JOIN</code> → odpowiedź. Sześć wywołań, sto kawałków strumienia, poprawny wynik, <strong>$0,039</strong>.</p>
+      <p>Dwie rzeczy z tego wynikły. Pierwsza: agent naprawił własny błąd SQL bez pomocy, czyli komunikaty narzędzi są wystarczające. Druga: 190 tysięcy tokenów wejścia, bo <code>task_find</code> oddał 201 pełnych wierszy — stąd sufit 100 zwięzłych wierszy i zdanie w promptcie o <code>GROUP BY</code>. Ten sam mechanizm, który przy człowieku odróżnia pytanie o liczbę od prośby o listę.</p>
+      <div class="facts">
+        <div><b>luna</b>$0,20 / $1,20 za milion tokenów — do odczytu i nawigacji.</div>
+        <div><b>terra</b>$2 / $12 — domyślny; jakość użycia narzędzi ważniejsza niż cena.</div>
+        <div><b>sol</b>$4 / $20 do 21.11.2026, potem $5 / $30. Cennik do poprawienia po tej dacie, inaczej raport zaniży koszt.</div>
+      </div>
+      <p>Koszt nie jest kwestią wiary: <code>task correction:report</code> i <code>task corpus:report</code> mają sekcję <em>Agent w ekranie korekty</em> z sesjami, turami, tokenami i dolarami rozbitymi na modele, liczbą wywołań narzędzi i liczbą zgód (przyjętych, odrzuconych, czekających).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 11 -->
+<section id="testy">
+  <h2>Testy: czego pilnują</h2>
+  <p class="kicker">model skryptowany, prawdziwe narzędzia, świeża baza</p>
+  <div class="col">
+    <p>Wywołań modelu nie ma w CI — ta reguła obowiązuje agenta tak samo jak przebiegi LLM. Pętla jest testowana z modelem, któremu zapisuje się tury z góry (<code>GenericFakeChatModel</code>), ale narzędzia i baza są prawdziwe: każdy moduł testów stawia własną bazę <code>klucz_test_*</code> i przepuszcza przez nią komplet migracji tym samym runnerem co produkcyjnie.</p>
+  </div>
+
+  <div class="ledger-wrap">
+    <table>
+      <caption>testy agenta · 1135 linii Pythona plus pięć plików frontu</caption>
+      <thead><tr><th>Plik</th><th>Czego pilnuje</th></tr></thead>
+      <tbody>
+        <tr><td><code>test_agent_urls.py</code></td><td>Każdy widok ma przykład, każdy adres ma trasę w <code>app.py</code>, zły cel pęka <em>przed</em> złożeniem adresu (brak <code>id</code>, nazwa tabeli z wstrzykniętym SQL-em, nieznany operator filtra).</td></tr>
+        <tr><td><code>test_agent_knowledge.py</code></td><td>Cięcie HTML i markdown na sekcje (bez <code>script</code>, <code>nav</code>; <code>#</code> w bloku kodu to nie nagłówek), odmiana polska w wyszukiwaniu, i to, że <code>code_read</code> odmawia <code>.env</code>, <code>data/</code>, <code>.venv</code> oraz ścieżek poza repozytorium.</td></tr>
+        <tr><td><code>test_agent_server.py</code></td><td>Rejestr zawiera planowane narzędzia i każde ma opis; <code>db_query</code> odmawia zapisu (także <code>SELECT 1; DELETE …</code>) i nie zmienia ani jednego wiersza; filtry, pochodzenie, kontrole; <code>/mcp</code> odpowiada bez przekierowania, a żądanie z obcego hosta dostaje 421; nawigacja nie prowadzi do surowego pliku.</td></tr>
+        <tr><td><code>test_agent_corpus.py</code></td><td>Więz odrzuca <code>reviewed_by = 'llm'</code> i przyjmuje <code>'agent'</code>; zgoda bez decyzji nie da się zużyć (więz w bazie); zapis na rekordzie w korpusie bez zgody nic nie zmienia; zgoda na inne argumenty jest odrzucana; <code>UNIQUE (task_id, points)</code> zostaje ostry; <code>task_decide</code> zostawia <code>actor='agent'</code> w dzienniku.</td></tr>
+        <tr><td><code>test_agent_runtime.py</code></td><td>Cała tura: strumień, zapis do bazy, koszt policzony cennikiem; przerwanie i wznowienie po <code>accept</code> oraz po <code>reject</code>; jedna zgoda mimo dwukrotnego wykonania węzła; wznowienie bez przerwania jest błędem; SSE przez <code>TestClient</code>; koszt agenta w obu raportach.</td></tr>
+        <tr><td><code>test_agent_jobs.py</code></td><td>Każda akcja z katalogu menu jest narzędziem (a <code>foreground</code> nie jest), flagi składają się jak w menu, płatne i kasujące pytają <em>przed</em> uruchomieniem czegokolwiek, przebieg startuje i kończy się kodem 0, anulowanie zatrzymuje proces, przebieg sprzed restartu jest <code>unknown</code>.</td></tr>
+        <tr><td>front: <code>agentClient</code>, <code>items</code>, <code>screenContext</code>, <code>AgentPanel.live</code></td><td>Ramki SSE (także podzielone między kawałki), zdarzenia → elementy rozmowy, kontekst z adresu, panel za atrapą <code>fetch</code>: model w nowej sesji, chip i przejście po <code>done</code>, karta zgody i wznowienie, historia po wczytaniu strony, nieznana sesja znika.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="figures">
+    <div class="fig is-done"><span class="big">398</span><span class="lede">testów Pythona</span><span class="note-s"><code>task test:python</code> — ruff plus pytest, z bazą</span></div>
+    <div class="fig is-done"><span class="big">78</span><span class="lede">testów frontu</span><span class="note-s"><code>task correction:ui:test</code> — typecheck plus vitest</span></div>
+    <div class="fig"><span class="big">0</span><span class="lede">wywołań modelu w CI</span><span class="note-s">tury zapisane z góry; przebiegi na żywo są ręczne i płatne</span></div>
+  </div>
+</section>
+
+<!-- ============================================================ 12 -->
+<section id="uruchomienie">
+  <h2>Uruchomienie i podłączenie</h2>
+  <p class="kicker">panel · Claude Code · Claude Desktop</p>
+
+  <div class="stage">
+    <div class="head"><h3>Panel w ekranie korekty</h3><span class="files">task correction</span></div>
+    <div class="col">
+      <pre><code>task correction        # ekran na http://localhost:8600, panel po prawej
+                       # model do wyboru w nagłówku panelu (luna / terra / sol)</code></pre>
+      <p>Bez klucza dostawcy w <code>.env</code> panel wraca do makiety i mówi dlaczego — <code>GET /api/agent/config</code> zwraca wtedy <code>mode: "mock"</code> z powodem. To samo daje <code>AGENT_MODEL=mock</code>, gdy chce się pokazać ekran bez wydawania tokenów.</p>
+      <div class="warn"><b>Jedno okno na sesję.</b> <code>task correction</code> chodzi z <code>--reload</code>, więc jedno uruchomienie wystarcza na cały dzień pracy. Drugie nie krzyknie „port zajęty" — na Windows po cichu wejdzie na ten sam port i <strong>oba serwery przestaną odpowiadać</strong>. Objaw: przeglądarka wisi bez błędu. Lekarstwo: zatrzymać jeden.</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>Ten sam rejestr w Claude Code</h3><span class="files">task mcp · /mcp</span></div>
+    <div class="col">
+      <pre><code># stdio — nie wymaga stojącego ekranu korekty
+claude mcp add --transport stdio klucz -- task mcp
+
+# HTTP — gdy `task correction` już stoi
+claude mcp add --transport http klucz http://127.0.0.1:8600/mcp</code></pre>
+      <p>Klient z terminala dostaje wszystkie 54 narzędzia, ale <strong>nie dostaje obejścia bramki</strong>: wywołanie narzędzia ze zgodą zakłada prośbę, która czeka na kliknięcie w panelu ekranu korekty. Gdy ekran nie stoi, prośba i tak jest w bazie — wystarczy go podnieść i rozstrzygnąć.</p>
+      <p>Serwer słucha wyłącznie na 127.0.0.1 i ma włączoną ochronę przed DNS rebinding, więc żądanie podające obcy host dostaje 421 zamiast listy narzędzi.</p>
+    </div>
+  </div>
+
+  <div class="col">
+    <h4>gdzie co leży</h4>
+    <dl class="gloss">
+      <dt>server.py</dt><dd>Rejestr, instrukcje serwera, trzy transporty, fabryka menedżera sesji HTTP.</dd>
+      <dt>tools/</dt><dd>Pięć modułów narzędzi; każdy wystawia <code>register(mcp)</code>.</dd>
+      <dt>confirm.py</dt><dd>Bramka zgody: prośba, zużycie, decyzja, lista czekających.</dd>
+      <dt>runtime.py</dt><dd>Pętla, interceptor zgody, strumień zdarzeń, konfiguracja modeli.</dd>
+      <dt>prompts.py</dt><dd>System prompt, spis widoków, migawka stanu, linia kontekstu ekranu.</dd>
+      <dt>conversation.py</dt><dd>Rozmowy, wiadomości, wywołania, zużycie, liczby do raportów.</dd>
+      <dt>urls.py</dt><dd>Adresy ekranu — jedyne miejsce, w którym powstają.</dd>
+      <dt>jobs.py</dt><dd>Przebiegi w tle: start, stan, log, anulowanie.</dd>
+      <dt>api.py</dt><dd>Trasy <code>/api/agent/*</code>: konfiguracja, sesje, strumień, zgody.</dd>
+      <dt>limits.py</dt><dd>Przycinanie wyników i zamiana wartości z psycopg na JSON.</dd>
+      <dt>audit.py</dt><dd>Dziennik wywołań — z rozmowy pisze pętla, z zewnątrz same narzędzia.</dd>
+      <dt>context.py</dt><dd>Zmienne kontekstowe: która sesja i który model woła narzędzie.</dd>
+    </dl>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
