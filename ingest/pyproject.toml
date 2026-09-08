@@ -60,6 +60,9 @@ dependencies = [
     # (M4) wymaga 1.x, a w 2.x `FastMCP` zmienił nazwę i API — jedna wersja dla
     # serwera i dla klienta agenta, zamiast dwóch SDK w jednym procesie.
     "mcp>=1.30,<2",
+    # Narzędzia MCP jako narzędzia LangChaina dla pętli agenta (MIT). Interceptor
+    # wywołań jest tu jedynym miejscem, gdzie `{"confirm"}` zamienia się w `interrupt`.
+    "langchain-mcp-adapters>=0.3.2",
 ]
 
 [project.optional-dependencies]
