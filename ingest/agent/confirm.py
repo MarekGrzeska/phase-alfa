@@ -91,10 +91,31 @@ def decide(cur, confirmation_id: int, decision: str) -> dict:
     cur.execute(
         """UPDATE agent_confirmation SET decision = %s, decided_at = now()
            WHERE id = %s AND decision IS NULL
-           RETURNING id, tool, title, decision""",
+           RETURNING id, tool, title, decision, session_id""",
         (decision, confirmation_id),
     )
     row = cur.fetchone()
     if row is None:
         raise ValueError(f"potwierdzenie #{confirmation_id} nie istnieje albo już rozstrzygnięte")
     return row
+
+
+def decide_or_confirm(cur, confirmation_id: int, decision: str) -> dict:
+    """Zapisuje decyzję, a gdy już istnieje — sprawdza, czy jest ta sama.
+
+    Wznowienie rozmowy idzie przez zapis decyzji, a zapis działa raz. Bez tego
+    zgoda rozstrzygnięta z listy globalnej (klient w terminalu) zostawiała rozmowę
+    w panelu zawieszoną na zawsze: graf stał na przerwaniu, a panel dostawał 400
+    i nie miał już żadnej drogi, żeby tę turę dokończyć.
+    """
+    try:
+        return decide(cur, confirmation_id, decision)
+    except ValueError:
+        cur.execute(
+            "SELECT id, tool, title, decision, session_id FROM agent_confirmation WHERE id = %s",
+            (confirmation_id,),
+        )
+        row = cur.fetchone()
+        if row is None or row["decision"] != decision:
+            raise
+        return row

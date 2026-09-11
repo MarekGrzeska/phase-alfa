@@ -88,7 +88,8 @@ export interface SessionData {
   readonly session: { id: number; model: string; title: string | null };
   readonly messages: readonly StoredMessage[];
   readonly tool_calls: readonly StoredToolCall[];
-  readonly usage: { input_tokens: number; output_tokens: number; turns: number };
+  /** `usd` liczy serwer — cennik jest w Pythonie, a baza trzyma same tokeny. */
+  readonly usage: { input_tokens: number; output_tokens: number; turns: number; usd: number };
   readonly pending: readonly Confirmation[];
   readonly running: boolean;
 }

@@ -87,14 +87,28 @@ def tool_calls(cur, session_id: int) -> list[dict]:
 
 
 def usage(cur, session_id: int) -> dict[str, Any]:
+    """Zużycie rozmowy razem z KWOTĄ — cennik jest w Pythonie, nie w bazie.
+
+    Kwotę liczymy tutaj, bo baza trzyma tokeny, a nie dolary. Bez tego panel po
+    odświeżeniu strony pokazywał rozmowę za cztery centy jako darmową.
+    """
+    from correction import llm
+
     cur.execute(
-        """SELECT coalesce(sum(input_tokens), 0) AS input_tokens,
-                  coalesce(sum(output_tokens), 0) AS output_tokens,
-                  count(*) FILTER (WHERE role = 'agent') AS turns
-           FROM agent_message WHERE session_id = %s""",
+        """SELECT s.model,
+                  coalesce(sum(m.input_tokens), 0) AS input_tokens,
+                  coalesce(sum(m.output_tokens), 0) AS output_tokens,
+                  count(m.id) FILTER (WHERE m.role = 'agent') AS turns
+           FROM agent_session s LEFT JOIN agent_message m ON m.session_id = s.id
+           WHERE s.id = %s GROUP BY s.model""",
         (session_id,),
     )
-    return limits.jsonable(cur.fetchone())
+    row = cur.fetchone()
+    if row is None:
+        return {"model": None, "input_tokens": 0, "output_tokens": 0, "turns": 0, "usd": 0.0}
+    spend = llm.Spend(model=row["model"], input_tokens=int(row["input_tokens"]),
+                      output_tokens=int(row["output_tokens"]))
+    return {**limits.jsonable(row), "usd": round(spend.dollars, 4)}
 
 
 def totals(cur) -> dict:

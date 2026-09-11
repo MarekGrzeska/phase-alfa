@@ -12,6 +12,7 @@ import sys
 import time
 from pathlib import Path
 
+from agent import conversation
 from correction import db, stats
 from sciezki import KORZEN_REPO
 
@@ -27,7 +28,10 @@ def main() -> int:
     args = ap.parse_args()
 
     with db.connect() as con, con.cursor() as cur:
-        text = stats.as_text(stats.collect(cur))
+        # Liczby agenta dokłada raport, nie `stats.collect` — patrz komentarz o
+        # kierunku zależności w `stats.py`.
+        numbers = {**stats.collect(cur), "agent": conversation.totals(cur)}
+        text = stats.as_text(numbers)
 
     default = KORZEN_REPO / "data" / "reports" / f"correction-{time.strftime('%Y-%m-%d')}.txt"
     path = Path(args.report or default)

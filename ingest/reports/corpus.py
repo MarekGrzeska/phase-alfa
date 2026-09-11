@@ -20,6 +20,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import dict_row
 
+from agent import conversation
 from correction import stats
 from schema.migrate import polaczenie
 from sciezki import KORZEN_REPO
@@ -199,6 +200,9 @@ def build(con) -> str:
     with con.cursor(row_factory=dict_row) as cur:
         years = per_year(cur)
         numbers = stats.collect(cur)
+        # Liczby agenta dokłada raport, nie `stats.collect` — agent jest nadbudową
+        # nad ekranem korekty, więc warstwa niżej nie ma go znać.
+        agent = conversation.totals(cur)
         actors = by_actor(cur)
     for row in years:
         lines.append(f"  {row['year']:<8} {row['parsed']:>9} {row['approved']:>10}"
@@ -229,7 +233,7 @@ def build(con) -> str:
               f"  suma czasu korekty        : {numbers['durations']['total'] / 3600:.1f} h",
               f"  zostało                   : {numbers['forecast']['tasks']} zadań"
               f" ≈ {numbers['forecast']['hours']:.1f} h"]
-    lines += ["", *stats.agent_lines(numbers["agent"], RULE)]
+    lines += ["", *stats.agent_lines(agent, RULE)]
     return "\n".join(lines) + "\n"
 
 

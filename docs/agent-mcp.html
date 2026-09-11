@@ -250,10 +250,11 @@
   <h1>Agent i narzędzia MCP od środka</h1>
   <p class="standfirst">Jak zbudowany jest agent w ekranie korekty: jeden rejestr 54 narzędzi obsługujący trzy wejścia, bramka zgody człowieka wpisana w protokół, pętla z przerwaniem grafu, i dokładna treść system promptu, którą model widzi przy każdej rozmowie.</p>
   <div class="stamp">
-    <span>stan na 8.09.2026</span>
+    <span>stan na 11.09.2026</span>
     <span>źródło: kod w <code>phase-alfa/ingest/agent/</code></span>
     <span>plan: <a href="plan-agent-mcp.md">docs/plan-agent-mcp.md</a></span>
-    <span>klocki M1–M6</span>
+    <span>przegląd: <a href="review/2026-09-11-feat-agent-m1.html">docs/review/2026-09-11</a></span>
+    <span>klocki M1–M6 i naprawy z przeglądu</span>
   </div>
 </header>
 
@@ -387,6 +388,8 @@ def db_query(sql: str, limit: int = limits.MAX_ROWS) -> dict:
         <li><code>openWorldHint: true</code> — narzędzia <code>ingest_*</code>, bo uruchamiają proces, który sięga poza bazę (mirror CKE, API modelu, Docker).</li>
         <li><code>meta: {"confirm": true}</code> — <strong>nasze</strong> pole, nie z protokołu: znaczy „to narzędzie chodzi przez bramkę zgody". Nosi je 13 narzędzi. Panel po nim rozpoznaje, że wynik <code>{"confirm": …}</code> nie jest błędem, tylko prośbą. Narzędzia <code>ingest_*</code> noszą w <code>meta</code> także nazwę zadania z Taskfile i grupę z menu.</li>
       </ul>
+      <div class="note"><strong>Poprawka z 11.09.2026.</strong> Adnotacja <code>readOnlyHint</code> była do 11.09 obietnicą opartą wyłącznie na transakcji <code>READ ONLY</code> — a ta zatrzymuje zapis <em>do bazy</em>, nie zatrzymuje <code>COPY … TO PROGRAM</code> ani <code>pg_read_file()</code>. Przegląd kodu pokazał, że przez <code>db_query</code> da się uruchomić polecenie w kontenerze bazy, bo rola <code>klucz</code> jest superuserem. Dziś odczyt agenta chodzi na osobnej roli <code>klucz_agent</code> (migracja 0011): tylko <code>SELECT</code>, bez <code>SUPERUSER</code>, z limitem czasu ustawionym na roli — więc odmawia sama, także konstrukcjom, których dziś nie znamy. Osobne połączenie, a nie <code>SET LOCAL ROLE</code>, bo z połączenia superusera <code>RESET ROLE</code> wróciłby do pełnych uprawnień.</div>
+
       <div class="note">Wszystkie narzędzia zwracają <strong>słownik</strong>, nigdy goły tekst. Kształt jest przewidywalny: dane, <code>url</code> tam, gdzie istnieje odpowiednik w ekranie, <code>truncated</code> przy cięciu, <code>hint</code> z podpowiedzią, co zrobić dalej. Jedyny wyjątek to <code>task_page_image</code>, które oddaje obraz strony klucza jako treść obrazkową plus słownik z numerem strony.</div>
     </div>
   </div>
@@ -409,7 +412,7 @@ def db_query(sql: str, limit: int = limits.MAX_ROWS) -> dict:
       <tbody>
         <tr><th class="group" colspan="4">baza — <code>tools/database.py</code></th></tr>
         <tr><td><code>db_schema</code></td><td><code>table</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Tabele, kolumny, typy, klucze obce, wartości <code>CHECK</code> i <strong>kto pisze każdą kolumnę</strong> (parser, ładowarka, ekran, <code>verify</code>, nikt).</td></tr>
-        <tr><td><code>db_query</code></td><td><code>sql</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Dowolny SELECT/WITH/EXPLAIN w transakcji <code>READ ONLY</code>, limit 15 s i 200 wierszy.</td></tr>
+        <tr><td><code>db_query</code></td><td><code>sql</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Jedno polecenie odczytu (SELECT/WITH/VALUES/EXPLAIN) na <strong>roli bez uprawnień superusera</strong> (migracja 0011), w transakcji <code>READ ONLY</code>, przez kursor serwerowy; limit 15 s i 200 wierszy.</td></tr>
         <tr><td><code>db_execute</code></td><td><code>sql</code>, <code>confirmation</code></td><td><span class="tag open">zgoda</span></td><td>Surowy zapis SQL. Bez zgody wykonuje próbę w wycofanej transakcji i pokazuje liczbę wierszy, które zmieni.</td></tr>
         <tr><td><code>inspect_list</code></td><td><code>table</code>, <code>filters</code>, <code>sort</code>, <code>direction</code>, <code>page</code>, <code>per_page</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Lista wierszy z filtrami inspektora; filtr po nieznanej kolumnie wraca w <code>rejected</code>, nie znika po cichu.</td></tr>
         <tr><td><code>inspect_record</code></td><td><code>table</code>, <code>id</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Wiersz z rodzicami, dziećmi i pochodzeniem: plik PDF, strona, wycinek, czy pliki są na dysku.</td></tr>
@@ -441,7 +444,7 @@ def db_query(sql: str, limit: int = limits.MAX_ROWS) -> dict:
         <tr><th class="group" colspan="4">wiedza i stan — <code>tools/knowledge.py</code>, <code>tools/status.py</code></th></tr>
         <tr><td><code>docs_search</code></td><td><code>query</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Szukanie po sekcjach dokumentów: plany, przewodnik po bazie, <code>CLAUDE.md</code>, <code>DECYZJE.md</code>, know-how parsera.</td></tr>
         <tr><td><code>docs_read</code>, <code>docs_list</code></td><td><code>doc</code>, <code>heading</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Pełna sekcja dokumentu; spis dokumentów z nagłówkami.</td></tr>
-        <tr><td><code>code_search</code>, <code>code_read</code></td><td><code>pattern</code>, <code>glob</code>, <code>path</code>, <code>start</code>, <code>end</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Grep i odczyt źródeł repozytorium; <code>.env</code>, <code>data/</code>, <code>.venv</code>, lockfile poza zasięgiem.</td></tr>
+        <tr><td><code>code_search</code>, <code>code_read</code></td><td><code>pattern</code>, <code>glob</code>, <code>path</code>, <code>start</code>, <code>end</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Grep i odczyt źródeł repozytorium; <code>.env</code>, <code>data/</code>, <code>.venv</code>, lockfile poza zasięgiem, glob bezwzględny albo z <code>..</code> odrzucony, grep przerywany po 10 s albo 2000 plikach.</td></tr>
         <tr><td><code>explain_column</code>, <code>explain_check</code></td><td><code>table</code>, <code>column</code>, <code>key</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Kto pisze kolumnę i co o niej mówi przewodnik; po co istnieje kontrola i co zrobić z trafieniami.</td></tr>
         <tr><td><code>project_status</code></td><td>—</td><td><span class="tag plain">tylko odczyt</span></td><td>Gałąź i commit, środowisko (klucze API jako „jest / nie ma"), migracje, statusy zadań, kto rozstrzygnął korpus, S6′/S7/S8′, zdrowie, ostatnie raporty.</td></tr>
         <tr><td><code>report_list</code>, <code>report_read</code></td><td><code>name</code>, <code>tail</code>, <code>limit</code></td><td><span class="tag plain">tylko odczyt</span></td><td>Raporty z <code>data/reports/</code>.</td></tr>
@@ -739,7 +742,8 @@ Ile progów ma to zadanie?</code></pre>
         <tr><td>znaków w tekście</td><td class="num">8 000</td><td>Sekcja dokumentu albo raport; dalej trzeba podać <code>heading</code>.</td></tr>
         <tr><td>znaków w komórce</td><td class="num">400</td><td>Treść kryterium bywa akapitem; tabela ma zostać czytelna.</td></tr>
         <tr><td>linii kodu naraz</td><td class="num">400</td><td><code>code_read</code> z <code>start</code> i <code>end</code>.</td></tr>
-        <tr><td>czas zapytania</td><td class="num">15 s</td><td><code>statement_timeout</code> — agent dzieli bazę z ekranem korekty.</td></tr>
+        <tr><td>czas zapytania</td><td class="num">15 s</td><td><code>statement_timeout</code> ustawiony na roli <code>klucz_agent</code>, żeby treść zapytania nie mogła go zdjąć.</td></tr>
+        <tr><td>czas grepa</td><td class="num">10 s</td><td>I najwyżej 2000 plików. Wynik ucięty ma <code>truncated</code> i podpowiedź; wywołanie bez końca nie ma nic.</td></tr>
       </tbody>
     </table>
   </div>

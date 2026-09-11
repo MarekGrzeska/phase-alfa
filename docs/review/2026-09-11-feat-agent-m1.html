@@ -208,6 +208,17 @@ footer p{margin-bottom:.4em}
 
 <section id="spis">
   <div class="sec-head"><span class="num">01</span><h2>Spis komentarzy</h2></div>
+
+  <div class="callout">
+    <p><strong>Stan napraw na 11.09.2026: wszystkie dwanaście zrobione</strong> w gałęzi <code>fix/agent-review-findings</code>, w tej samej sesji co przegląd. Najkrócej, co się zmieniło:</p>
+    <ul class="plain">
+      <li><b>1 i 4 — migracja 0011.</b> Odczyt agenta chodzi na roli <code>klucz_agent</code>: tylko <code>SELECT</code>, bez <code>SUPERUSER</code>, z limitem czasu ustawionym na roli. <code>pg_read_file()</code> odmawia z braku uprawnień, a <code>COPY … TO PROGRAM</code> nie przechodzi już nawet przez składnię, bo zapytanie idzie kursorem serwerowym. Sprawdzone tym samym zestawem prób, który wcześniej przechodził.</li>
+      <li><b>2, 3 i 6 — jeden przebieg po <code>knowledge.py</code>.</b> <code>_allowed()</code> normalizuje ścieżkę przed sprawdzeniem, glob bezwzględny albo z <code>..</code> jest odrzucany z powodem, a przeszukiwanie chodzi <code>os.walk</code> z odsiewaniem katalogów przed zejściem do nich, z limitem 10 s i 2000 plików. Słaby test zastąpiony czterema, które mierzą skutek.</li>
+      <li><b>5 — <code>decide_or_confirm</code>.</b> Wznowienie przyjmuje zgodę już rozstrzygniętą, jeśli decyzja się zgadza, a lista globalna odrzuca zgody należące do rozmowy (409 z nazwą rozmowy).</li>
+      <li><b>7–12.</b> Test biblioteki standardowej wymieniony na przypadek z życia; kursor serwerowy w <code>db_query</code>; sprzątanie porzuconych wywołań po sześciu godzinach; kwota rozmowy liczona na serwerze i pokazywana po odświeżeniu strony; <code>stats.collect</code> nie zna już agenta — liczby dokładają raporty; <code>task_binary()</code> raz.</li>
+    </ul>
+    <p>Bramki po naprawach: <strong>408 testów Pythona</strong> (było 398 — doszło dziesięć nowych) i <strong>78 testów frontu</strong>. Pełny przebieg zszedł z 88 do 62 sekund, bo grep przestał chodzić po <code>.venv</code> i <code>node_modules</code>.</p>
+  </div>
   <div class="tablewrap">
     <table>
       <thead><tr><th class="n">#</th><th>Stopień</th><th>Rzecz</th><th>Plik</th></tr></thead>

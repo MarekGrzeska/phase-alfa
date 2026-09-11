@@ -8,15 +8,17 @@ gdy zmieni się czas modyfikacji któregoś pliku.
 
 from __future__ import annotations
 
+import fnmatch
 import html
 import math
 import os
 import re
+import time
 import unicodedata
 from collections import Counter
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import ClassVar
 
 from mcp.server.fastmcp import FastMCP
@@ -49,6 +51,10 @@ EXCLUDED_NAMES = re.compile(r"^\.env(\..*)?$|\.lock$|-lock\.yaml$|\.dll$|\.pdb$|
 MAX_FILE_BYTES = 2_000_000
 MAX_CODE_LINES = 400
 MAX_MATCHES = 50
+# Bezpieczniki grepa: wywołanie, które nie wraca, jest bezużyteczne, a wynik
+# ucięty z powodem — użyteczny.
+SCAN_SECONDS = 10
+MAX_SCANNED = 2000
 
 
 @dataclass
@@ -327,8 +333,17 @@ def read(doc: str, heading: str | None = None, max_chars: int = 12_000) -> dict:
 # ------------------------------------------------------------------ kod
 
 def _allowed(path: Path) -> bool:
-    parts = path.relative_to(KORZEN_REPO).parts
-    return not (any(p in EXCLUDED_DIRS for p in parts) or EXCLUDED_NAMES.search(path.name))
+    """Czy agent ma prawo czytać ten plik. Ścieżkę NORMALIZUJEMY przed sprawdzeniem.
+
+    `is_relative_to` porównuje napisy, więc bez `resolve()` ścieżka z `..` przechodzi
+    („phase-alfa/../cke-mirror" wygląda jak wnętrze repozytorium) i grep czytałby
+    pliki spoza projektu. Złapane przeglądem 11.09.2026.
+    """
+    real = path.resolve()
+    if not real.is_relative_to(KORZEN_REPO):
+        return False
+    parts = real.relative_to(KORZEN_REPO).parts
+    return not (any(p in EXCLUDED_DIRS for p in parts) or EXCLUDED_NAMES.search(real.name))
 
 
 def resolve_in_repo(relative: str) -> Path:
@@ -340,28 +355,95 @@ def resolve_in_repo(relative: str) -> Path:
     return candidate
 
 
+def check_glob(glob: str) -> str:
+    """Wzorzec liczy się od korzenia repozytorium — nic poza nim.
+
+    Odrzucamy TUTAJ, a nie dopiero przy filtrowaniu wyników: samo przejście po
+    drzewie w górę katalogu trwa minuty i czyta tysiące cudzych plików.
+    """
+    if not glob or glob.strip() != glob:
+        raise ValueError("`glob` jest pusty albo ma spacje na brzegach")
+    wanted = glob.replace("\\", "/")
+    # Obie konwencje, bo repozytorium chodzi na Windows i na Linuksie: `PurePosixPath`
+    # nie widzi litery dysku (`C:/…` to dla niego zwykły segment), a `PureWindowsPath`
+    # nie uznaje `/etc` za bezwzględne. Razem pokrywają jedno i drugie.
+    if PurePosixPath(wanted).is_absolute() or PureWindowsPath(wanted).is_absolute():
+        raise ValueError(f"`glob` musi być względny wobec korzenia repozytorium, "
+                         f"a jest bezwzględny: {glob!r}")
+    parts = PurePosixPath(wanted).parts
+    if ".." in parts:
+        raise ValueError(f"`glob` nie może wychodzić poza repozytorium przez `..`: {glob!r}")
+    return glob.replace("\\", "/")
+
+
+def _matches(relative: str, glob: str) -> bool:
+    """Czy ścieżka względna pasuje do wzorca; `**/` znaczy „na dowolnej głębokości".
+
+    `fnmatch` traktuje `*` jak dowolny znak RAZEM z ukośnikiem, więc jeden wzorzec
+    nie pokrywa przypadku „plik leży wprost w korzeniu". Stąd druga postać bez
+    `**/` — inaczej `**/*.py` gubiłoby `sciezki.py`.
+    """
+    wanted = [glob]
+    if glob.startswith("**/"):
+        wanted.append(glob[3:])
+    if "/**/" in glob:
+        wanted.append(glob.replace("/**/", "/", 1))
+    return any(fnmatch.fnmatchcase(relative, w) for w in wanted)
+
+
+def _files(glob: str):
+    """Pliki do przeszukania, z katalogami odsianymi PRZED zejściem do nich.
+
+    `Path.glob` wypisuje najpierw wszystko, a filtr działa potem — przy wzorcu
+    `**/*.py` to 6300 ścieżek i cztery sekundy na samo przejście po `.venv`
+    i `node_modules`. `os.walk` pozwala wyciąć katalog, zanim się w niego wejdzie.
+    """
+    for root, dirs, names in os.walk(KORZEN_REPO):
+        dirs[:] = sorted(d for d in dirs if d not in EXCLUDED_DIRS)
+        base = Path(root)
+        for name in sorted(names):
+            if EXCLUDED_NAMES.search(name):
+                continue
+            path = base / name
+            relative = path.relative_to(KORZEN_REPO).as_posix()
+            if _matches(relative, glob):
+                yield path, relative
+
+
 def search_code(pattern: str, glob: str = "**/*", limit: int = MAX_MATCHES) -> dict:
+    glob = check_glob(glob)
     try:
         regex = re.compile(pattern, re.I)
     except re.error as e:
         raise ValueError(f"złe wyrażenie regularne: {e}") from e
     matches: list[dict] = []
     scanned = 0
-    for path in sorted(KORZEN_REPO.glob(glob)):
-        if not path.is_file() or not _allowed(path) or path.stat().st_size > MAX_FILE_BYTES:
-            continue
-        scanned += 1
+    started = time.monotonic()
+
+    def stopped(hint: str) -> dict:
+        return {"matches": matches[:limit], "truncated": True, "scanned": scanned, "hint": hint}
+
+    for path, relative in _files(glob):
+        # Dwa bezpieczniki, bo wywołanie bez końca jest gorsze niż wynik ucięty:
+        # czas dla wzorca, który dotyka całego repozytorium, i liczba plików.
+        if time.monotonic() - started > SCAN_SECONDS:
+            return stopped(f"Przerwane po {SCAN_SECONDS} s i {scanned} plikach. "
+                           f"Zawęź `glob` (np. `ingest/**/*.py`).")
+        if scanned >= MAX_SCANNED:
+            return stopped(f"Przejrzano {MAX_SCANNED} plików i to limit. Zawęź `glob`.")
         try:
+            if path.stat().st_size > MAX_FILE_BYTES:
+                continue
             lines = path.read_text(encoding="utf-8").splitlines()
         except (UnicodeDecodeError, OSError):
             continue
+        scanned += 1
         for number, line in enumerate(lines, 1):
             if regex.search(line):
-                matches.append({"path": path.relative_to(KORZEN_REPO).as_posix(),
-                                "line": number, "text": line.strip()[:limits.MAX_CELL]})
+                matches.append({"path": relative, "line": number,
+                                "text": line.strip()[:limits.MAX_CELL]})
                 if len(matches) > limit:
-                    return {"matches": matches[:limit], "truncated": True, "scanned": scanned,
-                            "hint": "Więcej trafień niż limit — zawęź `glob` albo wzorzec."}
+                    return stopped("Więcej trafień niż limit — zawęź `glob` albo wzorzec.")
     return {"matches": matches, "truncated": False, "scanned": scanned}
 
 
@@ -415,8 +497,10 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool(annotations=READ_ONLY)
     def code_search(pattern: str, glob: str = "**/*.py", limit: int = MAX_MATCHES) -> dict:
         """Grep po kodzie repozytorium (wyrażenie regularne, bez rozróżniania wielkości
-        liter). `glob` względem korzenia repo, np. `ingest/**/*.py`, `**/*.tsx`,
-        `**/*.sql`. `.env`, `data/`, `node_modules`, `.venv` są poza zasięgiem."""
+        liter). `glob` WZGLĘDEM korzenia repo, np. `ingest/**/*.py`, `**/*.tsx`,
+        `**/*.sql` — ścieżka bezwzględna albo `..` jest odrzucana. `.env`, `data/`,
+        `node_modules`, `.venv` są poza zasięgiem. Przy szerokim wzorcu wynik bywa
+        ucięty po 10 s albo 2000 plikach (`truncated`) — wtedy zawęź `glob`."""
         return search_code(pattern, glob, max(1, min(int(limit), 200)))
 
     @mcp.tool(annotations=READ_ONLY)

@@ -167,7 +167,9 @@ export function AgentPanel() {
         setUsage({
           input_tokens: data.usage.input_tokens,
           output_tokens: data.usage.output_tokens,
-          usd: 0,
+          // Kwotę liczy serwer z cennika; panel jej nie zeruje, bo rozmowa za
+          // cztery centy wyglądała po odświeżeniu na darmową.
+          usd: data.usage.usd ?? 0,
         });
       })
       .catch(() => {

@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from agent.tools import knowledge
+from sciezki import KORZEN_REPO
 
 
 def test_markdown_splits_on_headings_and_skips_fenced_hashes():
@@ -70,8 +71,46 @@ def test_code_read_returns_numbered_window_and_marks_truncation():
     assert out["text"].splitlines()[0].startswith("    1  ")
 
 
-def test_code_search_scans_only_allowed_files():
-    out = knowledge.search_code("OPENAI_API_KEY=", "**/*")
-    assert all(not m["path"].startswith(".env") for m in out["matches"])
+def test_code_search_finds_what_it_should():
     hit = knowledge.search_code(r"^def decide\(", "ingest/correction/*.py")
     assert [m["path"] for m in hit["matches"]] == ["ingest/correction/db.py"]
+    # `**/` ma znaczyć „na dowolnej głębokości", także zero katalogów w środku.
+    assert knowledge._matches("sciezki.py", "**/*.py") is True
+    assert knowledge._matches("ingest/agent/urls.py", "**/*.py") is True
+    assert knowledge._matches("ingest/agent/urls.py", "ingest/**/*.py") is True
+    assert knowledge._matches("web/app.tsx", "**/*.py") is False
+
+
+def test_code_search_cannot_reach_outside_the_repository():
+    """Grep po `..` nie ma prawa zajrzeć do siostrzanego repozytorium.
+
+    `is_relative_to` bez `resolve()` przepuszczało taką ścieżkę, bo porównuje napisy —
+    i `code_search` czytał `cke-mirror`, choć `code_read` tej samej ścieżki odmawiał.
+    """
+    assert knowledge._allowed(KORZEN_REPO / ".." / "cke-mirror" / "README.md") is False
+    for glob in ("../cke-mirror/docs/*.md", "../../**/*.py", "ingest/../../*.md"):
+        with pytest.raises(ValueError, match="poza repozytorium"):
+            knowledge.search_code("DECYZJE", glob)
+
+
+def test_code_search_refuses_absolute_globs():
+    """Wzorzec bezwzględny dawał surowy `NotImplementedError` z biblioteki."""
+    for glob in ("/etc/*", "C:/Windows/*"):
+        with pytest.raises(ValueError, match=r"względny|bezwzględny"):
+            knowledge.search_code("x", glob)
+
+
+def test_code_search_never_returns_secrets_or_dependencies():
+    """Wynik na całym repozytorium: żadnego `.env`, `.venv`, `node_modules`, `data/`."""
+    out = knowledge.search_code("OPENAI_API_KEY|password", "**/*")
+    paths = [m["path"] for m in out["matches"]]
+    assert all(not p.startswith((".env", "data/")) for p in paths), paths
+    assert all(".venv" not in p and "node_modules" not in p for p in paths), paths
+
+
+def test_code_search_stops_instead_of_running_forever(monkeypatch):
+    """Szeroki wzorzec ma oddać wynik ucięty z powodem, nie wisieć bez końca."""
+    monkeypatch.setattr(knowledge, "MAX_SCANNED", 3)
+    out = knowledge.search_code("def", "**/*.py")
+    assert out["truncated"] is True and out["scanned"] == 3
+    assert "Zawęź" in out["hint"]

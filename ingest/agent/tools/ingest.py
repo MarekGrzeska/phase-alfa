@@ -93,8 +93,10 @@ def make_tool(action: Action):
                                        f"Uruchomić: {action.title}", "\n".join(notes))
                 if asked is not None:
                     return asked
-            jobs.task_binary()
-            job = jobs.start(cur, action.task, [jobs.task_binary(), *command[1:]])
+            # Sprawdzenie PRZED założeniem przebiegu: brak `task` w PATH nie ma
+            # zostawiać w `agent_job` wiersza bez procesu.
+            binary = jobs.task_binary()
+            job = jobs.start(cur, action.task, [binary, *command[1:]])
             audit.record(cur, name, arguments, {"job": job["id"]},
                          confirmation_id=confirmation)
         return {"job": job, "command": line,
