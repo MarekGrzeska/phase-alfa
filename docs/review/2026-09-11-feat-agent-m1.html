@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Przegląd kodu — agent i narzędzia MCP (feat/agent-m1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F6F5; --surface:#FFFFFF; --surface-2:#EAEFEE;
+  --ink:#131E1D; --ink-2:#4C5D5A; --ink-3:#768582;
+  --rule:#D3DDDA; --rule-soft:#E3EAE8;
+  --accent:#0E5B4F; --accent-soft:#DCEAE6;
+  --ok:#2C7355; --ok-soft:#DFEDE5;
+  --warn:#96620C; --warn-soft:#F3E8D3;
+  --crit:#9E2E2E; --crit-soft:#F3DEDE;
+  --info:#2B5C86; --info-soft:#DCE7F1;
+  --shadow:0 1px 2px rgba(19,30,29,.05),0 8px 24px -18px rgba(19,30,29,.4);
+  /* kolory składni — osobne od semantycznych, żeby zmiana jednych nie ruszała drugich */
+  --t-kw:#8B3E8F; --t-str:#2C7355; --t-com:#6B7C79;
+  --t-num:#B0651A; --t-fn:#2B5C86; --t-type:#0E5B4F; --t-ann:#9E2E2E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+    --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+    --rule:#2A3937; --rule-soft:#1F2C2B;
+    --accent:#54C4AC; --accent-soft:#16302C;
+    --ok:#63C193; --ok-soft:#153023;
+    --warn:#D9A44C; --warn-soft:#33270F;
+    --crit:#E07A7A; --crit-soft:#371D1D;
+    --info:#7FB3DC; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+    --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+    --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1413; --surface:#131E1D; --surface-2:#1A2726;
+  --ink:#E3ECEA; --ink-2:#A2B3B0; --ink-3:#7A8B88;
+  --rule:#2A3937; --rule-soft:#1F2C2B;
+  --accent:#54C4AC; --accent-soft:#16302C;
+  --ok:#63C193; --ok-soft:#153023;
+  --warn:#D9A44C; --warn-soft:#33270F;
+  --crit:#E07A7A; --crit-soft:#371D1D;
+  --info:#7FB3DC; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -18px rgba(0,0,0,.8);
+  --t-kw:#C99BE0; --t-str:#7FD1A6; --t-com:#6E7F7C;
+  --t-num:#E0A567; --t-fn:#8FC0E8; --t-type:#54C4AC; --t-ann:#E89393;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:68ch}
+h1,h2,h3,.tag,th,.knum{font-family:Archivo,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.03;letter-spacing:-.028em;
+  font-weight:700;margin:0 0 .35em;text-wrap:balance}
+h2{font-size:clamp(1.3rem,2.6vw,1.7rem);line-height:1.18;letter-spacing:-.018em;
+  font-weight:600;margin:0 0 .5rem;text-wrap:balance}
+h3{font-size:1.04rem;font-weight:600;margin:0 0 .3rem;text-wrap:balance}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:3px;color:var(--ink)}
+strong{font-weight:600}
+
+header.masthead{border-bottom:1px solid var(--rule);padding:64px 0 0;margin-bottom:52px}
+.lede{font-size:1.14rem;color:var(--ink-2);max-width:64ch;margin-bottom:2rem}
+.stamp{display:inline-flex;align-items:center;gap:.5rem;font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);
+  border-radius:2px;padding:.3rem .55rem;margin-bottom:1.6rem}
+.stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--rule)}
+.metric{padding:20px 22px 24px;border-right:1px solid var(--rule-soft)}
+.metric:last-child{border-right:none}
+.metric-n{display:block;font-size:1.8rem;font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums;font-family:Archivo,sans-serif}
+.metric-l{display:block;font-size:.79rem;color:var(--ink-3);margin-top:.45rem;line-height:1.35}
+.n-kryt{color:var(--crit)} .n-istot{color:var(--warn)}
+.n-drob{color:var(--accent)} .n-rozw{color:var(--info)}
+
+section{margin-bottom:64px;scroll-margin-top:20px}
+.sec-head{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:26px}
+.sec-head .num{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);
+  letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.sec-sub{color:var(--ink-2);max-width:64ch;margin:0}
+
+.tag{display:inline-block;font-size:.63rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2rem .45rem;border-radius:2px;vertical-align:.13em;
+  white-space:nowrap}
+.st-kryt{background:var(--crit-soft);color:var(--crit)}
+.st-istot{background:var(--warn-soft);color:var(--warn)}
+.st-drob{background:var(--accent-soft);color:var(--accent)}
+.st-rozw{background:var(--info-soft);color:var(--info)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+
+.tablewrap{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--rule);
+  border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:560px}
+th{text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;
+  font-family:"JetBrains Mono",monospace;font-size:.85rem}
+td.id{font-family:"JetBrains Mono",monospace;font-size:.82rem;color:var(--accent);white-space:nowrap}
+.dim{color:var(--ink-3)}
+
+/* karta komentarza */
+.k{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px 22px;border-left:3px solid var(--rule);box-shadow:var(--shadow);
+  margin:0 0 16px;scroll-margin-top:20px}
+.k.kryt{border-left-color:var(--crit)}
+.k.istot{border-left-color:var(--warn)}
+.k.drob{border-left-color:var(--accent)}
+.k.rozw{border-left-color:var(--info)}
+.k-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+.knum{font-family:"JetBrains Mono",monospace;font-size:.8rem;font-weight:600;
+  color:var(--ink-3);min-width:1.6rem}
+.k h3{flex:1 1 18ch;margin:0}
+.k-gdzie{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:var(--ink-3);
+  margin:0 0 .9rem;padding-bottom:.6rem;border-bottom:1px solid var(--rule-soft)}
+.k p{font-size:.95rem;color:var(--ink-2);margin-bottom:.75em}
+.k p:last-child{margin-bottom:0}
+.fix{font-size:.92rem;color:var(--ink);border-top:1px solid var(--rule-soft);
+  padding-top:.8rem;margin-top:1rem}
+.fix b{font-family:Archivo,sans-serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:.4rem}
+
+.ev{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;
+  margin:.8rem 0;overflow:hidden}
+.ev-h{font-family:"JetBrains Mono",monospace;font-size:.71rem;color:var(--ink-3);
+  padding:8px 13px;border-bottom:1px solid var(--rule);letter-spacing:.02em}
+.ev-b{padding:13px;overflow-x:auto;background:var(--surface)}
+pre{margin:0;font-family:"JetBrains Mono",monospace;font-size:.79rem;line-height:1.55;
+  color:var(--ink);white-space:pre}
+
+/* kolorowanie składni — klasy nadaje skrypt na dole dokumentu */
+.t-kw{color:var(--t-kw);font-weight:600}
+.t-str{color:var(--t-str)}
+.t-com{color:var(--t-com);font-style:italic}
+.t-num{color:var(--t-num)}
+.t-fn{color:var(--t-fn)}
+.t-type{color:var(--t-type)}
+.t-ann{color:var(--t-ann);font-weight:600}
+
+ul.plain{list-style:none;padding:0;margin:0 0 1.2rem}
+ul.plain li{padding:0 0 .75rem 1.15rem;position:relative;color:var(--ink-2);font-size:.96rem}
+ul.plain li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:var(--ink-3)}
+ul.plain li b{color:var(--ink);font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--surface);padding:16px 20px;
+  margin:0 0 1.4rem;border-radius:0 3px 3px 0;border-top:1px solid var(--rule);
+  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.callout p{font-size:.95rem}
+.callout p:last-child{margin-bottom:0}
+.callout.crit{border-left-color:var(--crit)}
+
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-size:.85rem}
+footer p{margin-bottom:.4em}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .wrap{padding:0 20px 64px}
+  .metric{border-right:none;border-bottom:1px solid var(--rule-soft)}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="masthead">
+  <span class="stamp">przegląd kodu · 11.09.2026 · feat/agent-m1</span>
+  <h1>Agent i narzędzia MCP</h1>
+  <p class="lede">Dziesięć commitów, które dały agentowi pełny dostęp do bazy, przebiegów ingestu i nawigacji po ekranie. Bramka zgody człowieka trzyma się dobrze i to potwierdziłem przebiegiem — ale <strong>narzędzie opisane jako „tylko do odczytu" pozwala wykonać polecenie w kontenerze bazy i przeczytać plik spoza repozytorium</strong>. Dwie rzeczy do naprawienia przed pierwszym prawdziwym użyciem agenta na korpusie.</p>
+  <div class="metrics">
+    <div class="metric"><span class="metric-n n-kryt">2</span><span class="metric-l">krytyczne</span></div>
+    <div class="metric"><span class="metric-n n-istot">3</span><span class="metric-l">istotne</span></div>
+    <div class="metric"><span class="metric-n n-drob">5</span><span class="metric-l">drobne</span></div>
+    <div class="metric"><span class="metric-n n-rozw">2</span><span class="metric-l">do rozważenia</span></div>
+    <div class="metric"><span class="metric-n">54</span><span class="metric-l">plików · +7369/−80</span></div>
+  </div>
+</header>
+
+<section id="wstep">
+  <div class="sec-head"><span class="num">00</span><h2>Co recenzowano i jak</h2></div>
+  <div class="col">
+    <p>Zakres: <code>git diff db94254..7b4ba7c</code> — gałąź <code>feat/agent-m1</code> scalona jako PR&nbsp;#16 w dniu 11.09.2026. Dziesięć commitów, 54 pliki. Plan, który ten branch realizował: <a href="../plan-agent-mcp.md"><code>docs/plan-agent-mcp.md</code></a>, klocki M1–M6.</p>
+    <p>Przegląd jest <strong>po scaleniu</strong>, więc nie blokuje niczego formalnie. To zmienia jego rolę: nie jest bramką, jest listą rzeczy do naprawienia w następnym commicie. Dwa komentarze krytyczne warto zrobić, zanim agent zacznie pracować na korpusie przy próbce ludzkiej.</p>
+    <p>Czytałem pliki, nie sam diff. Sześć ustaleń sprawdziłem uruchomieniem na działającej bazie i na tymczasowej bazie testowej — przy każdym z nich jest wydruk z przebiegu. Tam, gdzie czegoś nie sprawdziłem, jest to napisane w stopce.</p>
+  </div>
+  <div class="callout crit">
+    <p><strong>Kontekst, bez którego dwa krytyczne brzmią groźniej, niż są.</strong> To narzędzie chodzi na 127.0.0.1, bazą jest kontener deweloperski, a jedynym użytkownikiem jest autor. Nie ma tu napastnika z sieci. Napastnikiem jest <em>model</em>: treść, którą agent wciąga do kontekstu, bierze się z PDF-ów CKE, z rekordów korpusu i z dokumentów — a to znaczy, że da się w nią wpisać instrukcję. Dlatego narzędzie, które obiecuje „tylko odczyt", a pozwala uruchomić polecenie, jest błędem klasy krytycznej niezależnie od tego, że dziś nikt na tym nie stracił.</p>
+  </div>
+</section>
+
+<section id="spis">
+  <div class="sec-head"><span class="num">01</span><h2>Spis komentarzy</h2></div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="n">#</th><th>Stopień</th><th>Rzecz</th><th>Plik</th></tr></thead>
+      <tbody>
+        <tr><td class="n"><a href="#k1">1</a></td><td><span class="tag st-kryt">krytyczny</span></td><td>Narzędzie „tylko do odczytu" wykonuje polecenia w kontenerze bazy i czyta pliki serwera</td><td class="id">tools/database.py</td></tr>
+        <tr><td class="n"><a href="#k2">2</a></td><td><span class="tag st-kryt">krytyczny</span></td><td><code>code_search</code> czyta pliki spoza repozytorium, a test tego nie łapie</td><td class="id">tools/knowledge.py</td></tr>
+        <tr><td class="n"><a href="#k3">3</a></td><td><span class="tag st-istot">istotny</span></td><td><code>code_search</code> nie ma limitu czasu i przechodzi drzewo przed filtrowaniem</td><td class="id">tools/knowledge.py</td></tr>
+        <tr><td class="n"><a href="#k4">4</a></td><td><span class="tag st-istot">istotny</span></td><td>Limit czasu zapytania da się zdjąć jednym zapytaniem</td><td class="id">tools/database.py</td></tr>
+        <tr><td class="n"><a href="#k5">5</a></td><td><span class="tag st-istot">istotny</span></td><td>Zgoda rozstrzygnięta spoza sesji zawiesza rozmowę na zawsze</td><td class="id">agent/api.py</td></tr>
+        <tr><td class="n"><a href="#k6">6</a></td><td><span class="tag st-drob">drobny</span></td><td>Glob bezwzględny daje surowy błąd biblioteki zamiast zdania po polsku</td><td class="id">tools/knowledge.py</td></tr>
+        <tr><td class="n"><a href="#k7">7</a></td><td><span class="tag st-drob">drobny</span></td><td>Test sprawdza bibliotekę standardową, nie nasz kod</td><td class="id">tests/test_agent_runtime.py</td></tr>
+        <tr><td class="n"><a href="#k8">8</a></td><td><span class="tag st-drob">drobny</span></td><td>Limit wierszy chroni model, nie pamięć serwera</td><td class="id">tools/database.py</td></tr>
+        <tr><td class="n"><a href="#k9">9</a></td><td><span class="tag st-drob">drobny</span></td><td>Porzucona zgoda zostawia wpisy w słownikach i wątek w checkpointerze</td><td class="id">agent/runtime.py</td></tr>
+        <tr><td class="n"><a href="#k10">10</a></td><td><span class="tag st-drob">drobny</span></td><td>Po wczytaniu historii koszt rozmowy pokazuje się jako zero</td><td class="id">ui/src/agent/AgentPanel.tsx</td></tr>
+        <tr><td class="n"><a href="#k11">11</a></td><td><span class="tag st-rozw">do rozważenia</span></td><td><code>correction/stats.py</code> zależy od <code>agent/</code> — kierunek odwrócony</td><td class="id">correction/stats.py</td></tr>
+        <tr><td class="n"><a href="#k12">12</a></td><td><span class="tag st-rozw">do rozważenia</span></td><td>Szukanie <code>task</code> w PATH dwa razy na jeden przebieg</td><td class="id">tools/ingest.py</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="komentarze">
+  <div class="sec-head"><span class="num">02</span><h2>Komentarze</h2>
+    <p class="sec-sub">Od najważniejszych. Każdy ma: co jest nie tak, co się stanie, gdzie to jest i jak to naprawić.</p>
+  </div>
+
+  <!-- ========================================================== 1 -->
+  <div class="k kryt" id="k1">
+    <div class="k-head"><span class="knum">1</span><h3>Narzędzie „tylko do odczytu" wykonuje polecenia w kontenerze bazy i czyta pliki serwera</h3><span class="tag st-kryt">krytyczny</span></div>
+    <p class="k-gdzie">ingest/agent/tools/database.py · <code>run_read_only()</code> i narzędzie <code>db_query</code></p>
+
+    <p><code>db_query</code> jest opisane modelowi jako „dowolne zapytanie SQL <strong>tylko do odczytu</strong>" i ma adnotację <code>readOnlyHint: true</code>, którą widzi każdy klient MCP. Ochroną jest transakcja <code>READ ONLY</code>. Ta transakcja blokuje <code>UPDATE</code>, <code>DELETE</code>, <code>CREATE TEMP TABLE</code> i nawet <code>EXPLAIN ANALYZE</code> z zapisem — to sprawdziłem i działa. Ale <strong>nie blokuje dwóch rzeczy, które nie są „zapisem do bazy" w rozumieniu Postgresa</strong>: czytania plików serwera i uruchamiania programów.</p>
+
+    <p>Rola <code>klucz</code>, na której chodzi całe narzędzie, jest superuserem — bo tak zakłada ją obraz Postgresa z <code>docker-compose.yml</code>. Superuser ma prawo do <code>pg_read_file()</code> i do <code>COPY … TO PROGRAM</code>.</p>
+
+    <div class="ev">
+      <div class="ev-h">sonda: próby obejścia READ ONLY przez run_read_only() · 11.09.2026</div>
+      <div class="ev-b"><pre data-lang="out">  EXPLAIN ANALYZE z zapisem        odmowa: To zapytanie zmienia dane, a `db_query` jest tylko do odczytu
+  tabela tymczasowa                odmowa: To zapytanie zmienia dane, a `db_query` jest tylko do odczytu
+  czytanie pliku serwera           PRZESZLO -> {'rows': [['root:x:0:0:root:/root:/bin/sh…   ← pg_read_file('/etc/passwd')
+  COPY TO PROGRAM                  PRZESZLO -> {'note': 'polecenie nie zwrocilo wierszy'}   ← polecenie powłoki wykonane
+  zwykly odczyt (kontrola)         PRZESZLO -> {'rows': [[1436]]}
+  SELECT current_user, usesuper    -> [['klucz', True]]                                     ← rola jest superuserem</pre></div>
+    </div>
+
+    <p>Żeby nie zostawiać tego jako przypuszczenia, sprawdziłem skutek na dysku. Przez <code>db_query</code> wykonałem <code>COPY (SELECT 1) TO PROGRAM 'touch /tmp/agent-review-proof'</code>, a potem zajrzałem do kontenera:</p>
+
+    <div class="ev">
+      <div class="ev-h">dowód: plik utworzony w kontenerze bazy przez narzędzie read-only</div>
+      <div class="ev-b"><pre data-lang="out">$ docker compose exec -T db sh -c 'ls -la /tmp/agent-review-proof'
+-rw-------    1 postgres postgres         0 Sep 11 12:02 /tmp/agent-review-proof   ← plik powstał</pre></div>
+    </div>
+
+    <p>Co to znaczy w praktyce. Model, który dostanie w kontekst instrukcję ze źródła zewnętrznego — a wciąga treść kryteriów, opisów rysunków i dokumentów — może wykonać dowolne polecenie w kontenerze bazy, nie dotykając ani jednego narzędzia z bramką zgody. Cała praca wokół <code>agent_confirmation</code> jest wtedy do obejścia jednym <code>SELECT</code>-em. Plik dowodowy sprzątnąłem.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Właściwa naprawa jest po stronie bazy, nie kodu: agent ma dostawać <strong>osobną rolę bez uprawnień superusera</strong>. Wtedy ochrona nie zależy od tego, czy ktoś pamiętał o kolejnej niebezpiecznej konstrukcji SQL-a. Nowa migracja plus zmienna w <code>.env</code> (<code>AGENT_DATABASE_URL</code>), z której korzysta tylko <code>db_query</code>:</p>
+      <div class="ev"><div class="ev-b"><pre data-lang="sql">CREATE ROLE klucz_agent LOGIN PASSWORD :'haslo' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+GRANT CONNECT ON DATABASE klucz TO klucz_agent;
+GRANT USAGE ON SCHEMA public TO klucz_agent;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO klucz_agent;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO klucz_agent;
+ALTER ROLE klucz_agent SET statement_timeout = '15s';   -- limit po stronie roli, patrz komentarz 4</pre></div></div>
+      <p>Do czasu tej migracji warto dołożyć zaporę w kodzie — tanią i jawną, z komunikatem, który mówi modelowi, czego nie wolno. Zapora nie zastępuje roli, bo lista zakazów zawsze jest niepełna:</p>
+      <div class="ev"><div class="ev-b"><pre data-lang="python">FORBIDDEN = re.compile(r"\b(?:COPY|pg_read_file|pg_read_binary_file|pg_ls_dir|lo_import|lo_export)\b", re.I)
+
+def run_read_only(con, sql, limit):
+    # `READ ONLY` nie zatrzymuje konstrukcji, ktore nie sa zapisem DO BAZY: COPY TO PROGRAM
+    # uruchamia program, a pg_read_file czyta dysk serwera. Rola jest superuserem, wiec
+    # jedyne, co je dzisiaj blokuje, to ta lista — i dlatego jest tymczasowa.
+    if FORBIDDEN.search(sql):
+        raise ValueError("To zapytanie sięga poza dane: COPY i funkcje plikowe są tu zablokowane. "
+                         "Pytaj o zawartość tabel.")</pre></div></div>
+      <p>Przy okazji: test, który to pilnuje, ma sprawdzać <strong>skutek</strong>, nie komunikat — czyli że po próbie <code>COPY … TO PROGRAM</code> plik nie powstaje.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 2 -->
+  <div class="k kryt" id="k2">
+    <div class="k-head"><span class="knum">2</span><h3><code>code_search</code> czyta pliki spoza repozytorium, a test tego nie łapie</h3><span class="tag st-kryt">krytyczny</span></div>
+    <p class="k-gdzie">ingest/agent/tools/knowledge.py · <code>_allowed()</code>, <code>search_code()</code> · test: tests/test_agent_knowledge.py</p>
+
+    <p><code>code_read</code> sprawdza ścieżkę poprawnie: <code>resolve_in_repo()</code> woła <code>.resolve()</code> i dopiero potem <code>is_relative_to()</code>. <code>code_search</code> idzie inną drogą — przez <code>_allowed()</code>, które <code>.resolve()</code> pomija. A <code>is_relative_to()</code> na nieznormalizowanej ścieżce z <code>..</code> zwraca <code>True</code>, bo patrzy na napis, nie na miejsce w systemie plików.</p>
+
+    <div class="ev">
+      <div class="ev-h">sonda: ta sama ścieżka w dwóch narzędziach · 11.09.2026</div>
+      <div class="ev-b"><pre data-lang="out">  sciezka         : C:\Marek\Projekt pod grant\phase-alfa\..\cke-mirror\docs\DECYZJE.md
+  is_relative_to  : True    ← bez .resolve() przechodzi
+  po .resolve()   : False   ← a po normalizacji jest poza repozytorium
+  _allowed        : True    ← wiec code_search to czyta
+
+  code_search("DECYZJE|decyzja", "../cke-mirror/docs/*.md")
+  skanowano plikow: 1, trafien: 5
+   -> ../cke-mirror/docs/DECYZJE.md linia 14 | | Warstwa | Decyzja | Kiedy | Rozstrzygnął |
+   -> ../cke-mirror/docs/DECYZJE.md linia 19 | | Mobile | **React Native**, faza 2, ekrany…
+
+  code_read("../cke-mirror/docs/DECYZJE.md")
+  odmowa: ścieżka wychodzi poza repozytorium   ← tu ochrona dziala</pre></div>
+    </div>
+
+    <p>Skutek: agent może wciągnąć treść dowolnego pliku z dysku — cudzych projektów, notatek, kluczy w plikach o nazwie innej niż <code>.env</code> — a stamtąd trafia ona do kontekstu modelu, czyli do dostawcy API. Wzorzec nazw łapie <code>.env</code> i lockfile'e, więc najbardziej oczywisty przypadek jest zamknięty, ale to zasłona, nie ochrona.</p>
+
+    <p>Gorsze jest to, że <strong>istnieje test, który wygląda, jakby tego pilnował, i przechodzi</strong>:</p>
+
+    <div class="ev">
+      <div class="ev-h">tests/test_agent_knowledge.py — test, który daje fałszywe poczucie bezpieczeństwa</div>
+      <div class="ev-b"><pre data-lang="python">def test_code_search_scans_only_allowed_files():
+    out = knowledge.search_code("OPENAI_API_KEY=", "**/*")
+    assert all(not m["path"].startswith(".env") for m in out["matches"])</pre></div>
+    </div>
+
+    <p>Ten test sprawdza jedną rzecz: że w trafieniach nie ma <code>.env</code>. Przechodzi, bo <code>.env</code> łapie wzorzec nazwy — i przechodziłby dalej, gdyby cała reszta ochrony zniknęła. Nazwa obiecuje „skanuje tylko dozwolone pliki", a treść tego nie mierzy.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Jedna droga dla obu narzędzi. <code>_allowed()</code> normalizuje ścieżkę tak samo jak <code>resolve_in_repo()</code>, a glob z <code>..</code> jest odrzucany od razu, zamiast liczyć na to, że filtr go potem złapie:</p>
+      <div class="ev"><div class="ev-b"><pre data-lang="python">def _allowed(path: Path) -> bool:
+    # `.resolve()` jest tu warunkiem poprawnosci, nie ostroznoscia: `is_relative_to`
+    # na sciezce z `..` patrzy na napis i przepuszcza wszystko poza repozytorium.
+    real = path.resolve()
+    if not real.is_relative_to(KORZEN_REPO):
+        return False
+    parts = real.relative_to(KORZEN_REPO).parts
+    return not (any(p in EXCLUDED_DIRS for p in parts) or EXCLUDED_NAMES.search(real.name))
+
+
+def search_code(pattern, glob="**/*.py", limit=MAX_MATCHES):
+    if ".." in Path(glob).parts:
+        raise ValueError("wzorzec `glob` nie moze wychodzic poza repozytorium (`..`)")</pre></div></div>
+      <p>A test ma mierzyć to, co obiecuje — na pliku, który <em>na pewno</em> jest poza repozytorium:</p>
+      <div class="ev"><div class="ev-b"><pre data-lang="python">def test_code_search_cannot_reach_outside_the_repository():
+    """Grep po `..` nie ma prawa zajrzec do siostrzanego repozytorium."""
+    with pytest.raises(ValueError, match="poza repozytorium"):
+        knowledge.search_code("DECYZJE", "../cke-mirror/docs/*.md")
+    assert knowledge._allowed(KORZEN_REPO / ".." / "cke-mirror" / "README.md") is False</pre></div></div>
+    </div>
+  </div>
+
+  <!-- ========================================================== 3 -->
+  <div class="k istot" id="k3">
+    <div class="k-head"><span class="knum">3</span><h3><code>code_search</code> nie ma limitu czasu i przechodzi całe drzewo przed filtrowaniem</h3><span class="tag st-istot">istotny</span></div>
+    <p class="k-gdzie">ingest/agent/tools/knowledge.py · <code>search_code()</code></p>
+
+    <p>Kolejność jest odwrotna, niż powinna: najpierw <code>KORZEN_REPO.glob(glob)</code> wypisuje wszystko, co pasuje, a dopiero potem <code>_allowed()</code> odrzuca <code>.venv</code>, <code>node_modules</code> i resztę. Więc koszt płaci się zawsze, niezależnie od tego, ile plików naprawdę trzeba przeczytać.</p>
+
+    <div class="ev">
+      <div class="ev-h">sonda: ile ścieżek przechodzi glob, ile plików zostaje do czytania</div>
+      <div class="ev-b"><pre data-lang="out">  glob='**/*.py'        6306 sciezek w 4.1 s     ← a do przeczytania zostaje 18 plikow
+  glob='../**/*.md'     4003 sciezki w 4.7 s
+  glob='../../**/*.py'  PRZERWANE po 15 s: 9894 sciezki i dalej rosnie
+
+  code_search("def register", "**/*.py")  ->  skanowano 18 plikow, czas 6.0 s</pre></div>
+    </div>
+
+    <p>Domyślne wywołanie trwa więc sześć sekund, z czego prawie wszystko idzie na chodzenie po katalogach, których i tak nie czytamy. Przy globie wychodzącym w górę drzewa jest gorzej: moja pierwsza sonda z wzorcem <code>../../**/*.py</code> <strong>przeczytała 8675 plików i nie skończyła w 300 sekundach</strong>. Nic tego nie przerywa — narzędzie nie ma limitu czasu ani limitu przeskanowanych plików, więc rozmowa wisi, a panel pokazuje „narzędzie w toku" bez końca.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Przycinać drzewo w trakcie chodzenia, a nie po fakcie, i postawić dwa twarde limity. <code>os.walk</code> pozwala wyciąć katalog przed zejściem do niego:</p>
+      <div class="ev"><div class="ev-b"><pre data-lang="python">SCAN_SECONDS = 10
+MAX_SCANNED = 2000
+
+def _files(glob: str):
+    """Pliki do przeszukania. Katalogi odsiewamy PRZED zejsciem do nich — inaczej
+    samo przejscie po `.venv` i `node_modules` kosztuje kilka sekund na kazde wywolanie."""
+    for root, dirs, names in os.walk(KORZEN_REPO):
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+        for name in names:
+            path = Path(root) / name
+            if path.match(glob) and _allowed(path):
+                yield path</pre></div></div>
+      <p>A w pętli czytającej: przerwanie po <code>SCAN_SECONDS</code> albo po <code>MAX_SCANNED</code> plikach, z wynikiem oznaczonym <code>truncated: true</code> i podpowiedzią „zawęź <code>glob</code>" — tak samo, jak robią to pozostałe narzędzia. Wynik ucięty z powodem jest użyteczny; wywołanie, które nigdy nie wraca, nie jest.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 4 -->
+  <div class="k istot" id="k4">
+    <div class="k-head"><span class="knum">4</span><h3>Limit czasu zapytania da się zdjąć jednym zapytaniem</h3><span class="tag st-istot">istotny</span></div>
+    <p class="k-gdzie">ingest/agent/tools/database.py · <code>run_read_only()</code>, stała <code>STATEMENT_TIMEOUT</code></p>
+
+    <p>Limit ustawiamy przez <code>SET LOCAL statement_timeout = '15s'</code> na początku transakcji. Ale treść zapytania idzie od modelu, a jedno polecenie może zawierać dwie instrukcje — więc model może nadpisać nasz limit własnym <code>SET</code>:</p>
+
+    <div class="ev">
+      <div class="ev-h">sonda: zmiana limitu przez treść zapytania</div>
+      <div class="ev-b"><pre data-lang="out">  "SET statement_timeout = 0; SELECT 1"    PRZESZLO   ← limit zdjety, zapytanie moze trwac bez konca</pre></div>
+    </div>
+
+    <p>Dziś to nie jest dziura bezpieczeństwa, tylko zdjęta bezpiecznik: limit istnieje po to, żeby agent nie zablokował bazy, którą dzieli z ekranem korekty. Ugryzie wtedy, gdy model napisze ciężkie zapytanie z <code>SET</code> na początku — i zamiast błędu po piętnastu sekundach dostaniemy zawieszony ekran korekty.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Limit ma siedzieć na roli, nie w treści transakcji — wtedy zapytanie nie ma jak go podnieść (rola bez uprawnień superusera nie zmieni własnych ustawień ponad limit ustawiony przez administratora). To ta sama migracja, co w komentarzu 1:</p>
+      <div class="ev"><div class="ev-b"><pre data-lang="sql">ALTER ROLE klucz_agent SET statement_timeout = '15s';</pre></div></div>
+      <p>Zanim ona wejdzie — dołożyć <code>SET</code> do listy zakazanych konstrukcji z komentarza 1. Warto też dodać test, który mierzy skutek: zapytanie <code>SET statement_timeout = 0; SELECT pg_sleep(20)</code> ma skończyć się błędem limitu, a nie po dwudziestu sekundach.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 5 -->
+  <div class="k istot" id="k5">
+    <div class="k-head"><span class="knum">5</span><h3>Zgoda rozstrzygnięta spoza sesji zawiesza rozmowę na zawsze</h3><span class="tag st-istot">istotny</span></div>
+    <p class="k-gdzie">ingest/agent/api.py · <code>decide()</code> (lista globalna) i <code>resume()</code> (wznowienie rozmowy)</p>
+
+    <p>Są dwa wejścia do rozstrzygania zgód, i jedno psuje drugie. <code>POST /api/agent/confirmations/{id}</code> istnieje dla zgód założonych przez klienta z terminala — zapisuje decyzję i nic więcej. <code>POST /api/agent/sessions/{id}/confirmations/{cid}</code> jest dla panelu: zapisuje decyzję <em>i</em> wznawia przerwaną rozmowę.</p>
+
+    <p>Jeśli zgoda należy do rozmowy w panelu, ale rozstrzygnie ją to pierwsze wejście, <code>confirm.decide()</code> ustawia decyzję i wypala jednorazowość. Gdy panel spróbuje wznowić, <code>decide()</code> zwróci <code>None</code>, bo aktualizuje tylko wiersze z <code>decision IS NULL</code>:</p>
+
+    <div class="ev">
+      <div class="ev-h">agent/api.py — wznowienie rozbija się o zgodę już rozstrzygniętą</div>
+      <div class="ev-b"><pre data-lang="python">try:
+    with db.connect() as con, con.transaction(), con.cursor() as cur:
+        confirm.decide(cur, confirmation_id, payload.decision)   # rzuci, gdy decyzja juz jest
+except ValueError as e:
+    raise HTTPException(404 if "nie istnieje" in str(e) else 400, str(e)) from e
+return stream(runtime.resume_turn(found, confirmation_id, payload.decision))</pre></div>
+    </div>
+
+    <p>Skutek: graf stoi na przerwaniu, panel dostaje 400, i nie ma już żadnej drogi, żeby tę rozmowę dokończyć — bo wznowienie zawsze idzie przez zapis decyzji. Rozmowa zostaje zablokowana do końca życia procesu, a zadanie nierozstrzygnięte, mimo że człowiek kliknął „wykonaj".</p>
+
+    <p>Ten sam kształt ma drugi, łagodniejszy przypadek: gdy <code>resume_turn</code> odmówi po restarcie serwera („ta rozmowa na nic nie czeka"), decyzja jest już zapisana, a zgoda zostaje na zawsze jako przyjęta i niezużyta.</p>
+
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Rozdzielić <em>zapisanie decyzji</em> od <em>sprawdzenia, jaka ona jest</em>. Wznowienie ma przyjmować zgodę już rozstrzygniętą, jeśli decyzja zgadza się z tym, co przysłał panel:</p>
+      <div class="ev"><div class="ev-b"><pre data-lang="python">def decide_or_confirm(cur, confirmation_id: int, decision: str) -> dict:
+    """Zapisuje decyzje, a gdy juz istnieje — sprawdza, czy jest ta sama.
+
+    Bez tego zgoda rozstrzygnieta z listy globalnej zostawia rozmowe zawieszona:
+    wznowienie idzie przez zapis, a zapis dziala tylko raz.
+    """
+    try:
+        return decide(cur, confirmation_id, decision)
+    except ValueError:
+        cur.execute("SELECT id, tool, decision FROM agent_confirmation WHERE id = %s",
+                    (confirmation_id,))
+        row = cur.fetchone()
+        if row is None or row["decision"] != decision:
+            raise
+        return row</pre></div></div>
+      <p>Drugie pół naprawy jest po stronie listy globalnej: zgody z <code>session_id</code> należą do rozmowy i tamto wejście powinno je odrzucać, z komunikatem „rozstrzygnij ją w panelu tej rozmowy". Wtedy nie ma dwóch dróg do tego samego stanu.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 6 -->
+  <div class="k drob" id="k6">
+    <div class="k-head"><span class="knum">6</span><h3>Glob bezwzględny daje surowy błąd biblioteki zamiast zdania po polsku</h3><span class="tag st-drob">drobny</span></div>
+    <p class="k-gdzie">ingest/agent/tools/knowledge.py · <code>search_code()</code></p>
+    <p>Wzorzec zaczynający się od <code>/</code> wywraca <code>Path.glob</code> wyjątkiem, którego nikt nie łapie. Model dostaje wtedy komunikat biblioteki po angielsku, zamiast zdania, z którego wynika, co zrobić inaczej. Wszystkie inne błędy tych narzędzi są po polsku i mówią, jak poprawić wywołanie.</p>
+    <div class="ev">
+      <div class="ev-h">sonda: glob bezwzględny</div>
+      <div class="ev-b"><pre data-lang="out">  glob='/etc/*'   -> NotImplementedError: Non-relative patterns are unsupported</pre></div>
+    </div>
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Odrzucić razem ze sprawdzeniem <code>..</code> z komentarza 2 — jedno miejsce, dwa przypadki: <code>if Path(glob).is_absolute() or ".." in Path(glob).parts: raise ValueError("`glob` liczy się od korzenia repozytorium — bez ścieżek bezwzględnych i bez `..`")</code>.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 7 -->
+  <div class="k drob" id="k7">
+    <div class="k-head"><span class="knum">7</span><h3>Test sprawdza bibliotekę standardową, nie nasz kod</h3><span class="tag st-drob">drobny</span></div>
+    <p class="k-gdzie">ingest/tests/test_agent_runtime.py · <code>test_json_helpers</code>, ostatnia asercja</p>
+    <p>Dwie pierwsze asercje mierzą <code>runtime.parse_json</code> i są w porządku. Trzecia sprawdza, że <code>json.loads(json.dumps(...))</code> zwraca to, co dostało — czyli bibliotekę standardową Pythona. Nie da się jej zobaczyć na czerwono z powodu naszej zmiany, a <code>CLAUDE.md</code> mówi wprost, że taki test jest nieodróżnialny od testu, który nic nie sprawdza.</p>
+    <div class="ev">
+      <div class="ev-h">tests/test_agent_runtime.py</div>
+      <div class="ev-b"><pre data-lang="python">def test_json_helpers():
+    assert runtime.parse_json('{"a": 1}') == {"a": 1}
+    assert runtime.parse_json("[1]") is None
+    assert runtime.parse_json("nie json") is None
+    assert json.loads(json.dumps({"x": 1})) == {"x": 1}   # ← test biblioteki standardowej</pre></div>
+    </div>
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Skasować ostatnią linię i niepotrzebny import <code>json</code>. Jeśli coś ma tu dojść, to przypadek z prawdziwego życia: <code>parse_json</code> na odpowiedzi narzędzia, która jest obrazem (<code>task_page_image</code>) albo pustym tekstem — bo to są wejścia, które ta funkcja naprawdę dostaje.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 8 -->
+  <div class="k drob" id="k8">
+    <div class="k-head"><span class="knum">8</span><h3>Limit wierszy chroni model, nie pamięć serwera</h3><span class="tag st-drob">drobny</span></div>
+    <p class="k-gdzie">ingest/agent/tools/database.py · <code>run_read_only()</code></p>
+    <p><code>cur.fetchmany(limit + 1)</code> ogranicza to, co wraca do modelu — i to jest sedno limitu, więc działa. Ale psycopg pobiera cały wynik zapytania do pamięci procesu już przy <code>execute()</code>, więc zapytanie bez <code>LIMIT</code> ściąga wszystko, zanim weźmiemy dwieście wierszy.</p>
+    <div class="ev">
+      <div class="ev-h">sonda: ile wierszy trafia do pamięci procesu</div>
+      <div class="ev-b"><pre data-lang="out">  criterion ma 3315 wierszy; po execute cur.rowcount = 3315, fetchmany(3) dalo 3
+  (rowcount rowny liczbie wierszy = caly wynik jest w pamieci klienta)</pre></div>
+    </div>
+    <p>Przy dzisiejszym korpusie to kilka megabajtów i nikt tego nie zauważy. Ugryzie przy maturze (K6) albo przy zapytaniu z <code>jsonb</code> na całej tabeli — ekran korekty i agent siedzą w jednym procesie, więc pamięć jest wspólna.</p>
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Kursor serwerowy, czyli nazwany: <code>with con.cursor(name="agent_query") as cur</code>. Wtedy baza oddaje wiersze porcjami i <code>fetchmany</code> naprawdę pobiera tylko tyle, ile prosimy. Jedna zmiana w jednej funkcji; reszta narzędzia bez zmian.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 9 -->
+  <div class="k drob" id="k9">
+    <div class="k-head"><span class="knum">9</span><h3>Porzucona zgoda zostawia wpisy w słownikach i wątek w checkpointerze</h3><span class="tag st-drob">drobny</span></div>
+    <p class="k-gdzie">ingest/agent/runtime.py · <code>PENDING_CONFIRMS</code>, <code>CALL_ARGS</code>, <code>CALL_MESSAGES</code>, <code>CHECKPOINTER</code></p>
+    <p>Sprawdziłem pełny cykl sondą na bazie testowej i <strong>przy rozmowie doprowadzonej do końca wszystko się sprząta</strong> — słowniki są puste, w dzienniku jest jeden wpis z numerem zgody, żadna wiadomość nie zapisuje się dwa razy. Problem dotyczy tylko rozmów porzuconych: gdy człowiek nie kliknie nic i zamknie przeglądarkę, wpisy zostają do końca życia procesu.</p>
+    <div class="ev">
+      <div class="ev-h">sonda: stan słowników po przerwaniu i po pełnym cyklu · baza klucz_test_test_zzz_review_probe</div>
+      <div class="ev-b"><pre data-lang="out">=== PO PRZERWANIU
+   #1 operator  tool_calls=None                         tresc='zatwierdz'
+   #2 agent     tool_calls=[task_decide c1]  tok=1000/50 tresc=''
+   PENDING_CONFIRMS: ['c1']  CALL_ARGS: ['c1']  CALL_MESSAGES: ['c1']   ← zostaja, gdy nikt nie kliknie
+
+=== PO WZNOWIENIU
+   #3 agent     tool_calls=None              tok=1200/80 tresc='Gotowe.'
+   wywolania w dzienniku: [('task_decide', 1)]              ← jeden wpis, z numerem zgody
+   WIADOMOSCI Z TOOL_CALLS: 1 (oczekiwane 1)                ← brak duplikatu po wznowieniu
+   PENDING_CONFIRMS: []  CALL_ARGS: []  CALL_MESSAGES: []   ← sprzatnięte
+   watki checkpointera: 1</pre></div>
+    </div>
+    <p>Skala jest mała: kilka wpisów na porzuconą rozmowę plus jej stan w checkpointerze. Ekran korekty i tak restartuje się przy każdej zmianie pliku. Ale to rośnie w jedną stronę i nikt tego nie mierzy.</p>
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Najmniejszym kosztem: sprzątać wpisy starsze niż kilka godzin przy zakładaniu nowej sesji, albo wiązać je z sesją i czyścić w <code>newConversation</code>. Docelowo zniknie razem z checkpointerem w Postgresie, jeśli ten kiedyś wejdzie — plan go przewidywał i świadomie odłożył.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 10 -->
+  <div class="k drob" id="k10">
+    <div class="k-head"><span class="knum">10</span><h3>Po wczytaniu historii koszt rozmowy pokazuje się jako zero</h3><span class="tag st-drob">drobny</span></div>
+    <p class="k-gdzie">ingest/correction/ui/src/agent/AgentPanel.tsx · odtworzenie sesji z serwera</p>
+    <p>Baza trzyma tokeny, nie dolary — dolary liczy <code>llm.Spend</code> z cennika. Panel przy odtwarzaniu historii ustawia więc <code>usd: 0</code> i pokazuje w nagłówku liczbę tokenów bez kwoty. Po odświeżeniu strony rozmowa, która kosztowała cztery centy, wygląda na darmową; koszt wraca dopiero przy następnej turze.</p>
+    <div class="ev">
+      <div class="ev-h">AgentPanel.tsx — odtworzenie historii</div>
+      <div class="ev-b"><pre data-lang="python">setUsage({
+  input_tokens: data.usage.input_tokens,
+  output_tokens: data.usage.output_tokens,
+  usd: 0,          // ← baza nie trzyma dolarow, a panel ich nie przelicza
+});</pre></div>
+    </div>
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Policzyć kwotę tam, gdzie już jest cennik — na serwerze. <code>GET /api/agent/sessions/{id}</code> ma w odpowiedzi <code>usage</code>, wystarczy dołożyć do niego <code>usd</code> liczone tak samo jak w raportach (<code>conversation.totals</code> robi to już dla sesji zbiorczo). Panel wtedy tylko pokazuje liczbę, zamiast udawać, że jej nie ma.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 11 -->
+  <div class="k rozw" id="k11">
+    <div class="k-head"><span class="knum">11</span><h3><code>correction/stats.py</code> zależy od <code>agent/</code> — kierunek odwrócony</h3><span class="tag st-rozw">do rozważenia</span></div>
+    <p class="k-gdzie">ingest/correction/stats.py · <code>collect()</code>, <code>agent_lines()</code></p>
+    <p>Agent jest nadbudową nad ekranem korekty: <code>agent/tools/status.py</code> importuje <code>correction.stats</code>, i to jest naturalna kolejność. Ale odkąd raport pokazuje koszt agenta, <code>correction/stats.py</code> importuje <code>agent.conversation</code> — czyli warstwa niżej sięga do warstwy wyżej.</p>
+    <p>Cyklu importów nie ma, bo import jest leniwy (w ciele funkcji) i <code>agent.conversation</code> nie ciągnie SDK MCP — sprawdziłem, <code>task test:python</code> przechodzi. Więc to nie błąd, tylko kierunek zależności, który przy kolejnej zmianie może się zacisnąć.</p>
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p>Jeśli warto: odwrócić przepływ. <code>stats.collect()</code> przyjmuje gotowe liczby agenta jako opcjonalny argument (albo nie zna ich wcale), a składaniem raportu z obu źródeł zajmuje się <code>correction/report.py</code> i <code>reports/corpus.py</code> — one stoją wyżej i widzą oba światy. Funkcja <code>agent_lines()</code> już dziś przyjmuje <code>None</code>, więc pół roboty jest zrobione.</p>
+    </div>
+  </div>
+
+  <!-- ========================================================== 12 -->
+  <div class="k rozw" id="k12">
+    <div class="k-head"><span class="knum">12</span><h3>Szukanie <code>task</code> w PATH dwa razy na jeden przebieg</h3><span class="tag st-rozw">do rozważenia</span></div>
+    <p class="k-gdzie">ingest/agent/tools/ingest.py · <code>make_tool().run()</code></p>
+    <p><code>jobs.task_binary()</code> woła <code>shutil.which("task")</code> i jest wywołane dwa razy pod rząd: raz jako sprawdzenie, raz w liście argumentów. Skutek żaden — poza tym, że czytający zastanawia się, czy to celowe.</p>
+    <div class="ev">
+      <div class="ev-h">tools/ingest.py</div>
+      <div class="ev-b"><pre data-lang="python">jobs.task_binary()
+job = jobs.start(cur, action.task, [jobs.task_binary(), *command[1:]])</pre></div>
+    </div>
+    <div class="fix">
+      <b>jak naprawić</b>
+      <p><code>binary = jobs.task_binary()</code> w osobnej linii i użycie zmiennej. Sprawdzenie zostaje tam, gdzie jest — przed założeniem przebiegu, żeby brak <code>task</code> w PATH nie zostawiał wiersza w <code>agent_job</code> bez procesu.</p>
+    </div>
+  </div>
+</section>
+
+<section id="plan">
+  <div class="sec-head"><span class="num">03</span><h2>Zgodność z planem</h2>
+    <p class="sec-sub"><code>docs/plan-agent-mcp.md</code> — sześć klocków M1–M6 plus dziennik wykonania dopisany na końcu.</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Punkt planu</th><th>Stan</th><th>Uwaga</th></tr></thead>
+      <tbody>
+        <tr><td>M1 — serwer MCP, narzędzia tylko do odczytu, trzy wejścia</td><td><span class="tag st-ok">zrobione</span></td><td>„Tylko do odczytu" jest prawdą dla wszystkich narzędzi poza <code>db_query</code> — patrz komentarze 1 i 2.</td></tr>
+        <tr><td>M2 — zapis do korpusu przez <code>db.save</code>/<code>db.decide</code>, bramka zgody, migracja 0010</td><td><span class="tag st-ok">zrobione</span></td><td>Sprawdzone sondą: jednorazowość, porównanie argumentów i <code>FOR UPDATE</code> działają. Więz na <code>used_at</code> był widziany na czerwono przed poprawką.</td></tr>
+        <tr><td>M3 — akcje ingestu z katalogu menu, przebiegi w tle</td><td><span class="tag st-ok">zrobione</span></td><td>21 narzędzi z <code>CATALOG</code>, test porównuje rejestr z katalogiem w obie strony.</td></tr>
+        <tr><td>M4 — pętla agenta, rozmowa w bazie, strumień SSE</td><td><span class="tag st-ok">zrobione</span></td><td>Plan zapowiadał <code>HumanInTheLoopMiddleware</code>; weszedł interceptor wywołań MCP, bo podgląd zgody potrafi policzyć tylko narzędzie. Dziennik planu to zapisał — <strong>plan w tym miejscu jest już historią, nie opisem</strong>.</td></tr>
+        <tr><td>M5 — panel na żywo: model, chipy, karty zgody, nawigacja</td><td><span class="tag st-ok">zrobione</span></td><td>78 testów frontu. Jedna niedoróbka w odtwarzaniu kosztu — komentarz 10.</td></tr>
+        <tr><td>M6 — koszt w raportach, README, CLAUDE.md, decyzje, przegląd ingestu</td><td><span class="tag st-ok">zrobione</span></td><td>Doszedł dokument, którego plan nie przewidywał: <code>docs/agent-mcp.html</code>. Świadomie — opis techniczny nie mieścił się w przeglądzie ingestu.</td></tr>
+        <tr><td>Checkpointer w Postgresie (<code>langgraph-checkpoint-postgres</code>)</td><td><span class="tag st-istot">nie</span></td><td>Plan dopuszczał „albo w pamięci na start". Została pamięć procesu; skutek opisany w planie i w dokumencie: przerwanie w toku po restarcie przepada. Komentarz 9 dotyka tego samego miejsca.</td></tr>
+        <tr><td>Przegląd kodu w <code>docs/review/</code></td><td><span class="tag st-ok">ten dokument</span></td><td>Plan wymieniał go jako robotę „poza planem" — domknięte, choć po scaleniu.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <p><strong>Plan trzyma się rzeczywistości.</strong> Odstępstwa (<code>mcp</code> przypięte do <code>&lt;2</code>, checkpointer w pamięci, interceptor zamiast middleware) są opisane w samym planie, w sekcji odstępstw i w dzienniku wykonania — z powodami. To rzadkie i warte utrzymania: plan, który po wykonaniu mówi prawdę, jest wart dwa razy tyle co plan, który mówi, jak miało być.</p>
+  </div>
+</section>
+
+<section id="dobre">
+  <div class="sec-head"><span class="num">04</span><h2>Co jest dobre i warto tego nie zepsuć</h2></div>
+  <ul class="plain">
+    <li><b>Bramka zgody trzyma się w praktyce, nie tylko w opisie.</b> Sonda przeszła pełny cykl: przerwanie, decyzja, wznowienie. Po wznowieniu jest <em>jedna</em> prośba o zgodę, mimo że graf wykonuje węzeł narzędzi po raz drugi — pamięć po <code>tool_call_id</code> robi dokładnie to, co obiecuje komentarz nad nią. Argumenty są przedmiotem zgody, nie sama nazwa narzędzia. To sedno całego projektu i jest zrobione dobrze.</li>
+    <li><b>Więz w bazie zamiast sprawdzenia w kodzie.</b> <code>CHECK (used_at IS NULL OR decision IS NOT DISTINCT FROM 'accept')</code> — a pierwsza wersja z <code>=</code> przepuszczała <code>NULL</code> i została zobaczona na czerwono przez test, zanim ktokolwiek na niej polegał. To jest dokładnie ta praktyka, o której mówi <code>CLAUDE.md</code>.</li>
+    <li><b>Jedno źródło prawdy dla akcji ingestu.</b> Narzędzia powstają z <code>cli.app.CATALOG</code>, flagi składa to samo <code>build_args</code>, którego używa <code>task menu</code>. Nowa pozycja w menu jest nową akcją agenta bez dopisywania czegokolwiek, a test porównuje jedno z drugim w obie strony. Akcje <code>foreground</code> są wyłączone świadomie i to też jest przetestowane.</li>
+    <li><b>Adresy ekranu składa Python, nie model.</b> <code>agent/urls.py</code> jest jedynym miejscem, w którym powstają, a test sprawdza każdy z nich wobec tras w <code>correction/app.py</code>. Adres bez trasy nie przejdzie przez CI — a to jest błąd, który inaczej wychodzi dopiero u człowieka, jako pusta strona bez komunikatu.</li>
+    <li><b>Poprawka po pierwszym użyciu na żywo.</b> Nawigacja do surowego pliku wyszła dopiero w rozmowie z prawdziwym modelem i została naprawiona w miejscu, w którym powinna: cel zamienia się na widok w aplikacji, a wynik niesie <code>note</code> z powodem. Do tego reguła w promptcie i test. Tak samo z <code>task_find</code> zwężonym po rachunku na 190 tysięcy tokenów.</li>
+    <li><b>Komunikaty błędów mówią, co zrobić dalej.</b> <code>db_query</code> na zapisie odsyła do narzędzi <code>task_*</code>, wynik ucięty niesie <code>hint</code> o zawężeniu, odmowa zgody mówi „nie ponawiaj bez wyraźnej prośby". W smoke widać, że to działa: model sam naprawił błędne zapytanie po komunikacie o nieistniejącej kolumnie.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Przegląd wykonany wg <code>.claude/skills/code-review</code>.</p>
+  <p>Zakres: <code>git diff db94254..7b4ba7c</code> (PR #16, gałąź <code>feat/agent-m1</code>, 54 pliki, +7369/−80) · plan <code>docs/plan-agent-mcp.md</code>.</p>
+  <p><b>Sprawdzone uruchomieniem:</b> próby obejścia transakcji <code>READ ONLY</code> (6 wariantów, w tym dowód wykonania polecenia w kontenerze bazy i jego sprzątnięcie) · zasięg <code>code_search</code> i <code>code_read</code> na tej samej ścieżce z <code>..</code> · czas globbingu dla trzech wzorców · liczba wierszy pobieranych przez psycopg · pełny cykl zgody (przerwanie → decyzja → wznowienie) na tymczasowej bazie testowej, z odczytem wiadomości, dziennika i słowników pomocniczych · koszt migawki stanu (1,0 s — bez zarzutu, dlatego nie ma o tym komentarza) · <code>task test:python</code> (398 zielonych) i <code>task correction:ui:test</code> (78 zielonych).</p>
+  <p><b>Poza zakresem:</b> zachowanie przy zerwanym strumieniu SSE w połowie tury (czy <code>RUNNING</code> zawsze się czyści — nie umiałem tego wywołać wiarygodnie) · wywołania z żywym modelem poza jednym przebiegiem kontrolnym z 8.09 · zachowanie <code>/mcp</code> pod prawdziwym klientem Claude Desktop (sprawdzone tylko Claude Code i ręczny handshake po stdio) · treść dokumentu <code>docs/agent-mcp.html</code> pod kątem redakcyjnym.</p>
+</footer>
+
+</div>
+
+<script>
+/* Kolorowanie składni bez żadnej biblioteki — dokument ma zostać samodzielny.
+ *
+ * Użycie:  <pre data-lang="python">…</pre>
+ * Języki:  python · yaml · sql · bash · conf · out (wydruk z konsoli)
+ *
+ * Jak działa: reguły każdego języka sklejane są w JEDEN regex z grupami
+ * nazwanymi, więc tekst jest przechodzony raz, a pierwsza pasująca reguła
+ * wygrywa. Dlatego komentarze i napisy stoją na początku listy — inaczej
+ * słowo kluczowe wewnątrz napisu zostałoby pokolorowane osobno.
+ *
+ * Bez skryptu (albo przy jego błędzie) blok zostaje zwykłym tekstem —
+ * czytelnym, tylko czarno-białym.
+ */
+(function () {
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+  function esc(s) { return s.replace(/[&<>]/g, function (c) { return ESC[c]; }); }
+
+  // UWAGA: wewnątrz reguł tylko grupy nieprzechwytujące (?:...) —
+  // zwykły nawias rozjechałby numerację grup w sklejonym wyrażeniu.
+  var RULES = {
+    python: [
+      ['com',  /#[^\n]*/],
+      ['str',  /(?:[rbfu]{0,2})(?:"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/],
+      ['kw',   /\b(?:def|class|return|if|elif|else|for|while|with|as|import|from|try|except|finally|raise|yield|lambda|not|and|or|in|is|None|True|False|pass|assert|del|async|await|global|nonlocal)\b/],
+      ['fn',   /@[A-Za-z_][\w.]*|\b[A-Za-z_]\w*(?=\()/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    yaml: [
+      ['com',  /#[^\n]*/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['fn',   /^[ \t]*(?:-[ \t]+)?[A-Za-z_][\w.\/-]*(?=[ \t]*:)/],
+      ['kw',   /\b(?:true|false|null|yes|no)\b/],
+      ['num',  /\b\d+(?:\.\d+)?\b/]
+    ],
+    sql: [
+      ['com',  /--[^\n]*/],
+      ['str',  /'(?:[^']|'')*'/],
+      ['kw',   /\b(?:CREATE|TABLE|INDEX|VIEW|COLLATION|SELECT|FROM|WHERE|JOIN|LEFT|INNER|ON|GROUP|ORDER|BY|HAVING|INSERT|INTO|VALUES|UPDATE|DELETE|SET|RETURNING|CONFLICT|DO|NOTHING|NOT|NULL|PRIMARY|FOREIGN|KEY|REFERENCES|UNIQUE|CHECK|DEFAULT|CONSTRAINT|CASCADE|AND|OR|IN|AS|IF|EXISTS|BETWEEN|PROVIDER|LOCALE|COLLATE|BEGIN|COMMIT|DISTINCT|COUNT|SUM|ARRAY_AGG|LIMIT|ROLE|LOGIN|PASSWORD|GRANT|USAGE|SCHEMA|ALL|TABLES|ALTER|PRIVILEGES|CONNECT|DATABASE|TO)\b/i],
+      ['type', /\b(?:text|integer|smallint|bigint|serial|smallserial|boolean|date|timestamptz|numeric|jsonb|char|varchar)\b/i],
+      ['num',  /\b\d+\b/]
+    ],
+    bash: [
+      ['com',  /#[^\n]*/],
+      ['ann',  /^\$/],
+      ['str',  /"(?:\\.|[^"\\])*"|'[^']*'/],
+      ['kw',   /\b(?:if|then|elif|else|fi|for|in|do|done|while|case|esac|function|return|exit|test|echo|cd|export|local)\b/],
+      ['num',  /(?:^|[ \t])-{1,2}[A-Za-z][\w-]*|\b\d+\b/]
+    ],
+    conf: [
+      ['com',  /#[^\n]*/],
+      ['kw',   /^!/],
+      ['fn',   /^[A-Za-z_][A-Za-z0-9_]*(?==)/],
+      ['str',  /(?<==)[^\n]+/]
+    ],
+    out: [
+      ['ann',  /←[^\n]*|^\$/],
+      ['str',  /"[^"]*"|'[^']*'/],
+      ['num',  /\b\d+\b/]
+    ]
+  };
+
+  function podswietl(kod, jezyk) {
+    var reguly = RULES[jezyk];
+    if (!reguly) { return esc(kod); }
+    var wzor = reguly.map(function (r, i) {
+      return '(?<g' + i + '>' + r[1].source + ')';
+    }).join('|');
+    var re;
+    try {
+      re = new RegExp(wzor, 'gm');
+    } catch (e) {
+      return esc(kod);           // starsza przeglądarka — zostaje zwykły tekst
+    }
+    var wynik = '', koniec = 0, m;
+    while ((m = re.exec(kod)) !== null) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      wynik += esc(kod.slice(koniec, m.index));
+      var klasa = null;
+      for (var i = 0; i < reguly.length; i++) {
+        if (m.groups['g' + i] !== undefined) { klasa = reguly[i][0]; break; }
+      }
+      wynik += '<span class="t-' + klasa + '">' + esc(m[0]) + '</span>';
+      koniec = m.index + m[0].length;
+    }
+    return wynik + esc(kod.slice(koniec));
+  }
+
+  var bloki = document.querySelectorAll('pre[data-lang]');
+  for (var i = 0; i < bloki.length; i++) {
+    try {
+      bloki[i].innerHTML = podswietl(bloki[i].textContent, bloki[i].dataset.lang);
+    } catch (e) { /* blok zostaje zwykłym tekstem — lepsze niż pusty */ }
+  }
+})();
+</script>
+</body>
+</html>
