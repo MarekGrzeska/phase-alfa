@@ -106,7 +106,9 @@ def test_server_exposes_the_planned_tools():
 
 def test_db_query_is_read_only_and_says_so(seeded):
     body, failed = call("db_query", sql="UPDATE task SET review_status = 'approved'")
-    assert failed and "tylko do odczytu" in body
+    # Sedno to SKUTEK: ani jeden wiersz się nie zmienił. Komunikat ma odesłać
+    # do narzędzi, którymi zapis jest w ogóle możliwy.
+    assert failed and "task_*" in body and "db_execute" in body
     with psycopg.connect(os.environ["DATABASE_URL"]) as con:
         assert con.execute("SELECT count(*) FROM task WHERE review_status = 'approved'") \
             .fetchone()[0] == 0
@@ -118,6 +120,29 @@ def test_db_query_returns_rows_and_marks_truncation(seeded):
     assert body["columns"] == ["id", "number"]
     assert body["rows"] == [[seeded["task"], "16"]]
     assert body["truncated"] is True and "ucięty" in body["hint"]
+
+
+def test_db_query_runs_as_a_role_without_superuser(seeded):
+    """Odczyt agenta chodzi na roli z migracji 0011 — bez uprawnień superusera.
+
+    `READ ONLY` zatrzymuje zapis do bazy, ale nie zatrzymuje konstrukcji, które
+    zapisem nie są: `COPY … TO PROGRAM` uruchamiał program w kontenerze bazy,
+    a `pg_read_file()` czytał dysk serwera (przegląd 11.09.2026, komentarz 1).
+    """
+    body, failed = call("db_query", sql="SELECT current_user AS u, "
+                                        "(SELECT usesuper FROM pg_user WHERE usename = "
+                                        "current_user) AS s")
+    assert not failed, body
+    assert body["rows"] == [["klucz_agent", False]], body
+
+
+def test_db_query_cannot_reach_the_filesystem_or_run_programs(seeded):
+    for sql in ("SELECT pg_read_file('/etc/passwd')",
+                "COPY (SELECT 1) TO PROGRAM 'touch /tmp/agent-test-proof'",
+                "CREATE TEMP TABLE x AS SELECT 1",
+                "SET statement_timeout = 0; SELECT 1"):
+        body, failed = call("db_query", sql=sql)
+        assert failed, f"{sql} PRZESZLO: {body}"
 
 
 def test_db_query_multiple_statements_still_cannot_write(seeded):

@@ -299,6 +299,47 @@ def test_db_execute_reports_bad_sql_without_asking(task):
 
 # ------------------------------------------------------------------ API zgód
 
+def test_global_list_refuses_a_confirmation_that_belongs_to_a_conversation(con, task):
+    """Zgoda z rozmowy rozstrzygnięta z listy globalnej zawieszała tę rozmowę.
+
+    Tamto wejście zapisuje decyzję, ale nie wznawia grafu — więc panel dostawał 400
+    i tura nie miała już żadnej drogi do końca (przegląd 11.09.2026, komentarz 5).
+    """
+    pytest.importorskip("fastapi")
+    pytest.importorskip("httpx2")
+    from fastapi.testclient import TestClient
+
+    from correction.app import app
+
+    with con.cursor() as cur:
+        cur.execute("INSERT INTO agent_session (model) VALUES ('openai:gpt-5.6-terra') "
+                    "RETURNING id")
+        session = cur.fetchone()["id"]
+        cur.execute("INSERT INTO agent_confirmation (session_id, tool, arguments, title) "
+                    "VALUES (%s, 'task_decide', '{}', 'z rozmowy') RETURNING id", (session,))
+        owned = cur.fetchone()["id"]
+    with TestClient(app) as client:
+        response = client.post(f"/api/agent/confirmations/{owned}", json={"decision": "accept"})
+        assert response.status_code == 409
+        assert f"#{session}" in response.json()["detail"]
+    assert con.execute("SELECT decision FROM agent_confirmation WHERE id = %s",
+                       (owned,)).fetchone()["decision"] is None
+
+
+def test_decide_or_confirm_lets_a_settled_decision_through(con, task):
+    """Wznowienie ma dokończyć turę także wtedy, gdy decyzja jest już zapisana."""
+    with con.cursor() as cur:
+        cur.execute("INSERT INTO agent_confirmation (tool, arguments, title) "
+                    "VALUES ('db_execute', '{}', 't') RETURNING id")
+        cid = cur.fetchone()["id"]
+        assert confirm.decide_or_confirm(cur, cid, "accept")["decision"] == "accept"
+        # Druga próba z TĄ SAMĄ decyzją przechodzi — to jest cała poprawka.
+        assert confirm.decide_or_confirm(cur, cid, "accept")["decision"] == "accept"
+        # Z inną decyzją nie: zmiana zdania po fakcie to nie jest wznowienie.
+        with pytest.raises(ValueError, match="rozstrzygnięte"):
+            confirm.decide_or_confirm(cur, cid, "reject")
+
+
 def test_confirmation_api_lists_and_decides(con, task):
     pytest.importorskip("fastapi")
     pytest.importorskip("httpx2")

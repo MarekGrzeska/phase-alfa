@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from collections.abc import AsyncIterator
 
 from langchain_core.language_models import BaseChatModel
@@ -53,6 +54,11 @@ CALL_MESSAGES: dict[str, int] = {}
 CALL_ARGS: dict[str, dict] = {}
 # id wywołania → potwierdzenie, które o nim rozstrzygnęło (do dziennika).
 CONFIRMED_CALLS: dict[str, int] = {}
+# Kiedy widzieliśmy dane wywołanie. Rozmowa doprowadzona do końca sprząta po sobie
+# sama, ale porzucona (człowiek nie kliknął nic i zamknął kartę) zostawiałaby wpisy
+# do końca życia procesu — a proces ekranu korekty stoi cały dzień.
+SEEN_AT: dict[str, float] = {}
+STALE_AFTER_SECONDS = 6 * 3600
 
 
 class AgentError(Exception):
@@ -160,6 +166,7 @@ class ConfirmInterceptor:
             if not asked or "confirm" not in asked:
                 return result
             PENDING_CONFIRMS[call_id] = asked
+            SEEN_AT[call_id] = time.monotonic()
         # `interrupt` przy pierwszym przejściu rzuca i wychodzi z węzła; po wznowieniu
         # graf wykonuje węzeł od nowa i tu dostajemy decyzję.
         decision = interrupt({"confirm": asked["confirm"], "tool": request.name,
@@ -231,13 +238,17 @@ def _persist(cur, session_id: int, new_messages: list[BaseMessage], model: str) 
             for call in message.tool_calls:
                 CALL_MESSAGES[call["id"]] = row
                 CALL_ARGS[call["id"]] = call["args"]
+                SEEN_AT[call["id"]] = time.monotonic()
         elif isinstance(message, ToolMessage):
             payload = _tool_result_payload(message)
-            audit.record(cur, message.name or "?", CALL_ARGS.pop(message.tool_call_id, {}),
+            audit.record(cur, message.name or "?", CALL_ARGS.get(message.tool_call_id, {}),
                          payload["text"], is_error=payload["is_error"],
-                         confirmation_id=CONFIRMED_CALLS.pop(message.tool_call_id, None),
-                         message_id=CALL_MESSAGES.pop(message.tool_call_id, None),
+                         confirmation_id=CONFIRMED_CALLS.get(message.tool_call_id),
+                         message_id=CALL_MESSAGES.get(message.tool_call_id),
                          force=True)
+            # Wynik narzędzia zamyka sprawę tego wywołania — wpisy pomocnicze
+            # nie są już do niczego potrzebne.
+            forget(message.tool_call_id)
     return {"input_tokens": spend.input_tokens, "output_tokens": spend.output_tokens,
             "usd": round(spend.dollars, 4), "model": model}
 
@@ -304,9 +315,25 @@ async def _agent_for(session: dict, mcp_session, chat_model: BaseChatModel | Non
                         checkpointer=CHECKPOINTER)
 
 
+def forget(call_id: str) -> None:
+    """Koniec życia wpisów jednego wywołania — w jednym miejscu, żeby nic nie zostało."""
+    for where in (PENDING_CONFIRMS, CALL_ARGS, CALL_MESSAGES, CONFIRMED_CALLS, SEEN_AT):
+        where.pop(call_id, None)
+
+
+def forget_stale(now: float | None = None) -> int:
+    """Sprząta wywołania porzucone — te, przy których nikt nie podjął decyzji."""
+    now = time.monotonic() if now is None else now
+    stale = [call for call, seen in SEEN_AT.items() if now - seen > STALE_AFTER_SECONDS]
+    for call in stale:
+        forget(call)
+    return len(stale)
+
+
 def _enter(session: dict) -> None:
     if session["id"] in RUNNING:
         raise AgentError("w tej rozmowie właśnie biegnie odpowiedź — poczekaj na `done`")
+    forget_stale()
     RUNNING.add(session["id"])
     context.session_id.set(session["id"])
     context.model.set(session["model"])

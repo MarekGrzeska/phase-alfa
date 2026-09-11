@@ -6,7 +6,6 @@ przez ten sam graf, a rozmowa, wywołania i koszt lądują w bazie.
 
 from __future__ import annotations
 
-import json
 import os
 from collections.abc import Iterator
 
@@ -263,11 +262,42 @@ def test_config_reports_mock_mode_without_keys(monkeypatch):
     assert cfg["mode"] == "live" and cfg["default"] == "openai:gpt-5.6-luna"
 
 
-def test_json_helpers():
+def test_abandoned_call_is_forgotten_after_a_while():
+    """Rozmowa porzucona przed decyzją nie ma rosnąć w pamięci procesu bez końca."""
+    runtime.PENDING_CONFIRMS["stary"] = {"confirm": {"id": 1}}
+    runtime.CALL_ARGS["stary"] = {"id": 1}
+    runtime.CALL_MESSAGES["stary"] = 7
+    # Zegar monotoniczny liczy od startu systemu, więc „dawno" to różnica,
+    # a nie zero: wpis z zerem na świeżo uruchomionej maszynie byłby młody.
+    runtime.SEEN_AT["stary"] = runtime.time.monotonic() - runtime.STALE_AFTER_SECONDS - 1
+    runtime.PENDING_CONFIRMS["swiezy"] = {"confirm": {"id": 2}}
+    runtime.SEEN_AT["swiezy"] = runtime.time.monotonic()
+
+    assert runtime.forget_stale() == 1
+    assert "stary" not in runtime.PENDING_CONFIRMS
+    assert "stary" not in runtime.CALL_ARGS and "stary" not in runtime.CALL_MESSAGES
+    assert "swiezy" in runtime.PENDING_CONFIRMS
+    runtime.forget("swiezy")
+    assert runtime.SEEN_AT.get("swiezy") is None
+
+
+def test_session_usage_carries_the_amount_not_only_tokens(con, session):
+    """Panel po odświeżeniu strony pokazywał rozmowę za cztery centy jako darmową."""
+    collect(runtime.run_turn(session, "hej", None, chat_model=scripted(saying("Cześć."))))
+    with con.cursor() as cur:
+        usage = conversation.usage(cur, session["id"])
+    # terra: (1200 × 2 + 80 × 12) / 1e6 = 0,00336
+    assert usage["model"] == "openai:gpt-5.6-terra"
+    assert usage["input_tokens"] == 1200 and usage["output_tokens"] == 80
+    assert usage["usd"] == pytest.approx(0.0034, abs=1e-4)
+
+
+def test_parse_json_accepts_only_objects():
+    """Wynik narzędzia jest słownikiem; lista i tekst mają dać `None`, nie wyjątek."""
     assert runtime.parse_json('{"a": 1}') == {"a": 1}
     assert runtime.parse_json("[1]") is None
     assert runtime.parse_json("nie json") is None
-    assert json.loads(json.dumps({"x": 1})) == {"x": 1}
+    assert runtime.parse_json("") is None
 
 
 # ------------------------------------------------------------------ raporty
@@ -280,7 +310,7 @@ def test_reports_carry_agent_cost(con, session):
     model = scripted(saying("Cześć."))
     collect(runtime.run_turn(session, "hej", None, chat_model=model))
     with con.cursor() as cur:
-        numbers = stats.collect(cur)
+        numbers = {**stats.collect(cur), "agent": conversation.totals(cur)}
     agent = numbers["agent"]
     assert agent["models"][0]["model"] == "openai:gpt-5.6-terra"
     assert agent["models"][0]["turns"] >= 1 and agent["usd"] > 0

@@ -158,9 +158,9 @@ def collect(cur) -> dict:
     )
     years = cur.fetchall()
     asset_counts = assets.counts(cur)
-    # Import w środku: `agent` ciągnie SDK MCP, a ten moduł liczą też testy bez niego.
-    from agent import conversation
-
+    # Liczb agenta TU NIE MA świadomie: agent jest nadbudową nad ekranem korekty,
+    # więc warstwa niżej nie ma go znać. Raporty (`correction/report.py`,
+    # `reports/corpus.py`) stoją wyżej i dokładają klucz `agent` same.
     return {
         "status": status,
         "durations": durations,
@@ -169,7 +169,6 @@ def collect(cur) -> dict:
         "assets": asset_counts,
         "s6": s6(cur),
         "s7": s7(asset_counts),
-        "agent": conversation.totals(cur),
     }
 
 

@@ -181,7 +181,7 @@ describe("panel na żywo", () => {
                 { id: 2, role: "agent", content: "Wszystko gra.", tool_calls: null, input_tokens: 500, output_tokens: 20 },
               ],
               tool_calls: [],
-              usage: { input_tokens: 500, output_tokens: 20, turns: 1 },
+              usage: { input_tokens: 500, output_tokens: 20, turns: 1, usd: 0.0034 },
               pending: [],
               running: false,
             })
@@ -193,6 +193,8 @@ describe("panel na żywo", () => {
     expect(screen.getByText("Wszystko gra.")).toBeDefined();
     expect((screen.getByLabelText("Model agenta") as HTMLSelectElement).value).toBe("openai:gpt-5.6-luna");
     expect(screen.getByText(/520 tok/)).toBeDefined();
+    // Kwota z serwera: rozmowa odtworzona z historii nie ma wygladac na darmowa.
+    expect(screen.getByText(/0,0034 \$/)).toBeDefined();
   });
 
   test("sesja, której serwer nie zna, znika z pamięci", async () => {

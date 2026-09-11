@@ -67,7 +67,7 @@ describe("historia z serwera", () => {
       tool_calls: [
         { id: 1, message_id: 11, tool: "db_health", arguments: {}, result_summary: '{"checks":[]}', is_error: false, confirmation_id: null },
       ],
-      usage: { input_tokens: 20, output_tokens: 4, turns: 2 },
+      usage: { input_tokens: 20, output_tokens: 4, turns: 2, usd: 0.0001 },
       pending: [{ id: 5, tool: "db_execute", title: "Surowy zapis SQL", preview: "UPDATE …", cost_usd: null }],
       running: false,
     };

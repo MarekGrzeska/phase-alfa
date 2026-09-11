@@ -127,8 +127,11 @@ def resume(request: Request, session_id: int, confirmation_id: int,
     if session_id in runtime.RUNNING:
         raise HTTPException(409, "w tej rozmowie właśnie biegnie odpowiedź")
     try:
+        # `decide_or_confirm`, nie `decide`: decyzja mogła już zostać zapisana —
+        # przez listę globalną albo przez powtórzone kliknięcie po zerwanym
+        # strumieniu. Wznowienie ma wtedy dokończyć turę, nie odmówić.
         with db.connect() as con, con.transaction(), con.cursor() as cur:
-            confirm.decide(cur, confirmation_id, payload.decision)
+            confirm.decide_or_confirm(cur, confirmation_id, payload.decision)
     except ValueError as e:
         raise HTTPException(404 if "nie istnieje" in str(e) else 400, str(e)) from e
     return stream(runtime.resume_turn(found, confirmation_id, payload.decision))
@@ -145,9 +148,25 @@ def confirmations() -> dict:
 
 @router.post("/confirmations/{confirmation_id}")
 def decide(request: Request, confirmation_id: int, payload: Decision) -> dict:
+    """Decyzja dla zgody BEZ rozmowy — czyli z klienta w terminalu.
+
+    Zgoda należąca do rozmowy jest tu odrzucana: rozstrzygnięcie tą drogą zapisałoby
+    decyzję, ale nie wznowiłoby grafu, i rozmowa w panelu zostałaby zawieszona.
+    Dla niej jest `POST /sessions/{id}/confirmations/{id}`, które robi jedno i drugie.
+    """
     require_same_origin(request)
     try:
         with db.connect() as con, con.transaction(), con.cursor() as cur:
+            cur.execute("SELECT session_id FROM agent_confirmation WHERE id = %s",
+                        (confirmation_id,))
+            row = cur.fetchone()
+            if row is None:
+                raise HTTPException(404, f"nie ma potwierdzenia #{confirmation_id}")
+            if row["session_id"] is not None:
+                raise HTTPException(
+                    409, f"potwierdzenie #{confirmation_id} należy do rozmowy "
+                         f"#{row['session_id']} — rozstrzygnij je w panelu tej rozmowy, "
+                         f"inaczej zostanie ona zawieszona w połowie tury")
             return limits.jsonable(confirm.decide(cur, confirmation_id, payload.decision))
     except ValueError as e:
         raise HTTPException(404 if "nie istnieje" in str(e) else 400, str(e)) from e
