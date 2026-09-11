@@ -277,6 +277,16 @@ tasks:
     dir: ingest
     cmds: ['{{.PY}} -m correction.report {{.CLI_ARGS}}']
 
+  # Serwer MCP po stdio — te same narzędzia, które ma agent w panelu, dla Claude Code:
+  #   claude mcp add --transport stdio klucz -- task mcp
+  # Po HTTP ten sam rejestr stoi pod http://127.0.0.1:${CORRECTION_PORT}/mcp,
+  # gdy działa `task correction`. Plan: docs/plan-agent-mcp.md.
+  mcp:
+    desc: Serwer MCP narzędzi projektu (stdio) — dla Claude Code / Claude Desktop
+    dir: ingest
+    interactive: true
+    cmds: ['{{.PY}} -m agent.server']
+
   # ------------------------------------------------------------ wycinki i dane
   # `task db:reset` kasuje wolumen Postgresa, ale ZOSTAWIA pliki PNG w data/blob.
   # Sprzątaniem zajmuje się narzędzie, nie `rm` w tym pliku — na Windows go nie ma.

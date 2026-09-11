@@ -158,6 +158,9 @@ def collect(cur) -> dict:
     )
     years = cur.fetchall()
     asset_counts = assets.counts(cur)
+    # Import w środku: `agent` ciągnie SDK MCP, a ten moduł liczą też testy bez niego.
+    from agent import conversation
+
     return {
         "status": status,
         "durations": durations,
@@ -166,7 +169,30 @@ def collect(cur) -> dict:
         "assets": asset_counts,
         "s6": s6(cur),
         "s7": s7(asset_counts),
+        "agent": conversation.totals(cur),
     }
+
+
+def agent_lines(measure: dict | None, rule: str) -> list[str]:
+    """Koszt agenta w panelu — liczba do raportu, nie do wiary (plan agent-MCP, M6).
+
+    `None` (liczby złożone bez bazy, jak w testach czystych) daje sekcję „brak rozmów".
+    """
+    lines = ["AGENT W EKRANIE KOREKTY", rule]
+    if not measure or not measure["models"]:
+        lines.append("  brak rozmów")
+        return lines
+    for row in measure["models"]:
+        lines.append(f"  {row['model']:<26} sesji {row['sessions']:>3} · tur {row['turns']:>4}"
+                     f" · tokenów {row['input_tokens'] + row['output_tokens']:>8}"
+                     f" · ${row['usd']:.4f}")
+    decisions = measure["confirmations"]
+    lines += [f"  razem                     : ${measure['usd']:.4f}",
+              f"  wywołań narzędzi          : {measure['tool_calls']}"
+              f" (błędów {measure['tool_errors']})",
+              f"  zgody człowieka           : {decisions['accepted']} tak"
+              f" · {decisions['rejected']} nie · {decisions['pending']} czeka"]
+    return lines
 
 
 def s6_lines(measure: dict, rule: str) -> list[str]:
@@ -239,6 +265,8 @@ def as_text(numbers: dict) -> str:
         *s6_lines(numbers["s6"], rule),
         "",
         *s7_lines(numbers["s7"], rule),
+        "",
+        *agent_lines(numbers.get("agent"), rule),
         "",
         "PROGNOZA",
         rule,

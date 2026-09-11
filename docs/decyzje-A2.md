@@ -299,3 +299,35 @@ Co się zmieniło:
 | **G2.5.1 — prefill w przepływie czy nie** | skorygowania ≥20 zadań otwartych w obu ramionach (z podpowiedzią i bez) | `task correction:report`, sekcja S6: zysk trafień w punktach procentowych i różnica mediany czasu |
 | **G2.6 — `failed` schodzące ręcznie** | przejrzenia 100 odmów w ekranie korekty | raport `task mathjson`, rozbicie na powody — największa kategoria pierwsza |
 | **Tor G — golden set** | 2–3 własnych odpowiedzi na każde z 56 zadań otwartych | `ingest/golden/`; A3 (G3.3) na tym stoi i tego nie da się kupić tokenami |
+
+---
+
+## Agent w ekranie korekty (8.09.2026) — jeden rejestr narzędzi, zgoda jako cecha narzędzia
+
+Plan: `docs/plan-agent-mcp.md`. Rozstrzygnięcia, które zostają:
+
+- **Serwer MCP jest jedynym rejestrem narzędzi.** Ten sam `FastMCP` obsługuje stdio
+  (`task mcp` → Claude Code), `/mcp` w aplikacji ekranu korekty i klienta in-memory
+  agenta w panelu. Jeśli coś działa w panelu, działa też z terminala — i odwrotnie.
+- **Zapis do korpusu wyłącznie przez `db.save`/`db.decide`** (narzędzia `task_*`,
+  `asset_*`), nigdy SQL-em obok. Trzeci autor rozstrzygnięć: `reviewed_by = 'agent'`,
+  `correction_event.actor = 'agent'` (migracja 0010). Powrót to jeden `UPDATE`,
+  jak przy modelu w 0009.
+- **Zgoda człowieka jest cechą narzędzia, nie logiką panelu.** Narzędzie z `confirm`
+  w metadanych (rozstrzygnięcie, zmiana rekordu już w korpusie, surowy `db_execute`,
+  przebieg płatny albo kasujący) wykonuje się tylko z `confirmation=<id>` po decyzji
+  `accept` w panelu, z tymi samymi argumentami i raz. Klient z terminala przechodzi tę
+  samą bramkę — nie ma tylnego wejścia. W rozmowie interceptor wywołań zamienia prośbę
+  o zgodę na `interrupt` grafu, więc panel wznawia dokładnie ten krok.
+- **Model jest cechą sesji, wybieranym w panelu z trzech:** `gpt-5.6-luna`, `-terra`,
+  `-sol` (cennik z 8.09.2026, sol w promocji do 21.11.2026). Koszt tokenów agenta
+  liczy `llm.Spend` i trafia do raportów rozbity na modele. Modele gpt-5.6 z narzędziami
+  wymagają Responses API — chat completions odrzuca narzędzia z `reasoning_effort`.
+- **Akcje ingestu pochodzą z katalogu `task menu`**, nie z osobnej listy; foreground
+  (`correction`, `db:psql`, `menu`) nie są narzędziami. Przebieg biegnie w tle
+  z rejestrem w bazie i logiem w pliku, więc `--reload` uvicorna go nie gubi.
+- **Nawigacja to adres składany w Pythonie** (`agent/urls.py`, test wobec tras
+  `app.py`), wykonywany przez panel po zakończeniu odpowiedzi. Rozmowa żyje w bazie,
+  bo przejście przeładowuje stronę.
+- **Baza wiedzy bez embeddingów**: indeks sekcji z `docs/`, `CLAUDE.md`, `DECYZJE.md`
+  i kodu, słowa plus nagłówki. Piętnaście plików nie potrzebuje infrastruktury.

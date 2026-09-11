@@ -271,6 +271,7 @@
     <li><a href="#snapshot"><span class="n">09</span><span>Regresja parsera bez bazy i wycinki PNG</span></a></li>
     <li><a href="#korekta"><span class="n">10</span><span>Ekran korekty: bramka do korpusu</span></a></li>
     <li><a href="#llm"><span class="n">11</span><span>LLM w ingeście: prefill, opisy, ramki, verify</span></a></li>
+    <li><a href="#agent"><span class="n">11a</span><span>Agent w ekranie korekty: narzędzia MCP</span></a></li>
     <li><a href="#mathjson"><span class="n">12</span><span>MathJSON</span></a></li>
     <li><a href="#golden"><span class="n">13</span><span>Golden set i raport kompletności</span></a></li>
     <li><a href="#liczby"><span class="n">14</span><span>Stan liczbowy na dziś</span></a></li>
@@ -780,6 +781,53 @@ task parser:snapshot -- --compare A.json B.json     # bez parsowania</code></pre
         <li>Zapis idzie po każdym zadaniu (<code>on_verdict</code>), bo odpowiedź jest opłacona, gdy wróci. Raport per rocznik i lista powodów do <code>data/reports/verify-RRRR-MM-DD.txt</code> plus <code>.json</code> z werdyktami.</li>
       </ol>
       <div class="note">Pierwszy dry-run na 2025/100 ($0,46) wykrył błąd systematyczny <strong>parsera</strong>, nie modelu: 15 z 18 <code>fix</code> mówiło to samo o bloku „Rozwiązanie – wersja X/Y” w warunku za 0 pkt. Naprawiono w parserze raz, nie 1346 razy modelem. Powtarzalny powód w <code>reasons</code> to sygnał do kodu.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 11a -->
+<section id="agent">
+  <h2>Agent w ekranie korekty: narzędzia MCP</h2>
+  <p class="kicker">jeden rejestr narzędzi, zgoda człowieka jako cecha narzędzia</p>
+  <div class="col">
+    <p>Skrót; pełny opis techniczny — rejestr wszystkich 54 narzędzi, protokół zgody, pętla i treść system promptu — stoi w osobnym dokumencie: <a href="agent-mcp.html">Agent i narzędzia MCP od środka</a>. Plan i dziennik wykonania: <a href="plan-agent-mcp.md">docs/plan-agent-mcp.md</a>.</p>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>server.py: rejestr i trzy wejścia</h3><span class="files">ingest/agent/server.py · <code>task mcp</code> · <code>/mcp</code></span></div>
+    <div class="col">
+      <ul>
+        <li>Jeden <code>FastMCP</code> („klucz”) rejestruje narzędzia z <code>agent/tools/</code>: baza (<code>db_schema</code>, <code>db_query</code> w transakcji READ ONLY z limitem 15 s i 200 wierszy, <code>inspect_*</code>, <code>db_health</code>), korpus (<code>task_get</code>, <code>task_save</code>, <code>task_decide</code>, <code>asset_*</code>), ingest (<code>ingest_&lt;zadanie&gt;</code> z katalogu <code>task menu</code>, <code>job_*</code>), wiedza (<code>docs_search</code>, <code>code_read</code>, <code>project_status</code>), nawigacja (<code>ui_navigate</code>, <code>ui_focus</code>).</li>
+        <li>Trzy transporty tego samego obiektu: stdio (<code>task mcp</code>, dla Claude Code), streamable HTTP pod <code>/mcp</code> w aplikacji ekranu (trasa z gołym ASGI, bo <code>Mount</code> odpowiadał 307 na <code>/mcp/</code>; menedżer sesji zakłada cykl życia aplikacji, bo <code>run()</code> wolno wywołać raz na instancję) i klient in-memory dla pętli agenta.</li>
+        <li>Wyniki są przycinane JAWNIE (<code>truncated: true</code> plus podpowiedź) — kontekst modelu nie jest miejscem na 1436 wierszy.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>confirm.py: zgoda człowieka</h3><span class="files">ingest/agent/confirm.py · migracja 0010 · <code>/api/agent/confirmations</code></span></div>
+    <div class="col">
+      <p>Narzędzie z <code>confirm</code> w metadanych (rozstrzygnięcie, zmiana rekordu już w korpusie, <code>db_execute</code>, przebieg płatny albo kasujący) woła się dwa razy: bez <code>confirmation</code> zakłada wiersz w <code>agent_confirmation</code> z podglądem (dla SQL-a: liczba wierszy z wycofanej próby) i zwraca prośbę modelowi; z <code>confirmation=&lt;id&gt;</code> wykonuje się tylko po decyzji <code>accept</code> w panelu, z DOKŁADNIE tymi samymi argumentami (porównanie jsonb) i raz (<code>used_at</code>; więz <code>IS NOT DISTINCT FROM</code>, bo zwykłe <code>=</code> przepuszczało <code>decision IS NULL</code>). Klient z terminala przechodzi tę samą bramkę — nie ma tylnego wejścia.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>runtime.py: pętla agenta</h3><span class="files">ingest/agent/runtime.py · api.py · conversation.py · prompts.py</span></div>
+    <div class="col">
+      <ol>
+        <li><code>create_agent</code> z LangChaina 1.x dostaje narzędzia z klienta MCP in-memory (<code>langchain-mcp-adapters</code>) i model z <code>llm.chat_model</code> — do wyboru w panelu: <code>gpt-5.6-luna</code>, <code>-terra</code>, <code>-sol</code>. Modele gpt-5.6 z narzędziami wymagają Responses API.</li>
+        <li>Interceptor wywołań widzi <code>{"confirm"}</code> w wyniku i zatrzymuje graf (<code>interrupt</code>). Panel dostaje zdarzenie <code>confirm</code>; po decyzji <code>resume_turn</code> wznawia ten sam krok: <code>accept</code> woła narzędzie z <code>confirmation</code>, <code>reject</code> oddaje modelowi odmowę. Węzeł po wznowieniu wykonuje się od nowa, więc pierwsza prośba jest pamiętana po id wywołania.</li>
+        <li>Zdarzenia SSE dla panelu: <code>token</code>, <code>tool_call</code>, <code>tool_result</code>, <code>ui</code>, <code>confirm</code>, <code>usage</code>, <code>done</code>. Rozmowa, wywołania i tokeny lądują w <code>agent_session</code>/<code>agent_message</code>/<code>agent_tool_call</code>; po restarcie historia wraca z bazy, przerwanie w toku przepada.</li>
+        <li>System prompt: mapa projektu, słownik, zasady (więzy ostre, zapis tylko przez <code>task_*</code>, dry-run przed <code>--apply</code>), widoki ekranu i migawka stanu liczona raz na sesję. Kontekst ekranu (widok, zadanie, strona, tabela) jedzie z każdą wiadomością jako <code>[ekran: …]</code>.</li>
+      </ol>
+      <div class="note">Pierwsza tura z żywym modelem (luna) kosztowała $0,039, bo <code>task_find</code> oddał 201 pełnych wierszy. Sufit 100 zwięzłych wierszy i podpowiedź „liczby zbiorcze przez GROUP BY” w promptcie — to samo, co przy człowieku: pytanie o liczbę nie jest pytaniem o listę.</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="head"><h3>jobs.py: przebiegi ingestu w tle</h3><span class="files">ingest/agent/jobs.py · tools/ingest.py</span></div>
+    <div class="col">
+      <p>Każda akcja z <code>cli.app.CATALOG</code> (poza <code>foreground</code>) jest narzędziem; flagi składa <code>build_args</code>, polecenie <code>command_for</code> — agent uruchamia to, co człowiek wybrałby w menu. Proces <code>task &lt;nazwa&gt; -- &lt;flagi&gt;</code> biegnie w osobnej grupie procesów, log w <code>data/reports/jobs/</code>, wiersz w <code>agent_job</code>; <code>--reload</code> uvicorna nie gubi ani procesu, ani stanu. Przebieg sprzed restartu serwera jest <code>unknown</code>, nie <code>finished</code>. Kody NTSTATUS z Windows zapisane ze znakiem.</p>
     </div>
   </div>
 </section>

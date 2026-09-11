@@ -44,6 +44,9 @@ from sciezki import KORZEN_REPO
 PRICING = {
     "openai:gpt-5.6-terra": (2.0, 12.0),
     "openai:gpt-5.6-luna": (0.2, 1.2),
+    # Stawka promocyjna do 21.11.2026 (cennik OpenAI, 8.09.2026); potem (5.0, 30.0).
+    # Po tej dacie poprawić, inaczej raport agenta zaniży koszt.
+    "openai:gpt-5.6-sol": (4.0, 20.0),
     "anthropic:claude-opus-5": (5.0, 25.0),
     "anthropic:claude-haiku-4-5": (1.0, 5.0),
 }

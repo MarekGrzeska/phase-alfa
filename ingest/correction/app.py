@@ -15,6 +15,7 @@ bajtów z mirrora i bloba, a nie widok.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -22,11 +23,50 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
+from agent import api as agent_api
+from agent.server import session_manager as mcp_session_manager
 from correction import api, assets, db, inspect_api, inspector, pages
 from pdf import crop as crop_pdf
 
-app = FastAPI(title="Klucz — ekran korekty", docs_url=None, redoc_url=None)
+
+class McpEndpoint:
+    """ASGI pod `/mcp`. Menedżer sesji żyje tyle, co aplikacja — zakłada go cykl życia.
+
+    Gotowa aplikacja Starlette z SDK poszła do kosza: montowana pod `/mcp`
+    odpowiadała przekierowaniem 307 na `/mcp/`, za którym klient MCP nie pójdzie.
+    """
+
+    def __init__(self) -> None:
+        self.manager: StreamableHTTPSessionManager | None = None
+
+    async def __call__(self, scope, receive, send) -> None:
+        if self.manager is None:
+            raise RuntimeError("serwer MCP nie wystartował — brak cyklu życia aplikacji")
+        await self.manager.handle_request(scope, receive, send)
+
+
+MCP_ENDPOINT = McpEndpoint()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    manager = mcp_session_manager()
+    async with manager.run():
+        MCP_ENDPOINT.manager = manager
+        try:
+            yield
+        finally:
+            MCP_ENDPOINT.manager = None
+
+
+app = FastAPI(title="Klucz — ekran korekty", docs_url=None, redoc_url=None,
+              lifespan=lifespan)
+
+# Te same narzędzia, które ma agent w panelu, dla klienta z zewnątrz (Claude Code):
+#   claude mcp add --transport http klucz http://127.0.0.1:8600/mcp
+app.add_route("/mcp", MCP_ENDPOINT, methods=["GET", "POST", "DELETE"])
 
 # Front z `ui/` (React) po zbudowaniu — `task correction:ui`. Katalog powstaje
 # dopiero z buildu, więc `check_dir=False`: brak paczki ma zabrać panel agenta,
@@ -36,6 +76,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC), check_dir=False), name="
 
 app.include_router(api.router)
 app.include_router(inspect_api.router)
+app.include_router(agent_api.router)
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["STATUS_LABELS"] = db.STATUS_LABELS

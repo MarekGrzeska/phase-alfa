@@ -229,6 +229,7 @@ def build(con) -> str:
               f"  suma czasu korekty        : {numbers['durations']['total'] / 3600:.1f} h",
               f"  zostało                   : {numbers['forecast']['tasks']} zadań"
               f" ≈ {numbers['forecast']['hours']:.1f} h"]
+    lines += ["", *stats.agent_lines(numbers["agent"], RULE)]
     return "\n".join(lines) + "\n"
 
 

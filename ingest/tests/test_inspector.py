@@ -273,7 +273,7 @@ def test_check_constraints_become_dictionaries(con, seeded):
         sch = inspector.schema(cur)
     assert sch.enums["task"]["review_status"] == [
         "pending", "approved", "corrected", "rejected"]
-    assert sch.enums["task"]["reviewed_by"] == ["human", "model"]
+    assert sch.enums["task"]["reviewed_by"] == ["human", "model", "agent"]
     assert sch.enums["asset"]["description_status"] == [
         "none", "auto", "approved", "corrected", "manual"]
     # Więz zakresowy i międzykolumnowy słownikiem NIE jest.
